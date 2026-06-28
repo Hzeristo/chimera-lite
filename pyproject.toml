@@ -1,0 +1,27 @@
+[project]
+name = "chimera-lite-mcp"
+version = "0.1.0"
+description = "MCP servers for Chimera Lite — vault query + arXiv paper mining, driven by Claude Code."
+requires-python = ">=3.11"
+dependencies = [
+    "mcp[cli]>=1.2.0",
+    "pydantic>=2.6",
+    "pyyaml>=6.0",
+    "httpx>=0.27",
+    "ddgs>=6.0",
+]
+
+# External runtime requirement (not a Python dep):
+#   ripgrep (`rg`) must be on PATH — chimera-vault's vault_query shells out to it.
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[tool.uv]
+package = false
