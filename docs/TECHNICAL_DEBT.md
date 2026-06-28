@@ -1,0 +1,68 @@
+# Technical Debt
+
+Items found during review or use that are NOT accepted partials. These are deficiencies with eventual resolution intent.
+
+**Distinction:** Accepted Partials are trade-off decisions. Technical Debt are unresolved problems.
+
+---
+
+## Open
+
+| ID | Source | Description | Priority | Resolution Plan |
+|---|---|---|---|---|
+| DEBT-002 | Vibe coding residue | Long-name single-call-site functions across `agent.py` and earlier prompt code (e.g., `_build_router_system_prompt_with_skill_override_and_allowed_tools_filtered_by_whitelist` style) | Low | Touch-and-repair: rename when modifying surrounding code, no dedicated sprint |
+| DEBT-003 | Phase II.E friction E2 | `search_vault` keyword-only matching produces low-precision results on conceptual queries | Low | Defer to Phase IV (Exocortex retrieval). Marked OPEN to remind that friction is real but not currently scheduled |
+| DEBT-004 | III.B.2 audit | `_execute_tool` no longer needs to re-parse `raw_args` after `PlannedToolCall.args` carries the dict, but legacy parse path remains | Low | Touch-and-repair when next modifying tool dispatch |
+| DEBT-005 | III.B.3 audit | Router prompt's args description rendering occasionally falls back to compact mode under non-extreme tool counts; threshold tuning needed | Low | Observe across Phase III.C usage; tune if frictions arise |
+| DEBT-006 | UI residue | Stage cards persist across sessions until manually cleared; no automatic cleanup older than N days | Very Low | Backlog |
+| DEBT-007 | III.B.3 review (IR.3.1 boundary case) | Tool telemetry doesn't cover *parsing-stage* failures (malformed XML before any plan is built); only execution-stage covered | Low | Next debt week if frictions arise |
+| DEBT-009 | FC.2a smoke work (May 2026) | FC.2a smoke test stalled: mock never transitions to PASS, exhausting `max_turns`. Roots: (a) `conftest.MockLLMClient` lacks PASS-switch logic (b) workaround only exists in `agent.py` `__main__`; testing via `__main__` is an antipattern (c) `test_run_theater_with_tool_calls_executes_and_streams` may hide the mock gap | Medium | Unify mock harness; add PASS-switch (or equivalent) on `MockLLMClient`; debt week remove `__main__`-oriented test code from agent |
+| DEBT-011 | skill-memory alignment audit (2026-05-24) | Pre-existing friction entries (friction-260426, friction-260506) use legacy field labels (`想做的事`/`我想做的事情`, `实际怎么做的`/`我实际怎么做的`, `摩擦成本`) instead of canonical (`想做`/`实际`/`成本`); tolerated under D9 documented variance, not retroactively rewritten | Very Low | Touch-and-repair: when a future session edits a legacy entry, opportunistically migrate field labels |
+| DEBT-013 | V.A.2b audit (`V.A.2b-toolout-fix.md`) open question | `_collect_pipeline_artifacts` (`daily_chimera_service.py`) hardcodes vault subfolder literals (`"Must_Read"`, `"Skim"`) when building chip paths, duplicating `VaultNoteWriter`'s source of truth `verdict.value.replace(" ", "_")` (`vault_note_writer.py:40`). Verified they agree today (not a live bug), but a future `VerdictDecision` label or subfolder-convention change would silently desync chips from the on-disk notes | Low | Touch-and-repair: derive the subfolder from `VerdictDecision.value.replace(" ", "_")` (or a shared helper) when next editing artifact emission |
+| DEBT-014 | debt-test-triage audit #7 (2026-06-20) | `conftest.MockLLMClient` distinguishes Router vs Final calls by the literal `"Chimera OS local router"` in the system prompt; the turn-2 `router_continuation.md.j2` lacks that marker, so a continuation probe is miscounted as a Final call (`final_call_count==2`). Confirmed root cause of `test_run_theater_with_tool_calls_executes_and_streams`, left intentionally failing (orthogonal to the `_step_execute` regression fixed in `bedf323`). Refines DEBT-009(c) | Low | Give `MockLLMClient` a reliable router signal (a stable marker present in both router prompts, or a turn counter), then re-enable the assertion |
+
+
+---
+
+## Resolved
+
+| ID | Resolved in | Commit | Original Description |
+|---|---|---|---|
+| DEBT-pre-001 | Phase I M1 | `{commit}` | LLM main path had no outer timeout, allowing indefinite hangs |
+| DEBT-pre-002 | Phase I M1 | `{commit}` | `_run_one` used `except BaseException` swallowing `KeyboardInterrupt` |
+| DEBT-pre-003 | Phase I M1 | `{commit}` | `web_search` invoked `ddgs.text()` synchronously, blocking event loop |
+| DEBT-pre-004 | Phase I M2 | `{commit}` | Hardcoded `127.0.0.1:33333` in Rust + Python |
+| DEBT-pre-005 | Phase I M2 | `{commit}` | `_TOOL_TIMEOUT_MESSAGE` hardcoded "45 seconds" decoupled from configurable deadline |
+| DEBT-pre-006 | Phase III.A Step 0 | `{commit}` | `<CMD:...>` literal mentions in natural-language explanations triggered actual execution |
+| DEBT-pre-007 | Phase III.A Step 0 | `{commit}` | LLM hallucinated tool names not in `TOOL_REGISTRY` |
+| DEBT-pre-008 | Phase III.B.1 | `{commit}` | Persona / skill_override / system_core hand-concatenated across 5+ sites |
+| DEBT-pre-009 | Phase III.B.2 | `{commit}` | Argument JSON parsing failed on smart quotes, code fences, trailing commas |
+| DEBT-012 | `6974cd8` | Append-only contract for ACCEPTED_PARTIALS.md and TECHNICAL_DEBT.md was undocumented in skill process docs. Resolved opposite-direction: phase_review mode now has explicit auto-apply authority for both files via `<state_write_authority>` block in `chimera-sprint-discipline/SKILL.md` and `references/phase-review-process.md` step 8; no separate prohibition needed because the granted scope itself is the contract |
+| DEBT-001 | uv env establishment | `db6bc54` | 6 async tests in `tests/oligo/test_tool_execution.py` lacked `@pytest.mark.asyncio` and were silently skipped; `asyncio_mode = "auto"` in `pyproject.toml` now collects and runs them (verified: PASSED/FAILED, never SKIPPED) |
+| DEBT-008 | uv env establishment | `db6bc54` | Replace inherited PaperMiner conda environment with a clean `uv`-managed `.venv` pinned to `pyproject.toml` only (env now uv-managed per CLAUDE.md; conda-archival housekeeping not separately verified) |
+| DEBT-010 | uv env establishment | `db6bc54` | Python deps unmanaged; conda paper env polluted; no lockfile — now `pyproject.toml` + `requirements.txt`/`requirements-dev.txt` lockfiles + `docs/audits/python-deps.md` audit + CLAUDE.md env block |
+
+---
+
+## Triage Rules
+
+- **Critical:** Block next sprint. Fix immediately.
+- **High:** Fix within current phase before seal.
+- **Medium:** Fix in next dedicated debt week.
+- **Low:** Fix opportunistically when modifying nearby code.
+- **Very Low:** Backlog. Re-evaluate annually.
+
+---
+
+## Debt Week Process
+
+When backlog accumulates:
+1. Schedule a Use Week (no new code) followed by a Debt Week (only this list).
+2. Pick highest-priority Open items.
+3. For each: read, scope, sprint, fix, verify.
+4. Move to Resolved with commit hash.
+5. New friction in Use Week may surface DEBT-NEW items; append, don't preempt the queue.
+
+---
+
+*Update protocol: New entries appended by `chimera-sprint-discipline` phase_review mode under `<state_write_authority>` (auto-apply, no diff). Resolved entries moved by author at fix-commit time.*
