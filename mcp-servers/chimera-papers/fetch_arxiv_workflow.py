@@ -6,9 +6,9 @@ import asyncio
 import logging
 from pathlib import Path
 
-from src.crucible.core.config import ChimeraConfig, get_config
-from src.crucible.ports.arxiv.arxiv_fetch import ArxivFetcher
-from src.crucible.services.task_service import TaskService
+from core.config import ChimeraConfig, get_config
+from ports.arxiv.arxiv_fetch import ArxivFetcher
+from task_service import TaskService
 
 logger = logging.getLogger(__name__)
 

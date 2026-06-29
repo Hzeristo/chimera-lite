@@ -11,14 +11,14 @@ from collections.abc import Awaitable
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from src.crucible.ports.llm.base import LLMClient
+    from ports.llm.base import LLMClient
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from src.crucible.core.schemas import TaskEvent, TaskEventType
+from core.schemas import TaskEvent, TaskEventType
 
 _task_service_singleton: "TaskService | None" = None
 
@@ -54,7 +54,7 @@ def get_task_service() -> "TaskService":
     """Return configured TaskService, or a default under ``~/.chimera/tasks``."""
     global _task_service_singleton
     if _task_service_singleton is None:
-        from src.crucible.core.platform import get_chimera_root
+        from core.platform import get_chimera_root
 
         _task_service_singleton = TaskService(get_chimera_root() / "tasks")
     return _task_service_singleton
@@ -381,6 +381,23 @@ class TaskService:
     def get_task_status(self, task_id: str) -> Task:
         """Load current task state from disk."""
         return self._load_task(task_id)
+
+    _LONG_TASK_TYPES = ("arxiv_fetch", "daily_pipeline")
+
+    def has_active_long_task(self) -> bool:
+        """True if any long-running task (arXiv fetch / daily pipeline) is still
+        PENDING or RUNNING. Disk is the source of truth, so this is reliable even
+        right after a fire-and-forget start. The MCP server uses it to reject
+        concurrent pipeline starts."""
+        active = (TaskStatus.PENDING, TaskStatus.RUNNING)
+        for path in self.tasks_dir.glob("*.json"):
+            try:
+                task = Task.model_validate_json(path.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            if task.type in self._LONG_TASK_TYPES and task.status in active:
+                return True
+        return False
 
     async def run_subprocess_task(
         self,

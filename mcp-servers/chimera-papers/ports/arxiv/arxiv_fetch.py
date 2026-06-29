@@ -12,7 +12,7 @@ from pathlib import Path
 
 import requests
 
-from src.crucible.core.config import ChimeraConfig, get_config
+from core.config import ChimeraConfig, get_config
 
 logger = logging.getLogger(__name__)
 
