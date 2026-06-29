@@ -20,10 +20,6 @@ mcp = FastMCP("chimera-papers")
 # the busy check. TaskService persists PENDING synchronously, so the guard is race-free.
 _start_lock = asyncio.Lock()
 
-_PIPELINE_NOT_WIRED = (
-    "[chimera-papers] daily_paper_pipeline is not wired yet (migration sprint M.2b)."
-)
-
 
 def _busy_message() -> str:
     return (
@@ -55,14 +51,21 @@ async def daily_paper_pipeline(
     skip_telegram: bool = False,
 ) -> str:
     """Run the full daily paper pipeline (long-running). Returns a ``task_id``; poll
-    ``check_task_status``. Wired in M.2b (under the same concurrency guard).
+    ``check_task_status``. Subject to the same single-pipeline concurrency guard.
 
     Args:
         arxiv_query: Optional override for the configured arXiv query.
         arxiv_max_results: Optional cap on arXiv results (1–2000).
         skip_telegram: If true, skip the Telegram broadcast step.
     """
-    return _PIPELINE_NOT_WIRED
+    async with _start_lock:
+        if get_task_service().has_active_long_task():
+            return _busy_message()
+        return await miner_tools.daily_paper_pipeline(
+            arxiv_query=arxiv_query,
+            arxiv_max_results=arxiv_max_results,
+            skip_telegram=skip_telegram,
+        )
 
 
 @mcp.tool()

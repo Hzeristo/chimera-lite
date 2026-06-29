@@ -22,7 +22,7 @@ from tenacity import (
     wait_exponential,
 )
 
-from src.crucible.ports.llm.json_janitor import clean_json_output
+from ports.llm.json_janitor import clean_json_output
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +93,7 @@ class OpenAICompatibleClient:
         if not api_key or not api_key.strip():
             raise ValueError("api_key must be non-empty (pass from get_config() / bootstrap).")
         if timeout_seconds is None:
-            from src.crucible.core.config import get_config
+            from core.config import get_config
 
             timeout_seconds = float(get_config().default_llm_timeout_seconds)
         else:
@@ -232,7 +232,6 @@ class OpenAICompatibleClient:
                     response_model=response_model,
                 )
             except Exception as exc:
-                last_exc = exc
                 if not is_transient_error(exc):
                     _log_final_failure(
                         exc=exc,

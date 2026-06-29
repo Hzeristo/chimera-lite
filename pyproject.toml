@@ -15,6 +15,19 @@ dependencies = [
     "ddgs>=6.0",
     # arxiv_fetch's own footprint (M.2a)
     "requests>=2.31",
+    # --- M.2b paper-pipeline ML stack (chimera-dependency-veto OVERRIDE) ---
+    # MinerU: PDF -> Markdown via ML pipeline (layout detection + OCR + formula).
+    # Approved as a core Chimera capability — no lighter alternative for academic PDFs.
+    # Exit strategy: mineru is called only in ports/ingest/mineru_pipeline.py; retiring it
+    # means replacing one file. torch is pulled because MinerU's models require it.
+    # torch: CUDA cu128 build for RTX 5060 (Blackwell, sm_120) — NOT CPU-only. >=2.7 is the
+    # first series with cu128/sm_120 wheels.
+    "torch>=2.7,<3",
+    "mineru[core]>=1.4",
+    # direct footprint of the daily-pipeline chain (M.2b): templating, LLM client, retries
+    "jinja2>=3.1",
+    "openai>=1.40",
+    "tenacity>=8.2",
 ]
 
 # External runtime requirement (not a Python dep):
@@ -33,3 +46,14 @@ pythonpath = ["mcp-servers/chimera-papers", "mcp-servers/chimera-vault"]
 
 [tool.uv]
 package = false
+
+# RTX 5060 (Blackwell, sm_120) needs the CUDA 12.8 torch build, not the default
+# CPU-only PyPI wheel. Driver supports CUDA 13.1 (backward-compatible with cu128).
+[[tool.uv.index]]
+name = "pytorch-cuda"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cuda" }
+torchvision = { index = "pytorch-cuda" }

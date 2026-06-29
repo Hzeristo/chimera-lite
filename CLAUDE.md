@@ -105,6 +105,17 @@ Ported from project_chimera; same authority model.
 - Run a server directly: `uv run python mcp-servers/chimera-vault/server.py`
 - External tool: `vault_query` shells out to **ripgrep (`rg`)** — must be on PATH.
 
+#### GPU / CUDA (paper pipeline)
+`mineru` PDF→Markdown ingest runs PyTorch on the GPU.
+- GPU: **NVIDIA RTX 5060 (Blackwell, sm_120)**; driver supports CUDA 13.1.
+- torch is installed from the **cu128** build, not the CPU-only PyPI wheel (which lacks
+  sm_120). Wired via `[[tool.uv.index]] pytorch-cuda` → `https://download.pytorch.org/whl/cu128`
+  + `[tool.uv.sources] torch/torchvision`. Installed: `torch 2.11.0+cu128`.
+- Verify: `python -c "import torch; print(torch.cuda.is_available())"` → `True`
+  (`torch.cuda.get_device_name(0)` → `NVIDIA GeForce RTX 5060`).
+- First `uv sync` downloads the CUDA torch wheel (~GB) + the MinerU ML stack; later syncs
+  use the cache. Do NOT let a plain `pip`/CPU wheel shadow it.
+
 ### Configuration
 - Server paths come from environment variables set in `.mcp.json`:
   - `CHIMERA_VAULT_ROOT` — Obsidian vault path (sibling: `D:\MAS\project_chimera_vault`).

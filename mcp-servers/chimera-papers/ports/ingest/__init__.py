@@ -1,4 +1,4 @@
-from src.crucible.ports.ingest.mineru_pipeline import (
+from ports.ingest.mineru_pipeline import (
     SinglePdfIngestOutcome,
     ingest_single_pdf_for_deep_read,
     ingest_to_papers,

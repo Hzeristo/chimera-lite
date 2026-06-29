@@ -36,6 +36,56 @@ async def arxiv_miner(query: str, max_results: int = 5) -> str:
     )
 
 
+async def _run_daily_with_progress(
+    task_id: str,
+    arxiv_query: str | None,
+    arxiv_max_results: int | None,
+    skip_telegram: bool,
+) -> str:
+    # Lazy import: keep the heavy filter/ingest (MinerU) chain out of module load.
+    from daily_chimera_service import run_daily_pipeline_with_stage_events
+
+    task_service = get_task_service()
+    return await run_daily_pipeline_with_stage_events(
+        task_id=task_id,
+        task_service=task_service,
+        settings=None,
+        arxiv_query=arxiv_query,
+        arxiv_max_results=arxiv_max_results,
+        skip_telegram=skip_telegram,
+    )
+
+
+async def daily_paper_pipeline(
+    arxiv_query: str | None = None,
+    arxiv_max_results: int | None = None,
+    skip_telegram: bool = False,
+) -> str:
+    """Start the full daily pipeline (fetch → ingest → filter → notify); return task_id."""
+    n: int | None
+    if arxiv_max_results is None:
+        n = None
+    else:
+        try:
+            n = int(arxiv_max_results)
+        except (TypeError, ValueError):
+            n = None
+
+    q_override: str | None = None
+    if arxiv_query is not None and str(arxiv_query).strip():
+        q_override = str(arxiv_query).strip()
+
+    task_service = get_task_service()
+    task_id = task_service.create_task("daily_pipeline")
+    await task_service.emit_created(task_id)
+    work = _run_daily_with_progress(task_id, q_override, n, bool(skip_telegram))
+    asyncio.create_task(task_service.run_task(task_id, work))
+    return (
+        f"[Task Started] Daily pipeline: {task_id}\n"
+        f"Use check_task_status({task_id!r}) to track progress."
+    )
+
+
 async def check_task_status(task_id: str) -> str:
     """Return persisted status / progress / result for a background task."""
     tid = (task_id or "").strip()

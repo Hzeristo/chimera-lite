@@ -9,15 +9,15 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
-from src.crucible.core.config import ChimeraConfig, get_config, PaperMinerSettings
-from src.crucible.core.naming import sanitize_filename
-from src.crucible.core.schemas import BatchFilterStats
-from src.oligo.core.schemas import Artifact, ToolOutput
-from src.crucible.ports.notify.telegram_notifier import TelegramNotifier
-from src.crucible.services.batch_filter_workflow import filter_queue_worker
-from src.crucible.ports.arxiv.arxiv_fetch import ArxivFetcher
-from src.crucible.ports.ingest.mineru_pipeline import convert_queue_worker
-from src.crucible.services.task_service import TaskService
+from core.config import ChimeraConfig, get_config, PaperMinerSettings
+from core.naming import sanitize_filename
+from core.schemas import BatchFilterStats
+from core.schemas import Artifact, ToolOutput
+from ports.notify.telegram_notifier import TelegramNotifier
+from batch_filter_workflow import filter_queue_worker
+from ports.arxiv.arxiv_fetch import ArxivFetcher
+from ports.ingest.mineru_pipeline import convert_queue_worker
+from task_service import TaskService
 
 logger = logging.getLogger(__name__)
 

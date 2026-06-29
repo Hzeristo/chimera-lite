@@ -61,3 +61,17 @@ async def test_arxiv_miner_returns_task_id(svc: TaskService, monkeypatch) -> Non
     assert "[Task Started]" in out
     assert re.search(r"[0-9a-f]{8}", out), out
     await asyncio.sleep(0.05)  # let the fire-and-forget task drain
+
+
+async def test_daily_pipeline_returns_task_id(svc: TaskService, monkeypatch) -> None:
+    # Mock the heavy chain (lazy-imported inside _run_daily_with_progress) so this stays a
+    # unit test — the live fetch→ingest→filter→notify run is the M.5 E2E smoke.
+    async def _fake_run(task_id, q, n, skip):  # noqa: ANN001
+        return "pipeline ok"
+
+    monkeypatch.setattr(miner_tools, "_run_daily_with_progress", _fake_run)
+    out = await miner_tools.daily_paper_pipeline(skip_telegram=True)
+    assert "[Task Started] Daily pipeline" in out
+    assert re.search(r"[0-9a-f]{8}", out), out
+    assert svc.has_active_long_task() is True  # daily_pipeline task registered
+    await asyncio.sleep(0.05)

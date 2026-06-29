@@ -6,10 +6,10 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
-from src.crucible.core.config import ChimeraConfig
-from src.crucible.core.naming import compute_fancy_basename
-from src.crucible.core.schemas import DeepReadAtlas, Paper, PaperAnalysisResult
-from src.crucible.ports.prompts.jinja_prompt_manager import PromptManager
+from core.config import ChimeraConfig
+from core.naming import compute_fancy_basename
+from core.schemas import DeepReadAtlas, Paper, PaperAnalysisResult
+from ports.prompts.jinja_prompt_manager import PromptManager
 
 logger = logging.getLogger(__name__)
 

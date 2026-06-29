@@ -8,9 +8,9 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
-from src.crucible.core.config import ChimeraConfig
-from src.crucible.core.naming import compute_fancy_basename
-from src.crucible.core.schemas import Paper, PaperAnalysisResult
+from core.config import ChimeraConfig
+from core.naming import compute_fancy_basename
+from core.schemas import Paper, PaperAnalysisResult
 
 logger = logging.getLogger(__name__)
 

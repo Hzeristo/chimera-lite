@@ -8,10 +8,10 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
-from src.crucible.core.config import ChimeraConfig, get_config
-from src.crucible.core.schemas import Paper
-from src.crucible.ports.ingest.paper2md import MineruClient
-from src.crucible.ports.papers.paper_loader import PaperLoader
+from core.config import ChimeraConfig, get_config
+from core.schemas import Paper
+from ports.ingest.paper2md import MineruClient
+from ports.papers.paper_loader import PaperLoader
 
 try:
     from tqdm import tqdm

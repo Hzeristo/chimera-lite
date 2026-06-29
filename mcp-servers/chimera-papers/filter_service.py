@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 import logging
 
-from src.crucible.core.schemas import Paper, PaperAnalysisResult, VerdictDecision
-from src.crucible.ports.llm.openai_compatible_client import OpenAICompatibleClient
-from src.crucible.ports.prompts.jinja_prompt_manager import PromptManager
+from core.schemas import Paper, PaperAnalysisResult, VerdictDecision
+from ports.llm.openai_compatible_client import OpenAICompatibleClient
+from ports.prompts.jinja_prompt_manager import PromptManager
 
 logger = logging.getLogger(__name__)
 

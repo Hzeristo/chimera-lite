@@ -6,8 +6,8 @@ import logging
 import shutil
 from pathlib import Path
 
-from src.crucible.core.schemas import Paper, PaperMetadata
-from src.crucible.ports.arxiv.arxiv_fetch import ArxivFetcher
+from core.schemas import Paper, PaperMetadata
+from ports.arxiv.arxiv_fetch import ArxivFetcher
 
 logger = logging.getLogger(__name__)
 

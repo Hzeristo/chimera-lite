@@ -6,20 +6,20 @@ import asyncio
 import logging
 from pathlib import Path
 
-from src.crucible.bootstrap import build_openai_client
-from src.crucible.core.config import ChimeraConfig, get_config
-from src.crucible.core.schemas import (
+from bootstrap import build_openai_client
+from core.config import ChimeraConfig, get_config
+from core.schemas import (
     BatchFilterStats,
     BatchMustReadItem,
     Paper,
     PaperAnalysisResult,
     VerdictDecision,
 )
-from src.crucible.ports.papers.paper_archive_adapter import PaperArchiveAdapter
-from src.crucible.ports.papers.paper_loader import PaperLoader
-from src.crucible.ports.prompts.jinja_prompt_manager import PromptManager
-from src.crucible.ports.vault.vault_note_writer import VaultNoteWriter
-from src.crucible.services.filter_service import FilterService
+from ports.papers.paper_archive_adapter import PaperArchiveAdapter
+from ports.papers.paper_loader import PaperLoader
+from ports.prompts.jinja_prompt_manager import PromptManager
+from ports.vault.vault_note_writer import VaultNoteWriter
+from filter_service import FilterService
 
 try:
     from tqdm import tqdm
