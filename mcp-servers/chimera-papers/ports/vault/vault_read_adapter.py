@@ -12,8 +12,8 @@ from typing import Any
 
 import yaml
 
-from src.crucible.core.config import ChimeraConfig
-from src.crucible.core.naming import extract_short_moniker_from_note_filename
+from core.config import ChimeraConfig
+from core.naming import extract_short_moniker_from_note_filename
 
 logger = logging.getLogger(__name__)
 

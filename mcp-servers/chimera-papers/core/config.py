@@ -287,7 +287,10 @@ class ChimeraConfig(BaseSettings):
         env_nested_delimiter="__",
         env_file=str(PROJECT_ROOT / ".env"),
         env_file_encoding="utf-8",
-        extra="forbid",
+        # Ignore unknown top-level sections so the shared ~/.chimera/config.toml
+        # (which still carries the retired [oligo] block) loads cleanly. Nested
+        # models keep extra="forbid" to still catch typos within known sections.
+        extra="ignore",
         case_sensitive=False,
     )
 
