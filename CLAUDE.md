@@ -6,6 +6,26 @@ This is the **Claude-Code-native** successor to Project Chimera. The custom olig
 agent loop and the astrocyte frontend are retired; Claude Code *is* the agent loop,
 and the surviving domain tools are exposed as MCP servers.
 
+## Migration context
+**This repo is mid-migration.** It is not a greenfield project — it is the operational
+port of `project_chimera` (a bespoke agent + Tauri frontend) onto Claude Code + MCP.
+Read this before assuming anything about how a feature "should" work.
+
+- **Where we came from:** `../project_chimera` — oligo agent loop (`ChimeraAgent`, 1485
+  lines of theater loop + text-DSL tool parsing) and the astrocyte Svelte/Tauri frontend.
+  Both retired, preserved on the `archive/chimera-oligo` branch of that repo.
+- **Why:** feasibility verdict — `../project_chimera/docs/audits/chimera-to-code-feasibility.md`.
+  The tools migrate to MCP and improve; the agent loop is deleted (native loop replaces it).
+- **Active phase:** **Phase M — Chimera Lite Migration** (`docs/phases/phase-M.md`).
+  Its sprint sequence (M.0 audit → M.1 vault wiring → M.2 papers wiring → M.3 BB persona
+  → M.4 cleanup → M.5 E2E) and red lines are authoritative for migration work.
+- **Current state:** foundation scaffold only. The MCP servers declare tool **contracts**;
+  their bodies lazy-import and return a NOT-WIRED sentinel. Domain wiring is Phase M.
+  See "Migration status" below for the exact gap.
+- **Phase M red lines (summary; full list in `phase-M.md`):** no oligo loop code, no
+  astrocyte/Tauri/Svelte, no text-DSL parsing, no SSE protocol, MCP servers stay thin
+  adapters (<200 lines), TaskService stays poll-model, BB persona via skill only.
+
 ## Lineage
 - Predecessor: `../project_chimera` (oligo agent + astrocyte frontend).
 - Migration rationale & feasibility verdict: `../project_chimera/docs/audits/chimera-to-code-feasibility.md`.
