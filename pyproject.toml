@@ -6,7 +6,11 @@ requires-python = ">=3.11"
 dependencies = [
     "mcp[cli]>=1.2.0",
     "pydantic>=2.6",
+    # config.py's own footprint (ported in M.0.5): TOML read/write + .env + settings
+    "pydantic-settings>=2.6",
     "pyyaml>=6.0",
+    "tomlkit>=0.13",
+    "python-dotenv>=1.0",
     "httpx>=0.27",
     "ddgs>=6.0",
 ]
@@ -22,6 +26,8 @@ dev = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+# Each MCP server dir is its own import root (servers run as scripts from inside).
+pythonpath = ["mcp-servers/chimera-papers"]
 
 [tool.uv]
 package = false

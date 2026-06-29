@@ -97,9 +97,11 @@ Ported from project_chimera; same authority model.
 ## Development environment
 
 ### Python (MCP servers)
+- Path: `.venv\Scripts\python.exe` (repo-root venv, created by `uv sync`; one venv shared by both servers)
+- Version: 3.13 (`requires-python = ">=3.11"`)
 - Package manager: uv
-- Manifest: `pyproject.toml` (repo root; one venv shared by both servers)
-- Version: 3.11+
+- Manifest: `pyproject.toml` (repo root)
+- Activation prefix for tool calls: `D:\MAS\chimera-lite\.venv\Scripts\python.exe -m {tool}`
 - Run a server directly: `uv run python mcp-servers/chimera-vault/server.py`
 - External tool: `vault_query` shells out to **ripgrep (`rg`)** — must be on PATH.
 
