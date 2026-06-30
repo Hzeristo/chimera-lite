@@ -6,6 +6,52 @@ Each entry: phase / sprint, partial description, reason for acceptance.
 
 ---
 
+## Phase M — Chimera Lite Migration (functional seal 2026-06-30)
+
+### M.seal.1 — Sealed on 3/4 live HSC (user override)
+- **Description:** M.5 Test 2 (daily pipeline end-to-end) was not green at seal time; the
+  phase was functionally sealed on Tests 1/3/4 by explicit user override.
+- **Reason:** The migration's *architecture* is proven (vault MCP, BB voice, independence,
+  the wired pipeline construction chain). The remaining Test-2 issues are *runtime* defects
+  handled as a post-seal incident — not evidence the migration is incomplete. The system is
+  usable for daily research now.
+
+### M.0.5.1 — "port + prune" not "pure port"
+- **Description:** M.0.5 was reclassified from pure port to port+prune because `config.py`/
+  `schemas.py` imported `src.oligo`. Dead oligo-agent surface was stripped.
+- **Reason:** A literal pure port would violate the independence red line. User-approved
+  prune-on-port (2026-06-28).
+
+### M.1.1 — `config` `extra="forbid"` → `extra="ignore"`
+- **Description:** Top-level config tolerates unknown sections (nested models still forbid).
+- **Reason:** chimera-lite shares `~/.chimera/config.toml` with project_chimera, which still
+  carries retired `[oligo]`/`[astrocyte]` sections.
+
+### M.2b.1 — ML dependency stack (veto override)
+- **Description:** `torch` (cu128) + `mineru[core]` + jinja2/openai/tenacity added.
+- **Reason:** MinerU is a core capability with no lighter alternative for academic PDFs;
+  confined to `ports/ingest/mineru_pipeline.py`. CUDA torch is mandatory (CPU torch is a
+  perf regression). User-directed full install (2026-06-28).
+
+### M.3.1 — BB persona is an opinionated stance
+- **Description:** "warmth" (undefined in the 4-trait spec) was resolved via the Fate/EXTRA
+  CCC BB archetype as possessive operator-directed devotion.
+- **Reason:** The spec left it undefined; a stance was taken for the user to react to. One
+  file to rewrite if wrong.
+
+### M.tooling.1 — mypy / `check_taste.ps1` not chimera-lite-wired
+- **Description:** The per-sprint gate was `uvx ruff` + venv `pytest`; mypy + the ported
+  `check_taste.ps1` (which targets `crucible_core/`) were not run.
+- **Reason:** Agreed at M.0.5; adapting the toolchain is a small future sprint, not a Phase M
+  deliverable.
+
+### M.uvlock.1 — `uv.lock` gitignored
+- **Description:** The lockfile for the large ML stack is not committed.
+- **Reason:** Reproduction is via `pyproject.toml` + the cu128 index. Reconsider if
+  reproducibility becomes a concern.
+
+---
+
 ## Phase III.B.3 — Intent Recognition (sealed 2026-05-XX)
 
 ### IR.1.1 — Tool list compresses to compact / micro mode under length budget
