@@ -1,4 +1,4 @@
-"""全系统唯一 Pydantic 数据字典（PaperMiner / Optics / Oligo / 工作流）。"""
+"""全系统唯一 Pydantic 数据字典（PaperMiner / Optics / 工作流）。"""
 
 from __future__ import annotations
 
@@ -276,10 +276,6 @@ class DeepReadAtlas(BaseModel):
     structural_gaps: StructuralGaps | None = None
 
 
-# --- Oligo ---
-
-# (ChatMessage migrated to oligo.core.schemas — re-exported above)
-
 class SkillDefinition(BaseModel):
     """`~/.chimera/skills/{skill_id}.json` 的纯净定义（不含使用统计）。
 
@@ -300,9 +296,6 @@ class SkillDefinition(BaseModel):
     expected_output_format: str | None = None
     version: str = Field(default="1.0.0", min_length=1)
     last_updated: str | None = None
-
-
-# (AgentInvokeRequest migrated to oligo.core.schemas — re-exported above)
 
 
 # --- Tool Execution (structured tool return) ---
@@ -367,11 +360,6 @@ class BatchFilterStats(BaseModel):
     skim_items: list[BatchMustReadItem] = Field(default_factory=list)
     reject_items: list[BatchMustReadItem] = Field(default_factory=list)
     source_dir: Path | None = None
-
-
-# --- Oligo PromptComposer ---
-
-# (PromptStage, PromptRenderer, PromptComponent migrated to oligo.core.schemas — re-exported above)
 
 
 class ToolSpec(BaseModel):

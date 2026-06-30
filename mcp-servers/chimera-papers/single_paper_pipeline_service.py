@@ -5,16 +5,16 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from src.crucible.bootstrap import build_openai_client
-from src.crucible.core.config import ChimeraConfig
-from src.crucible.core.schemas import VerdictDecision
-from src.crucible.ports.ingest.mineru_pipeline import ingest_to_papers
-from src.crucible.ports.ingest.paper2md import MineruNotInstalledError
-from src.crucible.ports.papers.paper_archive_adapter import PaperArchiveAdapter
-from src.crucible.ports.papers.paper_loader import PaperLoader
-from src.crucible.ports.prompts.jinja_prompt_manager import PromptManager
-from src.crucible.ports.vault.vault_note_writer import VaultNoteWriter
-from src.crucible.services.filter_service import FilterService
+from bootstrap import build_openai_client
+from core.config import ChimeraConfig
+from core.schemas import VerdictDecision
+from ports.ingest.mineru_pipeline import ingest_to_papers
+from ports.ingest.paper2md import MineruNotInstalledError
+from ports.papers.paper_archive_adapter import PaperArchiveAdapter
+from ports.papers.paper_loader import PaperLoader
+from ports.prompts.jinja_prompt_manager import PromptManager
+from ports.vault.vault_note_writer import VaultNoteWriter
+from filter_service import FilterService
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ class SinglePaperPipelineService:
             logger.info("[Service] 阶段 3 | 审判：FilterService.evaluate_paper")
             result = engine.evaluate_paper(paper)
 
-            from src.crucible.services.cli_presenter import print_triage_banner
+            from cli_presenter import print_triage_banner
 
             print_triage_banner(result)
 
@@ -104,7 +104,7 @@ class SinglePaperPipelineService:
 
                 deploy_msg = f"[✔] Knowledge Node deployed at {out_path}"
                 logger.info("[Service] %s", deploy_msg)
-                from src.crucible.services.cli_presenter import print_success
+                from cli_presenter import print_success
 
                 print_success(deploy_msg)
 
@@ -119,7 +119,7 @@ class SinglePaperPipelineService:
                 f"[✔] Paper archived under papers/filtered/{result.verdict.value.replace(' ', '_')}/"
             )
             logger.info("[Service] %s", archive_msg)
-            from src.crucible.services.cli_presenter import print_success
+            from cli_presenter import print_success
 
             print_success(archive_msg)
 
@@ -140,7 +140,7 @@ class SinglePaperPipelineService:
                     router.cleanup_playground(raw_dir_for_cleanup, generated_clean_md)
                     clean_msg = "[✔] MinerU raw staging cleaned (finally)."
                     logger.info("[Service] %s", clean_msg)
-                    from src.crucible.services.cli_presenter import print_success
+                    from cli_presenter import print_success
 
                     print_success(clean_msg)
                 except RuntimeError as exc:

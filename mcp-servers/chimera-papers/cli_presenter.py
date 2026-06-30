@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 import textwrap
 
-from src.crucible.core.schemas import PaperAnalysisResult
+from core.schemas import PaperAnalysisResult
 
 
 def _term_green(text: str) -> str:

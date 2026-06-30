@@ -1,6 +1,6 @@
 """Project Chimera unified configuration: ``~/.chimera/config.toml`` (+ env / legacy YAML).
 
-Crucible-specific paths (paper_miner, playground, etc.) remain here; Oligo/LLM/Wash/Vault
+Crucible-specific paths (paper_miner, playground, etc.) remain here; LLM/Wash/Vault
 policy live in nested blocks per ``docs/CONFIG_SCHEMA.md``.
 """
 
@@ -10,7 +10,7 @@ import copy
 import logging
 import os
 from pathlib import Path
-from typing import Any, Literal, Mapping, Self, get_args, get_origin
+from typing import Any, Mapping, Self, get_args, get_origin
 
 import tomlkit
 import yaml
@@ -153,7 +153,7 @@ class LLMModelConfig(BaseModel):
 
 
 class LLMProviderSlotConfig(BaseModel):
-    """Astrocyte / HUD 可选的命名 Provider 槽（与 `[llm.providers.*]` 对齐）。"""
+    """可选的命名 Provider 槽（与 `[llm.providers.*]` 对齐）。"""
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
@@ -259,13 +259,6 @@ class VaultRuntimeConfig(BaseModel):
     cache_ttl_seconds: int = Field(300, ge=0)
 
 
-class AstrocyteConfigBlock(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    theme: Literal["dark", "light"] = "dark"
-    enable_clipboard_capture: bool = False
-
-
 class PaperMinerSettings(BaseModel):
     """Optional paper-specific paths and arxiv query config."""
 
@@ -298,7 +291,6 @@ class ChimeraConfig(BaseSettings):
     llm: LLMConfig = Field(default_factory=_default_llm_config)
     wash: WashConfig = Field(default_factory=WashConfig)
     vault: VaultRuntimeConfig = Field(default_factory=VaultRuntimeConfig)
-    astrocyte: AstrocyteConfigBlock = Field(default_factory=AstrocyteConfigBlock)
 
     paper_miner: PaperMinerSettings | None = None
     project_root: Path = Field(default=get_project_root())
@@ -651,7 +643,6 @@ def _legacy_yaml_to_chimera_nested(raw: dict[str, Any]) -> dict[str, Any]:
         "llm": llm,
         "wash": wash,
         "vault": {"cache_size": 200, "cache_ttl_seconds": 300},
-        "astrocyte": {"theme": "dark", "enable_clipboard_capture": False},
     }
 
     pm_block = raw.pop("paper_miner", None)

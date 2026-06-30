@@ -9,8 +9,8 @@ from typing import Any
 
 import yaml
 
-from src.crucible.core.config import ChimeraConfig
-from src.crucible.core.schemas import LensConfig
+from core.config import ChimeraConfig
+from core.schemas import LensConfig
 
 logger = logging.getLogger(__name__)
 

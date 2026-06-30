@@ -1,6 +1,6 @@
 """vault_query tool — ripgrep over vault frontmatter, no index, no daemon.
 
-Ported from oligo's vault_query with flat imports. Requires ripgrep (``rg``) on PATH.
+Ripgrep over vault frontmatter; flat imports. Requires ripgrep (``rg``) on PATH.
 """
 
 from __future__ import annotations

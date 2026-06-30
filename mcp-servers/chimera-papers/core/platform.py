@@ -90,7 +90,7 @@ def get_linux_systemd_service_path() -> Path | None:
     获取 systemd service 文件路径（仅 Linux）。
 
     Returns:
-        Linux: ~/.config/systemd/user/chimera-oligo.service
+        Linux: ~/.config/systemd/user/chimera.service
         其他平台: None
     """
     if sys.platform != "linux":
@@ -98,4 +98,4 @@ def get_linux_systemd_service_path() -> Path | None:
 
     systemd_dir = Path.home() / ".config" / "systemd" / "user"
     systemd_dir.mkdir(parents=True, exist_ok=True)
-    return systemd_dir / "chimera-oligo.service"
+    return systemd_dir / "chimera.service"

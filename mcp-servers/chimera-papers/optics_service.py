@@ -11,9 +11,9 @@ from typing import Any, Final
 from openai import APIConnectionError, APIError, APITimeoutError
 from pydantic import BaseModel, ValidationError
 
-from src.crucible.core.config import ChimeraConfig
-from src.crucible.core.naming import expected_stem
-from src.crucible.core.schemas import (
+from core.config import ChimeraConfig
+from core.naming import expected_stem
+from core.schemas import (
     ConsensusAndBottlenecks,
     DeepReadAtlas,
     EvalRigorExtraction,
@@ -23,11 +23,11 @@ from src.crucible.core.schemas import (
     StructuralGaps,
     TaxonomyExtraction,
 )
-from src.crucible.ports.llm.openai_compatible_client import OpenAICompatibleClient
-from src.crucible.ports.papers.paper_loader import PaperLoader
-from src.crucible.ports.vault.vault_note_writer import VaultNoteWriter
-from src.crucible.ports.vault.vault_read_adapter import VaultReadAdapter
-from src.crucible.services.optics_lens_registry import load_lens_configs, load_survey_lens_configs
+from ports.llm.openai_compatible_client import OpenAICompatibleClient
+from ports.papers.paper_loader import PaperLoader
+from ports.vault.vault_note_writer import VaultNoteWriter
+from ports.vault.vault_read_adapter import VaultReadAdapter
+from optics_lens_registry import load_lens_configs, load_survey_lens_configs
 
 logger = logging.getLogger(__name__)
 

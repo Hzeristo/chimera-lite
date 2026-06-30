@@ -1,4 +1,4 @@
-"""LLM client protocol: single structural contract for Oligo and services."""
+"""LLM client protocol: single structural contract for services."""
 
 from __future__ import annotations
 

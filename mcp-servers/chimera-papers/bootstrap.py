@@ -3,7 +3,7 @@ LLM Client 工厂函数。
 
 推荐使用：
 - build_openai_client_from_model_config: 从 ChimeraConfig.llm.* 构建
-- build_openai_client_from_params: 从请求参数构建（Astrocyte 所选槽与 `llm.providers` / env 对齐）
+- build_openai_client_from_params: 从请求参数构建（前端所选槽与 `llm.providers` / env 对齐）
 - build_openai_client: 从全局配置构建（批处理脚本）
 
 已废弃：
@@ -51,7 +51,7 @@ def _secret_strip(secret: SecretStr | None) -> str:
 
 
 def _fallback_api_key_from_base_url(settings: ChimeraConfig, base_url: str) -> str | None:
-    """Oligo 请求体未带 key 时：按 ``base_url`` 主机特征匹配对应 ``*_API_KEY``。"""
+    """请求体未带 key 时：按 ``base_url`` 主机特征匹配对应 ``*_API_KEY``。"""
     u = (base_url or "").strip().lower()
     if not u:
         return None
@@ -135,7 +135,7 @@ def build_openai_client_from_params(
     default_settings: ChimeraConfig | None = None,
 ) -> OpenAICompatibleClient:
     """
-    Build client for per-request overrides (e.g. Oligo). Falls back to default_settings for None fields.
+    Build client for per-request overrides. Falls back to default_settings for None fields.
     When ``temperature`` is None, uses ``llm.working.temperature`` from config (or 0.7 if no settings).
 
     若请求体 ``api_key`` 为空：先按 ``base_url`` 推断供应商并尝试对应 ``OPENAI_API_KEY`` /
@@ -166,7 +166,7 @@ def build_openai_client_from_params(
 
     if not resolved_key:
         logger.warning(
-            "[Bootstrap] No API key resolved for Oligo/per-request client (base_url=%r)",
+            "[Bootstrap] No API key resolved for per-request client (base_url=%r)",
             effective_base,
         )
         raise ValueError("api_key is required for OpenAICompatibleClient.")

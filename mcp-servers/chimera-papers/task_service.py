@@ -1,4 +1,4 @@
-"""Async background task registry with JSON persistence (Miner / Oligo tools)."""
+"""Async background task registry with JSON persistence (Miner tools)."""
 
 from __future__ import annotations
 
