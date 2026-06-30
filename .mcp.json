@@ -1,15 +1,15 @@
 {
   "mcpServers": {
     "chimera-vault": {
-      "command": "uv",
-      "args": ["run", "python", "mcp-servers/chimera-vault/server.py"],
+      "command": "D:\\MAS\\chimera-lite\\.venv\\Scripts\\python.exe",
+      "args": ["D:\\MAS\\chimera-lite\\mcp-servers\\chimera-vault\\server.py"],
       "env": {
         "CHIMERA_VAULT_ROOT": "D:\\MAS\\project_chimera_vault"
       }
     },
     "chimera-papers": {
-      "command": "uv",
-      "args": ["run", "python", "mcp-servers/chimera-papers/server.py"],
+      "command": "D:\\MAS\\chimera-lite\\.venv\\Scripts\\python.exe",
+      "args": ["D:\\MAS\\chimera-lite\\mcp-servers\\chimera-papers\\server.py"],
       "env": {
         "CHIMERA_PAPERS_ROOT": "D:\\MAS\\chimera-lite\\papers"
       }
