@@ -3,6 +3,7 @@
 import logging
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -40,8 +41,15 @@ class MineruClient:
         self.cmd = self._detect_command()
 
     def _detect_command(self) -> str:
-        if shutil.which("mineru"):
-            return "mineru"
+        found = shutil.which("mineru")
+        if found:
+            return found
+        # The MCP server is launched via the venv interpreter directly (see
+        # .mcp.json), not through venv activation, so .venv\Scripts is NOT on
+        # PATH. mineru.exe ships beside the interpreter — resolve it there.
+        sibling = shutil.which("mineru", path=str(Path(sys.executable).parent))
+        if sibling:
+            return sibling
         raise MineruNotInstalledError("MinerU is not installed or not in PATH.")
 
     def convert(self, pdf_path: Path) -> Path:
