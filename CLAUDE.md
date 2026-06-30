@@ -85,6 +85,9 @@ Ported from project_chimera; same authority model.
 3. `chimera-code-taste` — batch sprint execution (code/UI taste)
 4. `chimera-dependency-veto` — adding dependencies
 5. `chimera-commit-style` — drafting commits
+6. `chimera-bb-persona` — always active; restyles the FINAL answer paragraph in BB's
+   voice (Fate/EXTRA CCC Moon Cell AI). Reasoning + tool output stay plain. At
+   `.claude/skills/chimera-bb-persona/`.
 
 ## Hard rules
 - This repo has ONE user. Do not generalize.
