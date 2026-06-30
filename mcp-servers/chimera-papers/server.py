@@ -8,11 +8,22 @@ place this thin adapter intentionally holds logic (Phase M cross-finding #4).
 from __future__ import annotations
 
 import asyncio
+import logging
+import sys
 
 from mcp.server.fastmcp import FastMCP
 
 import miner_tools
 from task_service import get_task_service
+
+# Logs MUST go to stderr — stdout is the MCP JSON-RPC channel; printing there corrupts the
+# protocol. Without this handler the entire pipeline (progress + background-task tracebacks)
+# is invisible to the user. Bracket-prefixed format matches the project logging standard.
+logging.basicConfig(
+    level=logging.INFO,
+    stream=sys.stderr,
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+)
 
 mcp = FastMCP("chimera-papers")
 

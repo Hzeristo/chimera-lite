@@ -16,10 +16,19 @@ _DOMAIN = Path(__file__).resolve().parent.parent / "chimera-papers"
 if str(_DOMAIN) not in sys.path:
     sys.path.insert(0, str(_DOMAIN))
 
+import logging  # noqa: E402
+
 from mcp.server.fastmcp import FastMCP  # noqa: E402
 
 import vault_query as vault_query_mod  # noqa: E402
 import vault_tools  # noqa: E402
+
+# Logs to stderr only — stdout is the MCP JSON-RPC channel (see chimera-papers/server.py).
+logging.basicConfig(
+    level=logging.INFO,
+    stream=sys.stderr,
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+)
 
 mcp = FastMCP("chimera-vault")
 

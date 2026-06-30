@@ -362,6 +362,9 @@ class TaskService:
             try:
                 result = await work
             except Exception as e:
+                # Full traceback to stderr (visible in MCP logs); the task JSON only keeps
+                # the message. Without this, a background crash is invisible to the user.
+                logger.exception("[Task] background task %s failed", task_id)
                 await self.emit_failed(task_id, str(e))
             else:
                 await self.emit_completed(task_id, summary=result)
