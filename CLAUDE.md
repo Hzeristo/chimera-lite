@@ -67,16 +67,20 @@ Web search and subagent delegation are **not** MCP servers — use Claude Code's
 WebSearch and Task tools.
 
 ## Migration status (IMPORTANT)
-The MCP servers currently declare the **tool contract only**. The domain code under
-`mcp-servers/chimera-papers/` was copied verbatim from oligo and still imports
-`from src.crucible…` / `from src.oligo…` and references not-yet-ported modules
-(`config.py`, `schemas.py`, `naming.py`). Tool bodies return a clear NOT-WIRED
-sentinel until wired.
+**Phase M is functionally complete** (sprints M.0.5–M.4 sealed-pending-smoke). All tool
+bodies are wired to real domain logic; the import layer is flat (`grep src.crucible` /
+`src.oligo` / `astrocyte` → 0); the CUDA MinerU stack runs on the GPU. No NOT-WIRED
+sentinels remain.
 
-**Migration sprint 1 (next):** port `config` / `schemas` / `naming`, rewrite the
-`src.crucible` / `src.oligo` imports to the flat package layout, and connect each
-`@mcp.tool` body to its domain function. Track this as a phase via
-`chimera-sprint-discipline` before writing code.
+**Remaining before phase seal:** `docs/audits/M.5-e2e-smoke.md` (user-run live tests).
+Live status as of last run: Test 1 (vault) ✅, Test 3 (BB voice) ✅, Test 4 (independence)
+✅; **Test 2 (daily pipeline)** ran end-to-end after the `prompts/` template tree was
+ported (incident `2026-06-30`) — re-run to confirm.
+
+**Known follow-ups (deferred, not blockers):** `status=?` across knowledge nodes (vault
+frontmatter; Phase VI), and the concurrency lock's stale-task liveness gap
+(`TaskService.has_active_long_task` trusts disk status — a crashed task reads as "busy"
+until cleared). See `docs/sprints/phase-M/M.2a.md` and the M.5 notes.
 
 ## Start here
 - This file (architecture + rules).

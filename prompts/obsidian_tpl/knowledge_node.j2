@@ -1,0 +1,48 @@
+---
+type: knowledge
+status: unverified
+arxiv_id: "{{ paper.id | replace('"', '\\"') }}"
+title: "{{ paper.title | replace('"', '\\"') }}"
+authors: "{{ paper.authors | default('Unknown', true) | replace('"', '\\"') }}"
+year: "{{ paper.year | default('Unknown', true) | replace('"', '\\"') }}"
+score: {{ analysis.score }}
+verdict: "{{ analysis.verdict.value }}"
+short_moniker: "{{ analysis.short_moniker | replace('"', '\\"') }}"
+source_md: "{{ paper.content_path | replace('\\', '/') }}"
+processed: "{{ current_date }}"
+tags: [knowledge]
+graph_edges:
+  derives_from: []
+  supersedes: []
+  contradicts: []
+---
+
+# {{ paper.id }} — {{ analysis.short_moniker }}
+
+- **PDF Asset**: [[{{ note_asset_basename }}.pdf]]
+- **Verdict**: {{ analysis.verdict.value }} ({{ analysis.score }}/10)
+- **Processed**: {{ current_date }}
+
+---
+
+## Core Contribution
+
+{{ analysis.novelty_delta }}
+
+---
+
+## Mechanism
+
+{{ analysis.mechanism_summary }}
+
+---
+
+## Critical Flaws
+
+{% if analysis.critical_flaws %}
+{% for flaw in analysis.critical_flaws %}
+- {{ flaw }}
+{% endfor %}
+{% else %}
+- (None extracted.)
+{% endif %}

@@ -1,0 +1,153 @@
+---
+type: knowledge
+status: unverified
+arxiv_id: "{{ atlas.arxiv_id | replace('"', '\\"') }}"
+title: "{{ (atlas.title or paper.title) | replace('"', '\\"') }}"
+authors: "{{ paper.authors | default('Unknown', true) | replace('"', '\\"') }}"
+year: "{{ paper.year | default('Unknown', true) | replace('"', '\\"') }}"
+short_moniker: "{{ atlas.short_moniker | replace('"', '\\"') }}"
+source_md: "{{ paper.content_path | replace('\\', '/') }}"
+processed: "{{ current_date }}"
+tags: [knowledge]
+graph_edges:
+  derives_from: []
+  supersedes: []
+  contradicts: []
+---
+
+# Deep Read: {{ paper.title }}
+
+- **PDF Asset**: [[{{ note_asset_basename }}.pdf]]
+- **Paper ID**: {{ paper.id }}
+- **Processed**: {{ current_date }}
+
+---
+
+## 1. Math & Architecture
+
+{% if atlas.math_arch %}
+### Design Narrative
+
+{% if atlas.math_arch.architecture_narrative and atlas.math_arch.architecture_narrative.strip() %}
+{{ atlas.math_arch.architecture_narrative }}
+
+{% else %}
+*(No architecture narrative extracted.)*
+{% endif %}
+
+### Pipeline Pseudocode
+
+```python
+{{ atlas.math_arch.pseudo_code | default("# N/A", true) }}
+```
+
+### Core Equations
+
+{% if atlas.math_arch.core_equations %}
+{% for eq in atlas.math_arch.core_equations %}
+$$
+{{ eq }}
+$$
+
+{% endfor %}
+{% else %}
+*(No equations extracted.)*
+{% endif %}
+
+### Architecture Tags
+
+{% if atlas.math_arch.architecture_type %}
+{% for t in atlas.math_arch.architecture_type %}
+- `{{ t }}`
+{% endfor %}
+{% else %}
+*(None.)*
+{% endif %}
+
+{% else %}
+*(Lens `math_arch` did not converge or failed validation.)*
+{% endif %}
+
+---
+
+## 2. Evaluation Rigor
+
+{% if atlas.eval_rigor %}
+### Empirical Critique & Ablation Analysis
+
+{% if atlas.eval_rigor.ablation_target and atlas.eval_rigor.ablation_target.strip() %}
+{{ atlas.eval_rigor.ablation_target }}
+
+{% else %}
+*(No ablation or empirical critique extracted.)*
+{% endif %}
+
+### Datasets
+
+{% if atlas.eval_rigor.datasets %}
+{% for d in atlas.eval_rigor.datasets %}
+- {{ d }}
+{% endfor %}
+{% else %}
+*(None stated.)*
+{% endif %}
+
+### Baselines
+
+{% if atlas.eval_rigor.baselines %}
+{% for b in atlas.eval_rigor.baselines %}
+- {{ b }}
+{% endfor %}
+{% else %}
+*(None stated.)*
+{% endif %}
+
+### Metrics
+
+{% if atlas.eval_rigor.metrics_used %}
+{% for m in atlas.eval_rigor.metrics_used %}
+- {{ m }}
+{% endfor %}
+{% else %}
+*(None stated.)*
+{% endif %}
+
+{% else %}
+*(Lens `eval_rigor` did not converge or failed validation.)*
+{% endif %}
+
+---
+
+## 3. Memory Physics
+
+{% if atlas.memory_physics %}
+### Memory Mechanics (Deep Dive)
+
+{% if atlas.memory_physics.mechanics_deep_dive and atlas.memory_physics.mechanics_deep_dive.strip() %}
+{{ atlas.memory_physics.mechanics_deep_dive }}
+
+{% else %}
+*(No deep-dive narrative extracted.)*
+{% endif %}
+
+### Forgetting & State
+
+{% if atlas.memory_physics.forgetting_mechanism and atlas.memory_physics.forgetting_mechanism.strip() %}
+{{ atlas.memory_physics.forgetting_mechanism }}
+
+{% else %}
+*(Not specified.)*
+{% endif %}
+
+### Context-Window & State Tricks
+
+{% if atlas.memory_physics.context_window_tricks and atlas.memory_physics.context_window_tricks.strip() %}
+{{ atlas.memory_physics.context_window_tricks }}
+
+{% else %}
+*(None stated.)*
+{% endif %}
+
+{% else %}
+*(Lens `memory_physics` did not converge or failed validation.)*
+{% endif %}
