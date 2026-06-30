@@ -11,6 +11,11 @@ and the surviving domain tools are exposed as MCP servers.
 port of `project_chimera` (a bespoke agent + Tauri frontend) onto Claude Code + MCP.
 Read this before assuming anything about how a feature "should" work.
 
+> **Fresh session? Read [`docs/MIGRATION_LINEAGE.md`](docs/MIGRATION_LINEAGE.md) first.**
+> It explains the *why* behind the inherited decisions (poll model, single-GPU convert,
+> thin adapters, CUDA torch, BB persona, …) so you don't "fix" what's intentional or
+> re-litigate settled choices. This file is *how*; that file is *why*.
+
 - **Where we came from:** `../project_chimera` — oligo agent loop (`ChimeraAgent`, 1485
   lines of theater loop + text-DSL tool parsing) and the astrocyte Svelte/Tauri frontend.
   Both retired, preserved on the `archive/chimera-oligo` branch of that repo.
