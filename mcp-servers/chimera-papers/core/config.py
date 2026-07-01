@@ -336,6 +336,32 @@ class ChimeraConfig(BaseSettings):
 
     @model_validator(mode="before")
     @classmethod
+    def _read_paper_miner_env_overrides(cls, data: Any) -> Any:
+        """Fold flat ``CHIMERA_<KEY>`` env vars into the nested ``paper_miner`` block.
+
+        pydantic-settings' env source only surfaces env vars that match a *defined* field,
+        so a flat ``CHIMERA_PAPERS_ROOT`` (whose field is nested under ``paper_miner``) is
+        silently dropped by ``extra="ignore"`` before any validator sees it. Read the flat
+        paper-miner env names explicitly here and merge them into ``paper_miner``, overriding
+        lower-precedence sources (TOML). Covers the whole ``_PAPER_MINER_KEYS`` set, not just
+        ``papers_root`` — this is the recurrence guard, not a one-field patch.
+        """
+        if not isinstance(data, Mapping):
+            return data
+        env_pm = {
+            key: os.environ[f"CHIMERA_{key.upper()}"]
+            for key in _PAPER_MINER_KEYS
+            if os.environ.get(f"CHIMERA_{key.upper()}", "").strip() != ""
+        }
+        if not env_pm:
+            return data
+        d = dict(data)
+        pm = d.get("paper_miner")
+        d["paper_miner"] = {**pm, **env_pm} if isinstance(pm, Mapping) else env_pm
+        return d
+
+    @model_validator(mode="before")
+    @classmethod
     def _merge_paper_miner_flat_keys(cls, data: Any) -> Any:
         if not isinstance(data, Mapping):
             return data
