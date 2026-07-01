@@ -4,6 +4,7 @@ import logging
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -80,38 +81,48 @@ class MineruClient:
             "cuda",
         ]
 
-        try:
-            proc = subprocess.run(
-                cmd,
-                check=True,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=1800,
-            )
-            mineru_stdout, mineru_stderr = proc.stdout, proc.stderr
-        except subprocess.TimeoutExpired as exc:
+        # MinerU spawns a chatty uvicorn worker (tqdm progress bars + access logs).
+        # `capture_output=True` funnels all of it into a fixed-size OS pipe that
+        # subprocess.run does NOT drain until the child exits — so on a large PDF
+        # the child blocks on a full pipe and deadlocks until the 1800s timeout
+        # (silent ingested=0, no .md). Redirect to a temp FILE instead: an
+        # unbounded sink, so no deadlock, and we still read the text back for
+        # diagnostics. See docs/incidents/2026-07-01-mineru-capture-deadlock.md.
+        with tempfile.NamedTemporaryFile(suffix=".mineru.log", delete=False) as tmp:
+            log_path = Path(tmp.name)
+        failure: Exception | None = None
+        reason: str | None = None
+        with log_path.open("w", encoding="utf-8", errors="replace") as logf:
+            try:
+                subprocess.run(
+                    cmd,
+                    check=True,
+                    stdout=logf,
+                    stderr=subprocess.STDOUT,
+                    timeout=1800,
+                )
+            except subprocess.TimeoutExpired as exc:
+                failure, reason = exc, "timeout"
+            except subprocess.CalledProcessError as exc:
+                failure, reason = exc, "non-zero exit"
+            except OSError as exc:
+                failure, reason = exc, "os-error"
+        # File handle is closed here — safe to read back (Windows share rules).
+        mineru_stdout = log_path.read_text(encoding="utf-8", errors="replace")
+        mineru_stderr = None
+        log_path.unlink(missing_ok=True)
+
+        if reason == "os-error":
+            logger.error("[Ingest] Failed to execute MinerU command '%s': %s", self.cmd, failure)
+            raise RuntimeError("Failed to execute MinerU command.") from failure
+        if reason == "timeout":
             logger.error("[Ingest] MinerU timed out for %s", pdf_path.name)
-            _log_mineru_streams(
-                getattr(exc, "output", None),
-                getattr(exc, "stderr", None),
-                pdf_name=pdf_path.name,
-                reason="timeout",
-            )
-            raise RuntimeError(f"Conversion timed out for {pdf_path.name}") from exc
-        except subprocess.CalledProcessError as exc:
+            _log_mineru_streams(mineru_stdout, mineru_stderr, pdf_name=pdf_path.name, reason="timeout")
+            raise RuntimeError(f"Conversion timed out for {pdf_path.name}") from failure
+        if reason == "non-zero exit":
             logger.error("[Ingest] MinerU non-zero exit for %s", pdf_path.name)
-            _log_mineru_streams(
-                exc.stdout,
-                exc.stderr,
-                pdf_name=pdf_path.name,
-                reason="non-zero exit",
-            )
-            raise RuntimeError(f"Conversion failed for {pdf_path.name}") from exc
-        except OSError as exc:
-            logger.error("[Ingest] Failed to execute MinerU command '%s': %s", self.cmd, exc)
-            raise RuntimeError("Failed to execute MinerU command.") from exc
+            _log_mineru_streams(mineru_stdout, mineru_stderr, pdf_name=pdf_path.name, reason="non-zero exit")
+            raise RuntimeError(f"Conversion failed for {pdf_path.name}") from failure
 
         if not target_md.exists():
             mds = sorted(target_dir.rglob("*.md"))

@@ -110,6 +110,46 @@ regardless of TTY. **Stage-level** timeline IS visible (the observability fix,
 
 ---
 
+## I-4 (HIGH / Critical — silent data loss) → **MinerU `capture_output` pipe deadlock**
+Found in the M.5 Test-2 re-run (after I-2), by a chimera-lite session. Detailed record:
+`docs/incidents/2026-07-01-mineru-capture-deadlock.md`.
+
+### Symptom
+`daily_paper_pipeline` ran **90 min** (= 3 × 1800s), reported `completed / progress=1.0`,
+`new_pdfs=3 ingested=0 errors=0` — a **hollow success**: three PDFs downloaded, zero markdown,
+zero ingested, **no error signal**. Live `mineru.exe` sat at 0 CPU / 5 MB — blocked, not computing.
+
+### Root cause
+`MineruClient.convert` used `subprocess.run(cmd, capture_output=True, timeout=1800)`. MinerU 2.x
+spawns a chatty **uvicorn** worker (tqdm bars, access logs, model-load lines). `capture_output`
+funnels it into fixed-size (~64 KB) OS pipes that `subprocess.run` does **not** drain until the
+child exits → pipe fills → child **blocks on write** → deadlock until the 1800s timeout. The
+convert worker then swallows the `TimeoutExpired` as a per-PDF *skip* (neither ingest nor error)
+→ silent data loss disguised as clean completion.
+
+### Fix (applied)
+Drop `capture_output`; redirect the child to a `tempfile.NamedTemporaryFile`
+(`stdout=logf, stderr=subprocess.STDOUT`) — an **unbounded sink**, so no deadlock — then read
+the file back for diagnostics (`_log_mineru_streams`, "exit 0 but no .md" path) and unlink it.
+Windows-safe (file closed before read-back). Timeout / non-zero-exit / OSError branches preserved.
+
+### MCP-critical rule (carry forward)
+In an **stdio-transport** MCP server, **never** redirect a child subprocess to `sys.stdout` —
+stdout carries the JSON-RPC protocol; child chatter would corrupt the wire. Only `sys.stderr`
+(safe) or a **temp file** (safe + retains capturable diagnostics) are acceptable. The temp file
+was chosen over `stdout=sys.stderr` because the latter makes `proc.stdout` `None`, forfeiting the
+diagnostics the failure paths need.
+
+### Proof (from the incident)
+Same exe / PDF / GPU, only the sink changed: `capture_output` → 1800s hang, `ingested=0`;
+file-redirect → **rc=0 in 331s**, produced a 0.142 MB `.md`.
+
+### Follow-up (flagged, NOT fixed here) — swallow-as-skip
+The convert worker catches a per-PDF timeout/error and continues, so a run that yields 0 of N
+papers still reports `ingested=0 errors=0 completed`. A convert failure should increment `errors`
+(or fail the task), not vanish. This is the observability half of the bug — candidate for a
+follow-up fix. See the incident doc's Follow-ups.
+
 ## Profiling appendix (reference)
 - Idle GPU baseline: 12% util / 1746 MiB / 15 W (desktop graphics contexts).
 - Single MinerU convert (cold): 105 s, peak 99% util, +5.2 GB VRAM, 74 W.
@@ -122,6 +162,7 @@ regardless of TTY. **Stage-level** timeline IS visible (the observability fix,
 | I-2 CUDA "wasted" | HIGH | **Refuted** — GPU + cu128 work. Reclassified → MEDIUM venv-is-anaconda-based fragility. |
 | I-1 env override | FATAL | **Confirmed** — silent no-op; correct name `CHIMERA_PAPER_MINER__PAPERS_ROOT`. |
 | I-3 tqdm | LOW | **Confirmed** — `capture_output` buffers+discards; defer. |
+| I-4 MinerU deadlock | HIGH/Critical | **Confirmed** — `capture_output` pipe deadlock → 90-min hollow success (`ingested=0 errors=0`). Same `capture_output` root as I-3, but the *fatal* half. |
 
 ---
 
@@ -132,6 +173,7 @@ regardless of TTY. **Stage-level** timeline IS visible (the observability fix,
 | **I-1** env override | Option **B** (robust) | ✅ Fixed | `config.py` `_read_paper_miner_env_overrides` folds every flat `CHIMERA_<KEY>` into `paper_miner` (whole `_PAPER_MINER_KEYS` class). Verified: `CHIMERA_PAPERS_ROOT=D:\NONDEFAULT\papers` → papers_root moves there. `tests/test_config_env.py`; commit `79bfc07`. |
 | **I-2** venv anaconda-coupled | **Rebuild now** | ✅ Fixed (DEBT-010 lineage closed) | `.venv` rebuilt on uv-managed CPython 3.13.13 (`pyvenv.cfg home = …\uv\python\…`, no longer `D:\anaconda3`). `uv sync` re-pulled `torch 2.11.0+cu128` + `mineru 3.4.0`. Re-verified: `torch.cuda.is_available()=True` (RTX 5060); live GPU op now shows the **uv** python as the compute process (anaconda gone). pytest 18 passed. |
 | **I-3** tqdm | **Defer** | ⏸ Accepted partial | `ACCEPTED_PARTIALS.md` I-3.1 — stage-level timeline suffices. |
+| **I-4** MinerU deadlock | **Fix (temp-file sink)** | ✅ Fixed | `paper2md.py` → `tempfile.NamedTemporaryFile` (unbounded, diagnostics retained). Incident `2026-07-01-mineru-capture-deadlock.md`. Follow-up flagged: swallow-as-skip. |
 | perf lever (mineru-api) | Log only | 📋 Debt | `TECHNICAL_DEBT.md` DEBT-015 — future perf sprint, not an incident fix. |
 
 *Audit + fix sprint complete.*
