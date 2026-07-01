@@ -50,6 +50,15 @@ Each entry: phase / sprint, partial description, reason for acceptance.
 - **Reason:** Reproduction is via `pyproject.toml` + the cu128 index. Reconsider if
   reproducibility becomes a concern.
 
+### I-3.1 — per-page MinerU progress deferred; stage timeline suffices
+- **Description:** MinerU's per-page tqdm bar is invisible in the MCP shell. Root cause is
+  structural: `paper2md.py` uses `subprocess.run(capture_output=True)`, which buffers all
+  MinerU output until exit and discards it on success (only logged on failure).
+- **Reason:** The stage-level timeline (arXiv → convert → filter, via the M2b observability
+  logging) is retained and sufficient. Surfacing per-page progress would require restructuring
+  the subprocess to `Popen` line-streaming — not worth it. Accepted; see audit I-3 and
+  `docs/incidents/2026-06-30-pipeline-observability.md`.
+
 ---
 
 ## Phase III.B.3 — Intent Recognition (sealed 2026-05-XX)

@@ -123,4 +123,15 @@ regardless of TTY. **Stage-level** timeline IS visible (the observability fix,
 | I-1 env override | FATAL | **Confirmed** — silent no-op; correct name `CHIMERA_PAPER_MINER__PAPERS_ROOT`. |
 | I-3 tqdm | LOW | **Confirmed** — `capture_output` buffers+discards; defer. |
 
-*Audit only — no code changed. Fix sprint follows.*
+---
+
+## Resolution — fix sprint (2026-06-30)
+
+| Incident | Decision | Outcome | Evidence |
+|---|---|---|---|
+| **I-1** env override | Option **B** (robust) | ✅ Fixed | `config.py` `_read_paper_miner_env_overrides` folds every flat `CHIMERA_<KEY>` into `paper_miner` (whole `_PAPER_MINER_KEYS` class). Verified: `CHIMERA_PAPERS_ROOT=D:\NONDEFAULT\papers` → papers_root moves there. `tests/test_config_env.py`; commit `79bfc07`. |
+| **I-2** venv anaconda-coupled | **Rebuild now** | ✅ Fixed (DEBT-010 lineage closed) | `.venv` rebuilt on uv-managed CPython 3.13.13 (`pyvenv.cfg home = …\uv\python\…`, no longer `D:\anaconda3`). `uv sync` re-pulled `torch 2.11.0+cu128` + `mineru 3.4.0`. Re-verified: `torch.cuda.is_available()=True` (RTX 5060); live GPU op now shows the **uv** python as the compute process (anaconda gone). pytest 18 passed. |
+| **I-3** tqdm | **Defer** | ⏸ Accepted partial | `ACCEPTED_PARTIALS.md` I-3.1 — stage-level timeline suffices. |
+| perf lever (mineru-api) | Log only | 📋 Debt | `TECHNICAL_DEBT.md` DEBT-015 — future perf sprint, not an incident fix. |
+
+*Audit + fix sprint complete.*
