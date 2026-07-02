@@ -272,13 +272,23 @@ async def _run_pipelined_async(
 
     await asyncio.gather(download_task, convert_task, *filter_workers)
 
-    ingested_count = convert_task.result()
+    ingested_count, convert_failures = convert_task.result()
     new_pdfs_count = new_pdfs_count_holder[0]
 
     logger.info(
-        "[Service] Pipeline stages done. new_pdfs=%s ingested=%s filtered=%s",
-        new_pdfs_count, ingested_count, stats.total,
+        "[Service] Pipeline stages done. new_pdfs=%s ingested=%s convert_failed=%s filtered=%s",
+        new_pdfs_count, ingested_count, convert_failures, stats.total,
     )
+
+    # I-5 anti-hollow-success guard: a run that downloaded PDFs but converted NONE is a
+    # failure, not a clean completion. Raise so the task is marked FAILED (was: silently
+    # reported ingested=0 errors=0 completed). Partial convert failures are surfaced in the
+    # summary's convert_failed=... field below.
+    if new_pdfs_count > 0 and ingested_count == 0:
+        raise RuntimeError(
+            f"MinerU converted 0 of {new_pdfs_count} downloaded PDFs "
+            f"({convert_failures} failed) — pipeline aborted. See [Ingest] logs for cause."
+        )
 
     if task_service is not None and task_id is not None:
         await task_service.start_stage(
@@ -314,8 +324,9 @@ async def _run_pipelined_async(
 
     summary = (
         f"Daily pipeline completed. new_pdfs={new_pdfs_count} ingested={ingested_count} "
-        f"batch_total={stats.total} must_read={stats.must_read} skim={stats.skim} "
-        f"reject={stats.reject} errors={stats.errors} telegram={'no' if skip_telegram else 'yes'}"
+        f"convert_failed={convert_failures} batch_total={stats.total} must_read={stats.must_read} "
+        f"skim={stats.skim} reject={stats.reject} errors={stats.errors} "
+        f"telegram={'no' if skip_telegram else 'yes'}"
     )
     filtered_section = _collect_all_filtered_lines(stats)
     if filtered_section:

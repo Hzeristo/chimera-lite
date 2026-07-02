@@ -144,11 +144,32 @@ diagnostics the failure paths need.
 Same exe / PDF / GPU, only the sink changed: `capture_output` → 1800s hang, `ingested=0`;
 file-redirect → **rc=0 in 331s**, produced a 0.142 MB `.md`.
 
-### Follow-up (flagged, NOT fixed here) — swallow-as-skip
-The convert worker catches a per-PDF timeout/error and continues, so a run that yields 0 of N
-papers still reports `ingested=0 errors=0 completed`. A convert failure should increment `errors`
-(or fail the task), not vanish. This is the observability half of the bug — candidate for a
-follow-up fix. See the incident doc's Follow-ups.
+### Follow-up — swallow-as-skip → **fixed as I-5 below.**
+
+## I-5 (HIGH — silent data loss) → **convert failures swallowed-as-skip → hollow success**
+The I-4 follow-up, fixed. Detailed record: `docs/incidents/2026-07-01-convert-swallow-as-skip.md`.
+
+### Symptom
+A run converting **0 of N** PDFs reports `completed / ingested=0 errors=0` — indistinguishable
+from a no-op run, no error signal. This is what hid I-4's deadlock as "success" for 90 min.
+
+### Root cause (two layers)
+1. `convert_queue_worker` (`mineru_pipeline.py:275`) caught every per-PDF convert exception,
+   logged, and continued — tracked only `success_count`, so **failures were counted nowhere**.
+2. `_run_pipelined_async` returned a normal summary at `ingested_count == 0`; the summary's
+   `errors` field is **filter**-only (`stats.errors`) — convert failures never entered it →
+   `emit_completed`.
+
+### Fix (applied)
+- `convert_queue_worker` returns `(success_count, failure_count)` (per-PDF exceptions increment
+  the failure count).
+- `_run_pipelined_async`: **anti-hollow-success guard** — `if new_pdfs > 0 and ingested == 0:
+  raise` → task marked **FAILED**; partial failures surfaced via a new `convert_failed=<n>`
+  field in the completion summary. Propagation is clean (a raise → `run_task` `emit_failed`).
+
+### Verification
+`tests/test_convert_worker.py` (2 PDFs, convert mocked to raise → worker returns `(0, 2)`,
+only the sentinel queued). ruff 0, pytest 19 passed / 1 skipped. Guard exercised live at M.5 Test-2.
 
 ## Profiling appendix (reference)
 - Idle GPU baseline: 12% util / 1746 MiB / 15 W (desktop graphics contexts).
@@ -163,6 +184,7 @@ follow-up fix. See the incident doc's Follow-ups.
 | I-1 env override | FATAL | **Confirmed** — silent no-op; correct name `CHIMERA_PAPER_MINER__PAPERS_ROOT`. |
 | I-3 tqdm | LOW | **Confirmed** — `capture_output` buffers+discards; defer. |
 | I-4 MinerU deadlock | HIGH/Critical | **Confirmed** — `capture_output` pipe deadlock → 90-min hollow success (`ingested=0 errors=0`). Same `capture_output` root as I-3, but the *fatal* half. |
+| I-5 swallow-as-skip | HIGH | **Confirmed** — convert failures counted nowhere + no aggregate guard → 0-of-N converts report `completed`. The silent-failure amplifier behind I-4. |
 
 ---
 
@@ -173,7 +195,8 @@ follow-up fix. See the incident doc's Follow-ups.
 | **I-1** env override | Option **B** (robust) | ✅ Fixed | `config.py` `_read_paper_miner_env_overrides` folds every flat `CHIMERA_<KEY>` into `paper_miner` (whole `_PAPER_MINER_KEYS` class). Verified: `CHIMERA_PAPERS_ROOT=D:\NONDEFAULT\papers` → papers_root moves there. `tests/test_config_env.py`; commit `79bfc07`. |
 | **I-2** venv anaconda-coupled | **Rebuild now** | ✅ Fixed (DEBT-010 lineage closed) | `.venv` rebuilt on uv-managed CPython 3.13.13 (`pyvenv.cfg home = …\uv\python\…`, no longer `D:\anaconda3`). `uv sync` re-pulled `torch 2.11.0+cu128` + `mineru 3.4.0`. Re-verified: `torch.cuda.is_available()=True` (RTX 5060); live GPU op now shows the **uv** python as the compute process (anaconda gone). pytest 18 passed. |
 | **I-3** tqdm | **Defer** | ⏸ Accepted partial | `ACCEPTED_PARTIALS.md` I-3.1 — stage-level timeline suffices. |
-| **I-4** MinerU deadlock | **Fix (temp-file sink)** | ✅ Fixed | `paper2md.py` → `tempfile.NamedTemporaryFile` (unbounded, diagnostics retained). Incident `2026-07-01-mineru-capture-deadlock.md`. Follow-up flagged: swallow-as-skip. |
+| **I-4** MinerU deadlock | **Fix (temp-file sink)** | ✅ Fixed | `paper2md.py` → `tempfile.NamedTemporaryFile` (unbounded, diagnostics retained). Incident `2026-07-01-mineru-capture-deadlock.md`. |
+| **I-5** swallow-as-skip | **Fix (count + guard)** | ✅ Fixed | `convert_queue_worker` returns `(success, failure)`; `_run_pipelined_async` raises on 0-of-N + surfaces `convert_failed=`. `tests/test_convert_worker.py`. Incident `2026-07-01-convert-swallow-as-skip.md`. |
 | perf lever (mineru-api) | Log only | 📋 Debt | `TECHNICAL_DEBT.md` DEBT-015 — future perf sprint, not an incident fix. |
 
 *Audit + fix sprint complete.*

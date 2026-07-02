@@ -230,16 +230,18 @@ async def convert_queue_worker(
     md_queue: asyncio.Queue[Path | None],
     normalized_raw_output: Path,
     normalized_clean_dir: Path,
-) -> int:
+) -> tuple[int, int]:
     """Single-worker coroutine: drain pdf_queue, convert each PDF via MinerU, put md_path to md_queue.
 
     Single worker is intentional — two concurrent MinerU subprocesses would OOM on RTX 5060 8GB.
     Puts None sentinel to md_queue when done.
-    Returns count of successfully converted PDFs.
+    Returns ``(success_count, failure_count)`` — failures are counted (not swallowed) so the
+    pipeline can surface partial/total convert failure instead of reporting a hollow success (I-5).
     """
     client = MineruClient(output_root=normalized_raw_output)
     paper_loader = PaperLoader()
     success_count = 0
+    failure_count = 0
 
     while True:
         pdf_path = await pdf_queue.get()
@@ -273,8 +275,13 @@ async def convert_queue_worker(
             await md_queue.put(clean_md)
             logger.info("[Ingest] Converted and queued: %s", clean_md.name)
         except Exception as exc:
+            failure_count += 1
             logger.error("[Ingest] PDF ingestion failed for %s: %s", pdf_path, exc)
 
     await md_queue.put(None)
-    logger.info("[Ingest] Convert worker done. success_count=%s", success_count)
-    return success_count
+    logger.info(
+        "[Ingest] Convert worker done. success_count=%s failure_count=%s",
+        success_count,
+        failure_count,
+    )
+    return success_count, failure_count
