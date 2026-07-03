@@ -81,13 +81,22 @@ class MineruClient:
             "cuda",
         ]
 
-        # MinerU spawns a chatty uvicorn worker (tqdm progress bars + access logs).
-        # `capture_output=True` funnels all of it into a fixed-size OS pipe that
-        # subprocess.run does NOT drain until the child exits — so on a large PDF
-        # the child blocks on a full pipe and deadlocks until the 1800s timeout
-        # (silent ingested=0, no .md). Redirect to a temp FILE instead: an
-        # unbounded sink, so no deadlock, and we still read the text back for
-        # diagnostics. See docs/incidents/2026-07-01-mineru-capture-deadlock.md.
+        # MinerU (`mineru.exe`) is a console-subsystem app that spawns a uvicorn worker.
+        # This MCP server is launched by Claude Code as a HEADLESS process (no inheritable
+        # console). Spawned from there, mineru hung at interpreter startup — 5 MB RSS,
+        # 0 CPU, zero output — until the timeout, though it runs fine from any shell.
+        # Two things isolate the child from the headless parent's process context:
+        #   * creationflags=CREATE_NO_WINDOW|CREATE_NEW_PROCESS_GROUP — give it its own
+        #     clean console + process group instead of inheriting the server's console
+        #     state / Ctrl-event group.
+        #   * stdin=DEVNULL — never inherit the MCP JSON-RPC stdin pipe.
+        # Output still goes to a temp FILE (unbounded sink) rather than capture_output's
+        # fixed OS pipe, which separately deadlocked the chatty child.
+        # See docs/incidents/2026-07-01-mineru-capture-deadlock.md and
+        # docs/incidents/2026-07-02-mineru-hang-in-mcp-server.md.
+        _spawn_flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(
+            subprocess, "CREATE_NEW_PROCESS_GROUP", 0
+        )
         with tempfile.NamedTemporaryFile(suffix=".mineru.log", delete=False) as tmp:
             log_path = Path(tmp.name)
         failure: Exception | None = None
@@ -97,9 +106,11 @@ class MineruClient:
                 subprocess.run(
                     cmd,
                     check=True,
+                    stdin=subprocess.DEVNULL,
                     stdout=logf,
                     stderr=subprocess.STDOUT,
-                    timeout=1800,
+                    timeout=600,
+                    creationflags=_spawn_flags,
                 )
             except subprocess.TimeoutExpired as exc:
                 failure, reason = exc, "timeout"
