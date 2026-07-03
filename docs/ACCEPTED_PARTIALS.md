@@ -6,7 +6,7 @@ Each entry: phase / sprint, partial description, reason for acceptance.
 
 ---
 
-## Phase M — Chimera Lite Migration (functional seal 2026-06-30)
+## Phase M — Chimera Lite Migration (functional seal 2026-06-30 → full seal 2026-07-03)
 
 ### M.seal.1 — Sealed on 3/4 live HSC (user override)
 - **Description:** M.5 Test 2 (daily pipeline end-to-end) was not green at seal time; the
@@ -15,6 +15,10 @@ Each entry: phase / sprint, partial description, reason for acceptance.
   the wired pipeline construction chain). The remaining Test-2 issues are *runtime* defects
   handled as a post-seal incident — not evidence the migration is incomplete. The system is
   usable for daily research now.
+- **Resolved (2026-07-03):** Test 2 subsequently ran clean end-to-end (`ingested=3
+  convert_failed=0 errors=0`, real titles) after the miner-pipeline incident chain closed
+  (final fix: headless-spawn isolation, `2026-07-02-mineru-hang-in-mcp-server.md`). Phase M
+  upgraded to a **full seal**. Entry retained as the historical record of the functional seal.
 
 ### M.0.5.1 — "port + prune" not "pure port"
 - **Description:** M.0.5 was reclassified from pure port to port+prune because `config.py`/

@@ -2,14 +2,14 @@
 
 Personal research OS for one user. Not a framework. Not SaaS.
 
-> **Last sealed:** Phase M — Chimera Lite Migration (**functional seal**, user override) — 2026-06-30
-> **Active:** Phase M follow-ups (miner-pipeline incident; M.5 live re-confirm), then Phase VI
+> **Last sealed:** Phase M — Chimera Lite Migration (**full seal**) — 2026-07-03
+> **Active:** none — Phase M fully sealed; next: Phase VI
 
 ---
 
 ## Sealed Phases
 
-### Phase M — Chimera Lite Migration ⚙️ Functional seal (user override) 2026-06-30
+### Phase M — Chimera Lite Migration ✅ Sealed (full seal) 2026-07-03
 
 **First phase of the chimera-lite repo.** Migrated project_chimera (oligo agent +
 Astrocyte) onto Claude Code + MCP. See `docs/phases/phase-M.md`, `docs/plans/Phase-M-batch.md`,
@@ -23,22 +23,21 @@ Astrocyte) onto Claude Code + MCP. See `docs/phases/phase-M.md`, `docs/plans/Pha
 | M.2b | daily_paper_pipeline + CUDA MinerU stack | Sealed |
 | M.3 | BB persona skill | Sealed |
 | M.4 | Cleanup + independence (src.crucible/src.oligo/astrocyte = 0) | Sealed |
-| M.5 | E2E smoke (user-run) | Functional |
+| M.5 | E2E smoke (user-run) | Sealed |
 
-**HSC result (M.5 live):** Test 1 (vault) ✅, Test 3 (BB voice) ✅, Test 4 (independence)
-✅, **Test 2 (daily pipeline) — functional**. The pipeline construction chain is wired and
-verified; remaining issues are runtime defects (no stdout, invisible failures, serial
-execution) tracked as an **incident**, not a migration gap.
+**HSC result (M.5 live):** all four green — Test 1 (vault) ✅, Test 2 (daily pipeline) ✅,
+Test 3 (BB voice) ✅, Test 4 (independence) ✅. Test 2 confirmed end-to-end on 2026-07-03
+(`task_id 436be5bd`: `new_pdfs=3 ingested=3 convert_failed=0 errors=0`, real titles) after
+the miner-pipeline incident chain closed.
 
-**User override (2026-06-30):** sealed on 3/4 live HSC. Rationale: the migration is
-functionally complete — native loop + MCP + skills + independence all proven, and the
-system is usable for daily research. The miner-pipeline runtime defects are a post-seal
-incident, not a blocker.
+**Seal history:** functional seal 2026-06-30 (3/4 HSC, user override — Test 2's runtime
+defects tracked as incidents, not a migration gap) → **full seal 2026-07-03** once the
+final incident (headless-spawn hang) was fixed and Test 2 ran clean.
 
 **Accepted partials:** `ACCEPTED_PARTIALS.md` Phase M section.
-**Incidents:** `docs/incidents/2026-06-30-missing-prompts-tree.md` + the miner-pipeline fix.
-**Functional seal** (not full administrative seal) — `docs/audits/M.5-e2e-smoke.md` re-run
-confirms Test 2 end-to-end before a full seal.
+**Incidents (Test-2 chain, all fixed):** `2026-06-30-missing-prompts-tree.md`,
+`2026-06-30-mineru-not-on-path.md`, `2026-07-01-mineru-capture-deadlock.md`,
+`2026-07-01-convert-swallow-as-skip.md`, `2026-07-02-mineru-hang-in-mcp-server.md`.
 
 ### Phase I — Foundation
 **Goal:** System never crashes silently. Configuration has single source of truth. Logs are greppable.

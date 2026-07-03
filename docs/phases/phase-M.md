@@ -1,6 +1,6 @@
 # Phase M — Chimera Lite Migration
 
-**Status:** Active
+**Status:** ✅ Sealed (full seal 2026-07-03 — all 5 HSC green; see `docs/audits/M.5-e2e-smoke.md`)
 **Sealed predecessor:** Phase V.A (in project_chimera repo; this is chimera-lite's first phase)
 **Driving frictions:**
 - Self-built agent loop (oligo) is maintenance liability; Claude Code native loop replaces it

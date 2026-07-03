@@ -67,15 +67,15 @@ Web search and subagent delegation are **not** MCP servers — use Claude Code's
 WebSearch and Task tools.
 
 ## Migration status (IMPORTANT)
-**Phase M is functionally complete** (sprints M.0.5–M.4 sealed-pending-smoke). All tool
-bodies are wired to real domain logic; the import layer is flat (`grep src.crucible` /
-`src.oligo` / `astrocyte` → 0); the CUDA MinerU stack runs on the GPU. No NOT-WIRED
-sentinels remain.
+**Phase M is SEALED** (full seal, 2026-07-03; sprints M.0.5–M.5). All tool bodies are
+wired to real domain logic; the import layer is flat (`grep src.crucible` / `src.oligo` /
+`astrocyte` → 0); the CUDA MinerU stack runs on the GPU. No NOT-WIRED sentinels remain.
 
-**Remaining before phase seal:** `docs/audits/M.5-e2e-smoke.md` (user-run live tests).
-Live status as of last run: Test 1 (vault) ✅, Test 3 (BB voice) ✅, Test 4 (independence)
-✅; **Test 2 (daily pipeline)** ran end-to-end after the `prompts/` template tree was
-ported (incident `2026-06-30`) — re-run to confirm.
+**All five M.5 sealing conditions pass live** (`docs/audits/M.5-e2e-smoke.md`): Test 1
+(vault) ✅, Test 2 (daily pipeline) ✅, Test 3 (BB voice) ✅, Test 4 (independence) ✅.
+Test 2 was confirmed end-to-end on 2026-07-03 after the miner-pipeline incident chain
+closed (final fix: headless-spawn isolation, incident `2026-07-02`) —
+`new_pdfs=3 ingested=3 convert_failed=0 errors=0`, real titles.
 
 **Known follow-ups (deferred, not blockers):** `status=?` across knowledge nodes (vault
 frontmatter; Phase VI), and the concurrency lock's stale-task liveness gap

@@ -1,8 +1,8 @@
 # M.5 — Phase M E2E Smoke Checklist (USER-RUN)
 
-**Status:** ⚙️ **FUNCTIONAL SEAL** (user override, 2026-06-30) — Tests 1/3/4 PASS; Test 2
-(daily pipeline) runtime defects tracked as an incident, not a migration blocker. Re-run
-Test 2 to upgrade to a full seal.
+**Status:** ✅ **FULL SEAL** (2026-07-03) — all four tests PASS. Test 2 (daily pipeline)
+confirmed end-to-end on 2026-07-03 after the miner-pipeline incident chain closed; the
+2026-06-30 functional seal (Tests 1/3/4, user override) is now upgraded to a full seal.
 **Purpose:** Verify the 5 Phase M sealing conditions (`docs/phases/phase-M.md:50-64`) live,
 then hand to `chimera-sprint-discipline` phase_review to seal Phase M.
 
@@ -78,7 +78,15 @@ loads `chimera-vault` + `chimera-papers`). Tick the box and note the result.
   → expect a `[Busy] …` rejection (only one pipeline at a time).
 - **GPU check (optional):** during the ingest stage, `nvidia-smi` shows python using GPU memory.
 
-- [ ] **PASS** / [x] **FAIL** — task_id / titles / time: prompt missing.
+- [x] **PASS** / [ ] **FAIL** — `task_id 436be5bd`; 2026-07-03; ~10 min end-to-end.
+  `new_pdfs=3 ingested=3 convert_failed=0 batch_total=3 errors=0`. Real titles: **Skim** —
+  IterativeVibecoding (2607.02514, 5/10), ReContext (2607.02509, 6/10); **Reject** — PAW
+  (2607.02512, 3/10). GPU-confirmed convert (nvidia-smi: ~6.9 GB VRAM, ~56 W during ingest).
+
+**Resolved (2026-07-03):** the original diagnosis below (missing `prompts/` tree) was the
+first of a five-incident Test-2 chain — all now fixed (prompts port → mineru-on-PATH →
+capture deadlock → swallow-as-skip → headless-spawn hang). The block below is the historical
+first finding, retained for the record.
 
 ```
 Found it. The pipeline got past arXiv fetch and all the imports — it only died at PromptManager.__init__, which means config/schemas/naming imports now resolve (further along than CLAUDE.md's "NOT-WIRED" note claims). The one remaining gap is a resource that was never ported: the Jinja prompt template tree.
@@ -153,8 +161,10 @@ this is the re-confirmation at seal time.) Run in `D:\MAS\chimera-lite`:
 - [x] **Functional seal (2026-06-30, user override):** Tests 1/3/4 PASS validate the
   migration is functionally complete; the system is ready for daily research. ROADMAP +
   ACCEPTED_PARTIALS updated. Test 2's runtime defects → incident (miner-pipeline fix).
-- [ ] **Full seal (pending):** re-run Test 2 end-to-end (real titles) after the
-  miner-pipeline incident fix.
+- [x] **Full seal (2026-07-03):** Test 2 re-run end-to-end — `task_id 436be5bd`,
+  `new_pdfs=3 ingested=3 convert_failed=0 errors=0`, real titles (IterativeVibecoding,
+  ReContext, PAW). All four HSC green; the miner-pipeline incident chain is closed (final
+  fix: `2026-07-02-mineru-hang-in-mcp-server.md`). **Phase M fully sealed.**
 
 **Accepted-partial reminders carried from execution** (see `docs/sprints/phase-M/*.md`):
 prune-on-port (M.0.5), `config extra=ignore`, +deps (pydantic-settings/tomlkit/dotenv/
