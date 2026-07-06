@@ -55,4 +55,4 @@ Falsifiability**:
   lens is about *conflict arbitration*, not degradation over time.
 - ❌ Do not accept naive superposition (context-stuffing both versions) as conflict resolution.
 - ❌ Falsifiability is mandatory (`../_shared/falsifiability.md`).
-- ❌ Pure English only. 不进行机会主义重构。
+- ❌ Pure English only. No opportunistic refactor.

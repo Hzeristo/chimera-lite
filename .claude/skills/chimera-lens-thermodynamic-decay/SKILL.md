@@ -51,4 +51,4 @@ Falsifiability** on every verdict:
   `chimera-lens-state-collision`. Stay on decay.
 - ❌ Falsifiability is mandatory (`../_shared/falsifiability.md`).
 - ❌ Pure English only. Structured analysis lens, not a tone filter.
-- ❌ 不进行机会主义重构 — analysis only; do not edit the wired pipeline.
+- ❌ No opportunistic refactor — analysis only; do not edit the wired pipeline.

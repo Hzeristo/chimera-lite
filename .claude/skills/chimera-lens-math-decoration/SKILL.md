@@ -50,4 +50,4 @@ Falsifiability**:
   decorative) is mandatory and is the reason this lens exists.
 - ❌ Do not be impressed by notation density — price the math against what it does.
 - ❌ Falsifiability is mandatory (`../_shared/falsifiability.md`).
-- ❌ Pure English only. 不进行机会主义重构。
+- ❌ Pure English only. No opportunistic refactor.

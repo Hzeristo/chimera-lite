@@ -57,4 +57,4 @@ Falsifiability, adapted for a map:
 - ❌ Do not produce a sterile table of contents — categories carry architectural distinctions or they
   do not belong.
 - ❌ Falsifiability is mandatory (`../_shared/falsifiability.md`).
-- ❌ Pure English only. 不进行机会主义重构。
+- ❌ Pure English only. No opportunistic refactor.

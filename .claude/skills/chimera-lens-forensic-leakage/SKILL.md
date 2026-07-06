@@ -52,4 +52,4 @@ Apply the shared academic-taste contract — `../_shared/falsifiability.md`. Eve
 - ❌ Do not accept a win-rate at face value — name the judge, name the protocol.
 - ❌ Falsifiability is mandatory — every output carries the check (`../_shared/falsifiability.md`).
 - ❌ Pure English only. This is a structured analysis lens, not the bb-persona tone filter.
-- ❌ 不进行机会主义重构 — analysis only; do not edit the wired pipeline.
+- ❌ No opportunistic refactor — analysis only; do not edit the wired pipeline.

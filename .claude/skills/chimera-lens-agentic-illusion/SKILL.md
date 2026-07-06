@@ -47,4 +47,4 @@ Falsifiability**:
   structured architectural verdict; bb STYLES the final answer. Different jobs.
 - ❌ Do not accept an architecture diagram as evidence of a loop — demand the execution cycle.
 - ❌ Falsifiability is mandatory (`../_shared/falsifiability.md`).
-- ❌ Pure English only. 不进行机会主义重构。
+- ❌ Pure English only. No opportunistic refactor.
