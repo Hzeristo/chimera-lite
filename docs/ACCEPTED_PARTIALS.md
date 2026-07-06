@@ -6,6 +6,19 @@ Each entry: phase / sprint, partial description, reason for acceptance.
 
 ---
 
+## Phase N.A — Lens Skills (sealed 2026-07-06)
+
+### N.A.seal.1 — `~/.chimera/skills/*.json` divergence check deferred
+- **Description:** The N.A.0 audit named lens-related skills in `~/.chimera` (`~/.chimera/skills/*.json`,
+  `~/.chimera/lenses/*.yaml`) as a source. Those files are out-of-project (the no-external-files
+  boundary) and were not supplied this session. The 6 lens skills were authored from the in-project
+  registry (`optics_lens_registry.py`) + the unwired `.j2` scalpels + `user_profile.j2` stance +
+  M.3's prior extraction; a divergence check against the actual `~/.chimera` JSON remains unrun.
+- **Reason:** In-project sources cover the essentials (audit cross-finding #5; batch Decision 5).
+  Not a blocker — if the user later supplies `~/.chimera/skills/*.json`, validate as a follow-up.
+
+---
+
 ## Phase M — Chimera Lite Migration (functional seal 2026-06-30 → full seal 2026-07-03)
 
 ### M.seal.1 — Sealed on 3/4 live HSC (user override)

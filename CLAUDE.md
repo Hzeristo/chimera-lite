@@ -97,6 +97,19 @@ Ported from project_chimera; same authority model.
 6. `chimera-bb-persona` — always active; restyles the FINAL answer paragraph in BB's
    voice (Fate/EXTRA CCC Moon Cell AI). Reasoning + tool output stay plain. At
    `.claude/skills/chimera-bb-persona/`.
+7. `chimera-academic-observe` — always active (Phase N.A); proactively surfaces vault-node
+   connections during research analysis via `obsidian_graph_query` / `vault_query`,
+   relevance-gated and silent by default. At `.claude/skills/chimera-academic-observe/`.
+
+**Research lenses (Phase N.A — trigger-based, auto-selected by paper type).** Pure prompt
+skills, no MCP changes. Each requires mechanism + evidence + falsifiability via the shared
+contract `.claude/skills/_shared/falsifiability.md`:
+- `chimera-lens-forensic-leakage` — empirical / eval papers: leakage & contamination audit.
+- `chimera-lens-thermodynamic-decay` — memory / long-context papers: falsifiable decay probe.
+- `chimera-lens-state-collision` — memory-update / belief-revision papers: conflict-arbitration stress test.
+- `chimera-lens-agentic-illusion` — "agentic" papers: plumbing audit (real loop vs one-shot).
+- `chimera-lens-math-decoration` — modeling / algorithm papers: load-bearing vs decorative math.
+- `chimera-lens-ontological-map` — surveys / position papers: consolidated ontology (axes + categories + bottlenecks + gaps + edges).
 
 ## Hard rules
 - This repo has ONE user. Do not generalize.

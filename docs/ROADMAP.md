@@ -2,12 +2,50 @@
 
 Personal research OS for one user. Not a framework. Not SaaS.
 
-> **Last sealed:** Phase M — Chimera Lite Migration (**full seal**) — 2026-07-03
-> **Active:** Phase N.A — Lens Skills (first phase post-migration; N.A.0 audit pending)
+> **Last sealed:** Phase N.A — Lens Skills (6 lenses + academic-observe) — 2026-07-06
+> **Active:** none — next phase not yet opened
 
 ---
 
 ## Sealed Phases
+
+### Phase N.A — Lens Skills ✅ Sealed 2026-07-06
+
+**First phase post-migration.** Crystallized the 6 research-analysis lenses (project_chimera's
+`OpticsService` prompts) as Claude Code **skills** + the always-on `chimera-academic-observe`.
+Pure prompt skills — zero new MCP tools, zero server changes. See `docs/phases/phase-N.A.md`,
+`docs/plans/Phase-N.A-batch.md`, `docs/sprints/phase-N.A/*.md`, `docs/audits/N.A.0.md`.
+
+| Sprint | Goal | Status |
+|---|---|---|
+| N.A.0 | Audit: reconcile ported lens configs + `~/.chimera` skills vs the 6 targets | Sealed |
+| N.A.1 | Forensic Leakage + Thermodynamic Decay (+ `_shared/falsifiability.md`) | Sealed |
+| N.A.2 | State Collision StressTest + Agentic Illusion Stripper | Sealed |
+| N.A.3 | Math Decoration Validator + Ontological Map Scanner | Sealed |
+| N.A.4 | chimera-academic-observe (always-on) | Sealed |
+
+**HSC result (all green):** (1) auto-selection ✅ — all 6 lenses carry paper-type `description:`
+triggers (the skill registry auto-loaded each); (2) academic taste ✅ — all 6 reference
+`_shared/falsifiability.md` and mandate mechanism + evidence + falsifiability; (3) proactive
+observation ✅ — academic-observe surfaces vault connections via `obsidian_graph_query` /
+`vault_query`, capability live-verified at seal (200-node graph / 99 knowledge nodes; a relevant
+node surfaced for a decay probe unprompted).
+
+**Decisions realized:** Ontological Map absorbed `survey_consensus` + `survey_gaps` (6 lenses, not
+8); the `../_shared/falsifiability.md` reference pattern proved viable (no inline fallback needed).
+
+**Red lines:** all held. The seal red-line scan caught + fixed a stray Chinese clause in 6 lens
+files (`d8d9cea`) — the Pure-English red line is now clean.
+
+**Driving friction:** friction-chimera-lite-01 (phase-declared; no `docs/logs/` entry) — resolved
+by this phase; the lens skills now exist natively.
+
+**Commits:** `774dfce` (N.A.1), `6ee3ea6` (N.A.2), `ca9bb6b` (N.A.3), `35c999e` (N.A.4),
+`d8d9cea` (Pure-English fix).
+**Accepted partials:** `ACCEPTED_PARTIALS.md` Phase N.A section (`~/.chimera` divergence check deferred).
+**Sealed:** 2026-07-06
+
+---
 
 ### Phase M — Chimera Lite Migration ✅ Sealed (full seal) 2026-07-03
 
@@ -206,35 +244,7 @@ final incident (headless-spawn hang) was fixed and Test 2 ran clean.
 
 ## Active Phase
 
-### Phase N.A — Lens Skills 🔬 Active (opened 2026-07-04)
-
-**First phase post-migration.** Crystallize the 6 research-analysis lenses (project_chimera's
-`OpticsService` prompts) as Claude Code **skills** — pure prompt skills, no new tools, no MCP
-changes. Claude's native skill discovery auto-selects the lens by paper type; academic taste
-(mechanism / evidence / falsifiability) is built into every lens output. Spec: `docs/phases/phase-N.A.md`.
-
-**Driving friction:** friction-chimera-lite-01 — lens skills don't exist in chimera-lite
-(project_chimera had them as `OpticsService` prompts, not Claude Code skills).
-
-| Sprint | One-line goal | Status |
-|---|---|---|
-| N.A.0 | Audit: reconcile the 6 ported lens configs (`optics_lens_registry.py` + `prompts/tasks/optics/`) and any `~/.chimera` lens skills against the 6 target lenses | Pending |
-| N.A.1 | Forensic Leakage Audit + Thermodynamic Decay Probe skills | Pending |
-| N.A.2 | State Collision StressTest + Agentic Illusion Stripper skills | Pending |
-| N.A.3 | Math Decoration Validator + Ontological Map Scanner skills | Pending |
-| N.A.4 | chimera-academic-observe skill (proactive academic thoughts, always-on) | Pending |
-
-**Hard sealing conditions:** (1) all 6 lens skills carry a `description:` that lets Claude
-auto-select by paper type (no manual invocation); (2) each lens requires mechanism + evidence +
-falsifiability in output; (3) `chimera-academic-observe` proactively surfaces connections to
-vault nodes unprompted.
-
-**Red lines:** pure prompt skills only (no new MCP tools, no server changes); lenses are
-trigger-based, academic-observe is always-on (like `bb-persona`); multi-source synthesis is NOT
-a separate phase — it emerges from N.A.1–4 + Claude Code's native parallel tool-calling.
-
-**Batch-planning precondition:** the N.A.0 audit artifact (`docs/audits/N.A.0.md`) must exist
-before sprints are batch-planned — `chimera-sprint-discipline` enforces audit-before-plan.
+_None — Phase N.A sealed 2026-07-06 (see Sealed Phases). Next phase not yet opened._
 
 ---
 
