@@ -3,7 +3,7 @@
 Personal research OS for one user. Not a framework. Not SaaS.
 
 > **Last sealed:** Phase N.A — Lens Skills (6 lenses + academic-observe) — 2026-07-06
-> **Active:** none — next phase not yet opened
+> **Active:** Phase N.B — JIT Deep Recall (N.B.0 audit pending)
 
 ---
 
@@ -244,7 +244,36 @@ final incident (headless-spawn hang) was fixed and Test 2 ran clean.
 
 ## Active Phase
 
-_None — Phase N.A sealed 2026-07-06 (see Sealed Phases). Next phase not yet opened._
+### Phase N.B — JIT Deep Recall 🔬 Active (opened 2026-07-06)
+
+**First code phase post-N.A.** Add `deep_recall(query, depth=2, max_nodes=20)` to the
+**chimera-vault** MCP server: a BFS traversal of the K/T/I/D graph from ripgrep-matched seed
+nodes, returning a bounded structured subgraph that Claude synthesizes natively. A pre-fetch
+**thin adapter** — NOT a JIT agentic loop inside the server. No vector store, no embeddings —
+pure graph + ripgrep. Spec: `docs/phases/phase-N.B.md`.
+
+**Driving frictions:** `vault_query` is keyword-only (fuzzy queries like "那篇 memory 的" miss);
+complex multi-hop queries need 5+ tool calls (slow + context bloat); the K/T/I/D typed edges
+(`derives_from` / `synthesizes` / `contradicts`) go untraversed.
+
+| Sprint | One-line goal | Status |
+|---|---|---|
+| N.B.0 | Audit: existing graph traversal (`obsidian_graph_query` BFS), ripgrep seed-finding, K/T/I/D typed-edge schema, realistic BFS depth on current vault size | Pending |
+| N.B.1 | `deep_recall(query, depth=2, max_nodes=20)` → structured subgraph; BFS over `derives_from` / `synthesizes` / `contradicts` edges | Pending |
+| N.B.2 | Verify: a complex 3-hop query returns relevant nodes + Claude synthesizes from the subgraph (not raw keyword match) | Pending |
+
+**Hard sealing conditions:** (1) `deep_recall` on "memory decay graph-based deletion" returns
+K/T/I nodes spanning ≥ 2 hop depths (not just direct keyword matches); (2) result subgraph
+≤ 20 nodes (bounded BFS); (3) Claude synthesizes a coherent multi-hop answer from the subgraph
+without additional vault calls.
+
+**Red lines / design:** Option B thin adapter (BFS + return subgraph), NOT a mini agentic loop
+in the server; no embeddings / no vector store; `max_depth=2` default + `max_nodes=20` cap; seed
+selection via ripgrep (same as `vault_query`); return `{node_id, type, title, excerpt, edge_from,
+hops}`. Out of scope: ranking/scoring, semantic similarity, PPR / random-walk (Phase O+ if ever).
+
+**Batch-planning precondition:** the N.B.0 audit artifact (`docs/audits/N.B.0.md`) must exist
+before sprints are batch-planned — `chimera-sprint-discipline` enforces audit-before-plan.
 
 ---
 
