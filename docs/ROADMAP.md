@@ -3,7 +3,7 @@
 Personal research OS for one user. Not a framework. Not SaaS.
 
 > **Last sealed:** Phase N.A — Lens Skills (6 lenses + academic-observe) — 2026-07-06
-> **Active:** none — Phase N.B deferred at N.B.0 (audit gate failed: vault graph unpopulated → `docs/audits/N.B.0.md`)
+> **Active:** Phase O — Exocortex Write Surface (O.0 audit pending) — unblocks the deferred Phase N.B
 
 ---
 
@@ -242,6 +242,40 @@ final incident (headless-spawn hang) was fixed and Test 2 ran clean.
 
 ---
 
+## Active Phase
+
+### Phase O — Exocortex Write Surface 🔬 Active (opened 2026-07-07)
+
+**The write-path phase the N.B.0 audit demanded.** N.B was deferred because the vault's typed
+K/T/I/D graph is empty (`docs/audits/N.B.0.md`), and the root cause is the write path: no tools
+create T/I/D nodes or fill `derives_from` / `synthesizes` edges (PaperMiner only writes K Nodes).
+Phase O builds that surface, then N.B resumes over a populated graph. Spec: `docs/phases/phase-O.md`.
+
+**Driving frictions:** N.B.0 found the typed-edge graph empty; no tools create T/I/D nodes or fill
+typed edges; PaperMiner writes only K Nodes, so T/I/D + edges are manual with no workflow support.
+
+| Sprint | One-line goal | Status |
+|---|---|---|
+| O.0 | Audit: what write ops exist (PaperMiner K-Node creation), what's missing (T/I/D + typed-edge fill), Obsidian MCP capabilities | Pending |
+| O.1 | `create_node(type, title, body, edges)` → writes K/T/I/D with frontmatter + typed edges (returns staging path) | Pending |
+| O.2 | `link_nodes(from, to, edge_type)` → adds `derives_from` / `synthesizes` / `contradicts` to existing nodes | Pending |
+| O.3 | Obsidian MCP integration: adapt a market MCP if one exists, else a minimal file-write tool | Pending |
+
+**Hard sealing conditions:** (1) `create_node` writes all 4 types (K/T/I/D) with typed edges in
+frontmatter; (2) `link_nodes` adds `derives_from` / `synthesizes` edges to existing nodes; (3) after
+O.3, manually create 5 T Nodes + 10 typed edges → vault probe confirms ≥ 20 nodes with typed edges
+(the N.B unblock threshold).
+
+**Red lines / design:** thin adapter (tools write markdown, don't embed Obsidian); reuse the Phase
+V.A K/T/I/D frontmatter schema (already defined); `create_node` returns a staging path for user
+review before vault promotion (never auto-promote — CLAUDE.md). Out of scope: AI auto-linking
+(Phase P+), graph visualization, bulk backfill of the ~250 existing K Nodes (user work post-O.3).
+
+**Batch-planning precondition:** the O.0 audit artifact (`docs/audits/O.0.md`) must exist before
+sprints are batch-planned — `chimera-sprint-discipline` enforces audit-before-plan.
+
+---
+
 ## Deferred Phase
 
 ### Phase N.B — JIT Deep Recall ⏸ Deferred 2026-07-07 (blocked on graph population)
@@ -276,12 +310,11 @@ decay graph-based deletion" returns K/T/I nodes spanning ≥ 2 hop depths; (2) r
 vault calls.
 
 **Unblock condition:** ≥ 20 live nodes carry non-empty typed `graph_edges` pointing to other
-knowledge nodes (the N.B.0 gate threshold). Reaching it is **write-path work** — make the papers
-pipeline / vault `Tpl_*.md` emit typed edges (and/or backfill existing nodes) — conceptually part
-of the Queued **Phase V — Exocortex & Memory** (node-ontology automation). That effort needs its
-own user-authored spec before N.B resumes; the N.B.1/N.B.2 disposition (typed-edge BFS as written
-vs. a rescope to body-wikilink recall) is re-decided once the graph exists. Batch-planning of N.B
-is **held** until then.
+knowledge nodes (the N.B.0 gate threshold). Reaching it is **write-path work**, now scoped as the
+active **Phase O — Exocortex Write Surface** (`docs/phases/phase-O.md`): tools to create T/I/D nodes
+and fill typed edges. N.B resumes once Phase O's HSC 3 confirms ≥ 20 nodes with typed edges; the
+N.B.1/N.B.2 disposition (typed-edge BFS as written vs. a rescope to body-wikilink recall) is
+re-decided then. Batch-planning of N.B is **held** until then.
 
 ---
 
