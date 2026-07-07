@@ -3,7 +3,7 @@
 Personal research OS for one user. Not a framework. Not SaaS.
 
 > **Last sealed:** Phase N.A — Lens Skills (6 lenses + academic-observe) — 2026-07-06
-> **Active:** Phase N.B — JIT Deep Recall (N.B.0 audit pending)
+> **Active:** none — Phase N.B deferred at N.B.0 (audit gate failed: vault graph unpopulated → `docs/audits/N.B.0.md`)
 
 ---
 
@@ -242,15 +242,23 @@ final incident (headless-spawn hang) was fixed and Test 2 ran clean.
 
 ---
 
-## Active Phase
+## Deferred Phase
 
-### Phase N.B — JIT Deep Recall 🔬 Active (opened 2026-07-06)
+### Phase N.B — JIT Deep Recall ⏸ Deferred 2026-07-07 (blocked on graph population)
 
-**First code phase post-N.A.** Add `deep_recall(query, depth=2, max_nodes=20)` to the
-**chimera-vault** MCP server: a BFS traversal of the K/T/I/D graph from ripgrep-matched seed
-nodes, returning a bounded structured subgraph that Claude synthesizes natively. A pre-fetch
-**thin adapter** — NOT a JIT agentic loop inside the server. No vector store, no embeddings —
-pure graph + ripgrep. Spec: `docs/phases/phase-N.B.md`.
+**Deferred at N.B.0 — the audit gate failed.** The phase specs `deep_recall` to BFS over typed
+K/T/I/D edges, but the N.B.0 audit (`docs/audits/N.B.0.md`, `3f621a8`) found the live vault has
+**zero populated typed `graph_edges`**: every block is `[]` or an unfilled `{{PLACEHOLDER}}`, the
+~250+ pipeline-written knowledge nodes carry no `graph_edges` at all, and the only real cross-node
+links are body prose in ~5 nodes that dead-end at ~1 hop (`_Deep_Read` nodes are PDF-only leaves).
+HSC 1 (≥ 2 hop depths) and HSC 3 (multi-hop synthesis) are unreachable on today's graph — for *any*
+edge type, not just typed ones. Root cause is the **write path** (`knowledge_node.j2` /
+`deep_read_node.j2` emit no typed edges), not the read tool.
+
+**Original intent (retained for when unblocked).** Add `deep_recall(query, depth=2, max_nodes=20)`
+to **chimera-vault**: a thin-adapter BFS over the K/T/I/D graph from ripgrep-matched seeds,
+returning a bounded structured subgraph Claude synthesizes natively. NOT a JIT agentic loop; no
+vector store / embeddings. Spec: `docs/phases/phase-N.B.md`.
 
 **Driving frictions:** `vault_query` is keyword-only (fuzzy queries like "那篇 memory 的" miss);
 complex multi-hop queries need 5+ tool calls (slow + context bloat); the K/T/I/D typed edges
@@ -258,22 +266,22 @@ complex multi-hop queries need 5+ tool calls (slow + context bloat); the K/T/I/D
 
 | Sprint | One-line goal | Status |
 |---|---|---|
-| N.B.0 | Audit: existing graph traversal (`obsidian_graph_query` BFS), ripgrep seed-finding, K/T/I/D typed-edge schema, realistic BFS depth on current vault size | Pending |
-| N.B.1 | `deep_recall(query, depth=2, max_nodes=20)` → structured subgraph; BFS over `derives_from` / `synthesizes` / `contradicts` edges | Pending |
-| N.B.2 | Verify: a complex 3-hop query returns relevant nodes + Claude synthesizes from the subgraph (not raw keyword match) | Pending |
+| N.B.0 | Audit: existing graph traversal, ripgrep seeds, K/T/I/D schema, realistic BFS depth | ✅ Complete — gate FAILED (`3f621a8`) |
+| N.B.1 | `deep_recall(...)` → structured subgraph; BFS over `derives_from` / `synthesizes` / `contradicts` | ⏸ Blocked (empty graph) |
+| N.B.2 | Verify: a complex 3-hop query synthesized from the subgraph (not raw keyword match) | ⏸ Blocked (empty graph) |
 
-**Hard sealing conditions:** (1) `deep_recall` on "memory decay graph-based deletion" returns
-K/T/I nodes spanning ≥ 2 hop depths (not just direct keyword matches); (2) result subgraph
-≤ 20 nodes (bounded BFS); (3) Claude synthesizes a coherent multi-hop answer from the subgraph
-without additional vault calls.
+**Hard sealing conditions (unchanged; currently unsatisfiable):** (1) `deep_recall` on "memory
+decay graph-based deletion" returns K/T/I nodes spanning ≥ 2 hop depths; (2) result subgraph
+≤ 20 nodes (bounded BFS); (3) Claude synthesizes a coherent multi-hop answer without additional
+vault calls.
 
-**Red lines / design:** Option B thin adapter (BFS + return subgraph), NOT a mini agentic loop
-in the server; no embeddings / no vector store; `max_depth=2` default + `max_nodes=20` cap; seed
-selection via ripgrep (same as `vault_query`); return `{node_id, type, title, excerpt, edge_from,
-hops}`. Out of scope: ranking/scoring, semantic similarity, PPR / random-walk (Phase O+ if ever).
-
-**Batch-planning precondition:** the N.B.0 audit artifact (`docs/audits/N.B.0.md`) must exist
-before sprints are batch-planned — `chimera-sprint-discipline` enforces audit-before-plan.
+**Unblock condition:** ≥ 20 live nodes carry non-empty typed `graph_edges` pointing to other
+knowledge nodes (the N.B.0 gate threshold). Reaching it is **write-path work** — make the papers
+pipeline / vault `Tpl_*.md` emit typed edges (and/or backfill existing nodes) — conceptually part
+of the Queued **Phase V — Exocortex & Memory** (node-ontology automation). That effort needs its
+own user-authored spec before N.B resumes; the N.B.1/N.B.2 disposition (typed-edge BFS as written
+vs. a rescope to body-wikilink recall) is re-decided once the graph exists. Batch-planning of N.B
+is **held** until then.
 
 ---
 
