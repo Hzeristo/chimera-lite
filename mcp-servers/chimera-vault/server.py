@@ -1,8 +1,10 @@
-"""chimera-vault MCP server — read and query the Obsidian research vault.
+"""chimera-vault MCP server — read/query the vault + stage K/T/I/D nodes for review.
 
-Thin adapter: the @mcp.tool functions declare the contract and delegate to the
-ported tool bodies (``vault_tools`` / ``vault_query``). The real domain logic lives
-in ``VaultReadAdapter`` (under the sibling chimera-papers domain package) + ripgrep.
+Thin adapter: the @mcp.tool functions declare the contract and delegate to the ported
+tool bodies (``vault_tools`` / ``vault_query`` for reads; ``StagingService`` for
+``create_node``). The real domain logic lives in ``VaultReadAdapter`` + ``StagingService``
+(under the sibling chimera-papers domain package) + ripgrep. Writes are staging-only
+(``docs/staging/`` → user review); this server never auto-promotes into the vault.
 """
 
 from __future__ import annotations
@@ -119,6 +121,36 @@ async def vault_query(
         linked_to: arxiv_id or title substring that must appear in a graph_edges list.
     """
     return await vault_query_mod.vault_query(type=type, status=status, linked_to=linked_to)
+
+
+@mcp.tool()
+async def create_node(
+    type: str,
+    title: str,
+    body: str,
+    edges: dict | None = None,
+) -> str:
+    """Create a K/T/I/D node in the staging area for user review (never auto-promoted).
+
+    Writes a markdown node with typed ``graph_edges`` frontmatter to ``docs/staging/``
+    and returns the staging path. Promotion into the vault is a separate, explicit step —
+    this tool never writes into the live vault.
+
+    Args:
+        type: Node type — ``knowledge``, ``thought``, ``insight``, or ``decision``.
+        title: Node title (also used to derive the staging filename).
+        body: Markdown body of the node.
+        edges: Optional typed edges, e.g. ``{"derives_from": ["Some Note"]}``. Keys must be
+            valid for the node type per ``docs/ARCHITECTURE/NODE_ONTOLOGY.md``; unknown keys
+            are rejected. Values are lists of target wikilink stems.
+    """
+    from core.config import get_config
+    from staging_service import StagingService
+
+    config = get_config()
+    service = StagingService(config.system.staging_dir, config.require_path("vault_root"))
+    path = service.create_staging_node(type=type, title=title, body=body, edges=edges)
+    return str(path)
 
 
 if __name__ == "__main__":

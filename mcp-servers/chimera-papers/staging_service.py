@@ -8,11 +8,13 @@ from pathlib import Path
 
 import yaml
 
-_TYPE_DEST = {"thought": "Thoughts", "insight": "Insight", "decision": "Decision"}
+# K/T/I/D typed-edge vocabulary — mirrors docs/ARCHITECTURE/NODE_ONTOLOGY.md (the authority).
+_TYPE_DEST = {"knowledge": "Knowledge", "thought": "Thoughts", "insight": "Insight", "decision": "Decision"}
 _TYPE_EDGES: dict[str, dict[str, list]] = {
-    "thought":  {"derives_from": [], "supersedes": [], "contradicts": [], "dead_ends": []},
-    "insight":  {"synthesizes": [], "verified_with": [], "derives_from": [], "supersedes": [], "contradicts": []},
-    "decision": {"depends_on": [], "dead_ends": [], "supersedes": [], "contradicts": []},
+    "knowledge": {"derives_from": [], "supersedes": [], "contradicts": []},
+    "thought":   {"derives_from": [], "supersedes": [], "contradicts": [], "dead_ends": [], "drives_decision": []},
+    "insight":   {"synthesizes": [], "evidence_base": [], "derives_from": [], "drives_decision": [], "supersedes": [], "contradicts": []},
+    "decision":  {"derives_from": [], "drives_decision": [], "dead_ends": [], "supersedes": [], "contradicts": []},
 }
 _SLUG_RE = re.compile(r'[\\/:*?"<>|\s]+')
 
@@ -36,8 +38,12 @@ class StagingService:
         graph_edges = dict(_TYPE_EDGES[node_type])
         if edges:
             for k, v in edges.items():
-                if k in graph_edges:
-                    graph_edges[k] = v
+                if k not in graph_edges:
+                    raise ValueError(
+                        f"Unknown edge {k!r} for node type {node_type!r}; "
+                        f"valid: {sorted(graph_edges)}"
+                    )
+                graph_edges[k] = v
         fm = {
             "type": node_type,
             "status": "PENDING_REVIEW",

@@ -1,9 +1,9 @@
 # NODE_ONTOLOGY — Chimera Lite K/T/I/D typed-edge authority
 
-**Status:** 🟡 PROPOSED — awaiting user ratification (Phase O, sprint O.1a).
+**Status:** ✅ RATIFIED (2026-07-07) — both renames approved by the user (Phase O, sprint O.1a).
 **Authored:** 2026-07-07 · **Sprint:** O.1a (`docs/plans/Phase-O-batch.md`) · **Audit:** `docs/audits/O.0.md` Q4 / cross-finding #2.
-**Supersedes on ratification:** the three scattered, disagreeing definitions below become one. Once ratified,
-`StagingService._TYPE_EDGES` (`mcp-servers/chimera-papers/staging_service.py:12-16`) mirrors this file, and
+**Supersedes:** the three scattered, disagreeing definitions below are now unified here.
+`StagingService._TYPE_EDGES` (`mcp-servers/chimera-papers/staging_service.py:12-16`) mirrors this file (done in O.1b), and
 this file is the single place the K/T/I/D typed-edge vocabulary is defined.
 
 > This is the authority the deferred **Phase N.B** `deep_recall` will traverse. The vault graph is empty
@@ -77,14 +77,12 @@ Each divergent key, with the rule applied and why. **A = adopt · R = rename · 
 | D | `drives_decision` | **A (keep)** | Vault has it (a decision can drive a follow-on decision); code lacks it. → **code gains `drives_decision`.** |
 | — | `promoted_to_insight` | **−Drop** | Appears in **neither** source on direct read (the O.0 audit's sampling guessed it; the live `Tpl_thought.md` has `drives_decision`, not this). Not adopted. |
 
-### ⚠️ Two calls that need your explicit ratification
+### ✅ Two renames — RATIFIED by the user (2026-07-07)
 
-Both are near-synonym renames — reasonable either way. My recommendation is in the table; override if you disagree:
+Both near-synonym renames were approved as recommended:
 
-1. **`verified_with` → `evidence_base`** (insight). Accept the vault term, or keep the code term `verified_with`?
-2. **`depends_on` → `derives_from`** (decision). Unify on `derives_from`, or keep `depends_on` as a *distinct*
-   decision-only "operational prerequisite" edge alongside `derives_from`? (Keeping both is valid if you want to
-   distinguish *evidentiary* provenance from *operational* dependency — it just widens the vocabulary by one.)
+1. **`verified_with` → `evidence_base`** (insight) — APPROVED. Adopt the vault's live term.
+2. **`depends_on` → `derives_from`** (decision) — APPROVED. Unify on the universal provenance edge.
 
 ---
 
@@ -127,4 +125,4 @@ The repo authority is this file; Obsidian renders whatever frontmatter a note ca
 
 ---
 
-*Sprint O.1a — chimera-sprint-discipline batch_execution. Awaiting ratification before O.1b.*
+*Sprint O.1a — RATIFIED 2026-07-07. O.1b mirrors §4 into `_TYPE_EDGES`.*
