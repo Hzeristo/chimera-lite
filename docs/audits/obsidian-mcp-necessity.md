@@ -10,7 +10,8 @@ recommended verifying the market before building. This is that verification.
 necessity audit of the top 3 by stars. Stars/LOC/app-dependency verified live against the GitHub API
 and raw source on 2026-07-07. (One Layer-2 agent — mcpvault — hit the structured-output retry cap;
 re-run directly via WebFetch.)
-**Status:** RESEARCH, not a decision. The user decides after reading.
+**Status:** ✅ DECIDED (2026-07-07) — user confirmed **Option C**. See the Decision section below.
+(Research complete; O.3 records the dependency-veto — no market MCP adopted, no new dependency.)
 
 ---
 
@@ -136,6 +137,29 @@ foreign runtime, no desktop-app requirement, writes the chimera schema natively.
 graph discovery). It is ~2,900 LOC on its own schema/SQLite index — too much to adopt — but its
 typed-link API and orphan/hub discovery are a useful design reference for O.2 `link_nodes` and the
 eventual N.B `deep_recall`.
+
+---
+
+## Decision (2026-07-07) — Phase O.3
+
+**Option C confirmed by the user.** No market Obsidian MCP is adopted; no new dependency; `.mcp.json`
+stays two servers (chimera-vault + chimera-papers). The "minimal file-write tool" the phase spec
+anticipated already exists as the O.1b + O.2 write surface over `StagingService`:
+
+- **O.1b** `create_node` — K/T/I/D staging nodes with typed edges (shipped; HSC 1).
+- **O.2a/O.2b** `link_nodes` + `apply_link_patch` — reviewed typed-edge links onto existing nodes
+  (shipped; HSC 2).
+
+`chimera-dependency-veto` recorded: adopting any surveyed candidate would import a desktop-app
+dependency or a thick foreign runtime (TS/Go/Rust, 2.3k–30k LOC) to buy generic frontmatter editing
+Chimera already has via ripgrep + the K/T/I/D-native tools above — and none of them speaks the chimera
+schema. The veto stands.
+
+**Design reference borrowed (not adopted):** `zettelkasten-mcp`'s typed-link API informed O.2's edge
+model; its code was not used.
+
+**O.3 residual:** the phase seal (HSC 3 — ≥20 nodes with typed edges) via `scripts/seed_hsc3.py`. This
+audit's research obligation is closed.
 
 ---
 

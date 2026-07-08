@@ -36,6 +36,14 @@ Unblocks Phase N.B (deep_recall over typed-edge graph).
 - Frontmatter format = Phase V.A K/T/I/D schema(already defined)
 - create_node returns staging path (user reviews before moving to vault)
 
+## O.3 Resolution (2026-07-07)
+
+Obsidian-MCP integration → **Option C (self-build)**, per the market survey
+`docs/audits/obsidian-mcp-necessity.md` (12 candidates, 0 pass; all app-dependent or thick
+foreign runtimes, none K/T/I/D-aware). No market MCP adopted, no new dependency — the write
+surface IS the O.1b/O.2 tools over `StagingService`. `chimera-dependency-veto` recorded.
+Remaining O.3 work: the HSC-3 seal seed (`scripts/seed_hsc3.py`).
+
 ## Out of Scope
 
 - Auto-linking (AI infers edges) — Phase P+ if ever
