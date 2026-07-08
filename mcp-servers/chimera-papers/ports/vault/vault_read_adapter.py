@@ -21,6 +21,8 @@ _TOKEN_RE = re.compile(r"\S+")
 # Obsidian wikilinks: [[Note]], [[Note|alias]], [[Note#heading]]
 _WIKI_LINK_RE = re.compile(r"\[\[([^\]]+)\]\]")
 _ARXIV_ID_RE = re.compile(r"\d{4}\.\d{4,5}")
+# Directories excluded from live-vault resolution: backups, user-synced templates, Obsidian internals.
+_NONVAULT_DIRS = {".obsidian", ".migration_backup", "templates"}
 
 
 def _wikilink_targets(text: str) -> list[str]:
@@ -415,7 +417,7 @@ class VaultReadAdapter:
         for p in sorted(vault_root.rglob("*.md")):
             if p.stem != ident:
                 continue
-            if ".obsidian" in p.relative_to(vault_root).parts:
+            if _NONVAULT_DIRS & set(p.relative_to(vault_root).parts):
                 continue
             return p.resolve()
         return None

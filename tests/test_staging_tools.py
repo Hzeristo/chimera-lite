@@ -64,9 +64,19 @@ def test_edges_merge_populates_valid_key(tmp_path: Path) -> None:
         edges={"derives_from": ["Some Note"]},
     )
     fm = _read_frontmatter(path)
-    assert fm["graph_edges"]["derives_from"] == ["Some Note"]
+    assert fm["graph_edges"]["derives_from"] == ["[[Some Note]]"]  # normalized to wikilink form
     # untouched keys stay empty
     assert fm["graph_edges"]["dead_ends"] == []
+
+
+def test_edges_prewrapped_not_double_wrapped(tmp_path: Path) -> None:
+    svc = StagingService(tmp_path / "staging", tmp_path / "vault")
+    path = svc.create_staging_node(
+        type="thought", title="pw", body="b",
+        edges={"derives_from": ["[[Already Linked]]"]},
+    )
+    fm = _read_frontmatter(path)
+    assert fm["graph_edges"]["derives_from"] == ["[[Already Linked]]"]  # no double [[ ]]
 
 
 def test_unknown_edge_key_is_rejected_loudly(tmp_path: Path) -> None:

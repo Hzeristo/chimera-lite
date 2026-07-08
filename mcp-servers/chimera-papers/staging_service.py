@@ -19,6 +19,15 @@ _TYPE_EDGES: dict[str, dict[str, list]] = {
 _SLUG_RE = re.compile(r'[\\/:*?"<>|\s]+')
 
 
+def _as_wikilink(target: str) -> str:
+    """Normalize an edge target to Obsidian wikilink form ``[[stem]]`` (idempotent).
+
+    The vault's hand-authored graph_edges store targets as ``[[stem]]``; tool-written
+    edges use the same form so the graph is one consistent vocabulary."""
+    s = str(target).strip()
+    return s if s.startswith("[[") and s.endswith("]]") else f"[[{s}]]"
+
+
 def _splice_graph_edges(fm_raw: str, graph_edges: dict) -> str:
     """Replace ONLY the ``graph_edges:`` block in frontmatter text, leaving every other
     line byte-identical. Re-serializes graph_edges (the edited structure) via yaml while
@@ -67,7 +76,7 @@ class StagingService:
                         f"Unknown edge {k!r} for node type {node_type!r}; "
                         f"valid: {sorted(graph_edges)}"
                     )
-                graph_edges[k] = v
+                graph_edges[k] = [_as_wikilink(x) for x in v]
         fm = {
             "type": node_type,
             "status": "PENDING_REVIEW",
@@ -144,7 +153,7 @@ class StagingService:
         path = self.staging_dir / f"{stamp}-linkpatch-{slug}.md"
         body = (
             f"# Link patch: [[{from_stem}]] --{edge_type}--> [[{to_stem}]]\n\n"
-            f"Adds `{to_stem}` to `graph_edges.{edge_type}` of `{from_path}`.\n\n"
+            f"Adds `[[{to_stem}]]` to `graph_edges.{edge_type}` of `{from_path}`.\n\n"
             f"Review, then apply with `apply_link_patch`.\n"
         )
         content = (
@@ -186,13 +195,14 @@ class StagingService:
         graph_edges = fm.get("graph_edges")
         if not isinstance(graph_edges, dict):
             graph_edges = {}
+        edge_value = _as_wikilink(to_stem)
         current = graph_edges.get(edge_type) or []
         if not isinstance(current, list):
             current = [current]
-        if to_stem in current:  # idempotent — leave the node byte-identical
+        if edge_value in current:  # idempotent — leave the node byte-identical
             patch_path.unlink()
             return target_path
-        graph_edges[edge_type] = current + [to_stem]
+        graph_edges[edge_type] = current + [edge_value]
 
         new_fm_raw = _splice_graph_edges(fm_raw, graph_edges)
         target_path.write_text(f"{pre}---{new_fm_raw}---{body}", encoding="utf-8")

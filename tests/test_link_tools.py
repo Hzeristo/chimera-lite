@@ -84,9 +84,10 @@ def test_resolve_note_path_live() -> None:
     if vault_root is None or not vault_root.is_dir():
         pytest.skip("vault root not a directory")
 
+    _skip = {".obsidian", ".migration_backup", "templates"}
     known = next(
         (p for p in vault_root.rglob("*.md")
-         if ".obsidian" not in p.relative_to(vault_root).parts),
+         if not (_skip & set(p.relative_to(vault_root).parts))),
         None,
     )
     if known is None:
@@ -141,7 +142,7 @@ def test_apply_link_patch_merges_edge(tmp_path: Path) -> None:
     assert result == target
     assert not patch.exists()  # consumed
     fm = _read_frontmatter(target)
-    assert fm["graph_edges"]["derives_from"] == ["Some Source"]
+    assert fm["graph_edges"]["derives_from"] == ["[[Some Source]]"]  # wikilink form
     assert fm["graph_edges"]["supersedes"] == []  # sibling edge untouched
 
 
@@ -176,7 +177,7 @@ def test_apply_link_patch_is_idempotent(tmp_path: Path) -> None:
         svc.apply_link_patch(patch)
         assert not patch.exists()
     fm = _read_frontmatter(target)
-    assert fm["graph_edges"]["derives_from"] == ["Some Source"]  # no duplicate
+    assert fm["graph_edges"]["derives_from"] == ["[[Some Source]]"]  # no duplicate
 
 
 def test_apply_rejects_non_link_patch(tmp_path: Path) -> None:
@@ -207,4 +208,4 @@ def test_apply_on_knowledge_node_keeps_closing_fence(tmp_path: Path) -> None:
     new_text = target.read_text(encoding="utf-8")
     assert "\n---\n\n# Paper" in new_text          # closing fence intact on its own line
     fm = _read_frontmatter(target)
-    assert fm["graph_edges"]["contradicts"] == ["Rival"]
+    assert fm["graph_edges"]["contradicts"] == ["[[Rival]]"]

@@ -7,12 +7,13 @@ Thought nodes + typed edges, the vault shows >= 20 nodes whose ``graph_edges`` i
 O.1b/O.2 write surface (StagingService + VaultReadAdapter) to seed that graph.
 
 ARITHMETIC (see docs/plans/Phase-O-batch.md, O.3 note). The probe counts EDGE-ORIGIN nodes —
-a node whose OWN frontmatter has a populated edge list. An edge added by ``link_nodes`` lands
-on its FROM node, so only FROM nodes count. From an empty graph:
+a node whose OWN frontmatter has a populated edge list (excluding .migration_backup/ and
+templates/). An edge added by ``link_nodes`` lands on its FROM node, so only FROM nodes count.
+Run `probe` first for the live baseline B; you then need (20 - B) more origin nodes:
     5 Thought nodes (each with derives_from populated at creation) = 5 origins
-  + ~15 edges each originating from a DISTINCT existing Knowledge node = 15 origins
+  + ~(15 - B) edges each originating from a DISTINCT existing Knowledge node
   ----------------------------------------------------------------------------------
-  = >= 20 origin nodes.
+  = >= 20 origin nodes.  (Live baseline is ~1, so ~14 K-origin edges + 5 thoughts.)
 So the seed necessarily touches ~15 existing K nodes (targeted, NOT the out-of-scope
 250-node bulk backfill). Fill KNOWLEDGE_EDGES below with REAL relationships between your
 papers — this is genuine graph-building, not metric-gaming.
@@ -98,9 +99,13 @@ def _frontmatter(text: str) -> dict:
         return {}
 
 
+# Non-live dirs excluded from the graph count: Obsidian internals, backups, sync templates.
+_NONVAULT_DIRS = {".obsidian", ".migration_backup", "templates"}
+
+
 def _iter_notes(vault_root: Path):
     for p in sorted(vault_root.rglob("*.md")):
-        if ".obsidian" in p.relative_to(vault_root).parts:
+        if _NONVAULT_DIRS & set(p.relative_to(vault_root).parts):
             continue
         yield p
 
