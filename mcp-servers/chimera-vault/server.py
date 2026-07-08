@@ -153,5 +153,52 @@ async def create_node(
     return str(path)
 
 
+@mcp.tool()
+async def link_nodes(from_node: str, to_node: str, edge_type: str) -> str:
+    """Stage a typed-edge link between two vault nodes for review (no live write).
+
+    Resolves both endpoints, validates ``edge_type`` for the FROM node's type against
+    ``docs/ARCHITECTURE/NODE_ONTOLOGY.md``, and writes a reviewable patch to
+    ``docs/staging/``. Apply it after review with ``apply_link_patch``. This tool never
+    edits the vault.
+
+    Args:
+        from_node: Source node — note stem/title or arxiv_id. Gains ``edge_type: [to_node]``.
+        to_node: Target node — note stem/title or arxiv_id (the link destination).
+        edge_type: Typed edge (e.g. derives_from, synthesizes); must be valid for the
+            FROM node's type per NODE_ONTOLOGY.md.
+    """
+    import yaml
+
+    from core.config import get_config
+    from ports.vault.vault_read_adapter import VaultReadAdapter
+    from staging_service import StagingService
+
+    config = get_config()
+    adapter = VaultReadAdapter(config)
+    from_path = adapter.resolve_note_path(from_node)
+    if from_path is None:
+        raise ValueError(f"Could not resolve 'from' node: {from_node!r}")
+    to_path = adapter.resolve_note_path(to_node)
+    if to_path is None:
+        raise ValueError(f"Could not resolve 'to' node: {to_node!r}")
+
+    try:
+        from_type = str((yaml.safe_load(from_path.read_text(encoding="utf-8").split("---", 2)[1]) or {}).get("type", "")).strip()
+    except (IndexError, ValueError, yaml.YAMLError):
+        from_type = ""
+
+    service = StagingService(config.system.staging_dir, config.require_path("vault_root"))
+    patch = service.stage_link_patch(
+        from_stem=from_path.stem,
+        from_path=from_path,
+        from_type=from_type,
+        edge_type=edge_type,
+        to_stem=to_path.stem,
+        to_path=to_path,
+    )
+    return str(patch)
+
+
 if __name__ == "__main__":
     mcp.run()

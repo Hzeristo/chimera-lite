@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 _TOKEN_RE = re.compile(r"\S+")
 # Obsidian wikilinks: [[Note]], [[Note|alias]], [[Note#heading]]
 _WIKI_LINK_RE = re.compile(r"\[\[([^\]]+)\]\]")
+_ARXIV_ID_RE = re.compile(r"\d{4}\.\d{4,5}")
 
 
 def _wikilink_targets(text: str) -> list[str]:
@@ -392,6 +393,31 @@ class VaultReadAdapter:
             "[Vault] No valid vault-authenticated paper found for id=%s (note parse failed).",
             arxiv_id,
         )
+        return None
+
+    def resolve_note_path(self, identifier: str) -> Path | None:
+        """Resolve a node identifier (note stem or arxiv_id) to its vault path.
+
+        The single public endpoint resolver: tries an arxiv-id match first (paired-PDF
+        paper via ``find_authenticated_paper``), then a note-stem match under the vault
+        root (T/I/D/K nodes, ``.obsidian`` skipped). Returns None if nothing resolves.
+        """
+        ident = (identifier or "").strip()
+        if not ident:
+            return None
+        vault_root = self._settings.vault_root
+        if not vault_root.is_dir():
+            return None
+        if _ARXIV_ID_RE.search(ident):
+            authenticated = self.find_authenticated_paper(ident)
+            if authenticated is not None:
+                return authenticated[0]
+        for p in sorted(vault_root.rglob("*.md")):
+            if p.stem != ident:
+                continue
+            if ".obsidian" in p.relative_to(vault_root).parts:
+                continue
+            return p.resolve()
         return None
 
     async def search_notes(self, query: str, top_k: int = 3) -> str:
