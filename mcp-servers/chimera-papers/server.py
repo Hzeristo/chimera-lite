@@ -61,8 +61,11 @@ async def daily_paper_pipeline(
     arxiv_max_results: int | None = None,
     skip_telegram: bool = False,
 ) -> str:
-    """Run the full daily paper pipeline (long-running). Returns a ``task_id``; poll
-    ``check_task_status``. Subject to the same single-pipeline concurrency guard.
+    """Run the full BATCH daily paper pipeline — arXiv sweep by query → ingest → filter → notify
+    (long-running). Returns a ``task_id``; poll ``check_task_status``. Subject to the
+    single-pipeline concurrency guard.
+
+    For a SINGLE already-known paper (by arXiv id or a local PDF), use ``ingest_paper`` instead.
 
     Args:
         arxiv_query: Optional override for the configured arXiv query.
@@ -81,13 +84,19 @@ async def daily_paper_pipeline(
 
 @mcp.tool()
 async def ingest_paper(arxiv_id: str | None = None, pdf_path: str | None = None) -> str:
-    """Ingest a SINGLE paper into a vault Knowledge node — the single-paper counterpart to
-    the batch daily pipeline. Pass an arXiv id (fetched) OR a local PDF path (converted
-    directly). Converts via MinerU (GPU), triages (FilterService), writes the K node, and
-    returns its path. Synchronous (no task_id). Deep reading is a separate step:
-    ``read_vault_file`` + an N.A lens skill.
+    """Add ONE specific, already-known paper to the vault as a Knowledge node (single-paper ingest).
 
-    Rejected while a long-running arXiv/pipeline job is active (they share the GPU / MinerU).
+    WHEN: you have a particular paper to bring into the vault — identified by an arXiv id
+    (e.g. "2604.14004") OR a local PDF path. Fits requests like "add paper 2604.14004 to the
+    vault", "ingest this PDF into my Knowledge base", "get <paper> into the vault".
+    WHAT: PDF → Markdown (MinerU on GPU) → triage → a vault Knowledge node; returns the node path.
+    Synchronous (no task_id).
+
+    For the BATCH daily arXiv sweep — many papers pulled by a search query, not one known paper —
+    use ``daily_paper_pipeline`` instead, NOT this tool.
+
+    Deep reading is a separate step afterwards: ``read_vault_file`` + an N.A lens skill.
+    Rejected while a long-running arXiv/pipeline job is active (shared GPU / MinerU).
 
     Args:
         arxiv_id: arXiv identifier to fetch + ingest (e.g. "2604.14004").

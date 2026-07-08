@@ -61,7 +61,9 @@ Registered in `.mcp.json`. Tool **contracts** (names, args, docstrings) live in 
   `obsidian_graph_query`, `vault_query`.
 - **`chimera-papers`** — arXiv mining + the daily pipeline (long-running via
   `TaskService`, poll model): `arxiv_miner`, `daily_paper_pipeline`,
-  `check_task_status`.
+  `check_task_status`; plus `ingest_paper` — single known paper (arxiv_id **or**
+  local pdf_path) → Knowledge node (synchronous; the single-paper counterpart to
+  `daily_paper_pipeline`).
 
 Web search and subagent delegation are **not** MCP servers — use Claude Code's native
 WebSearch and Task tools.
