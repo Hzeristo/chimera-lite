@@ -332,30 +332,30 @@ then run the HSC-3 seal seed and vault probe.
   `.mcp.json` stays 2 servers. Audit ref: `O.0.md` Q7, cross-finding #4; Decision 4.
 - **The file-write path already exists** — O.1b + O.2 over `StagingService` / `VaultNoteWriter`. O.3
   wires nothing new; it records the decision and seals.
-- **⚠️ HSC-3 arithmetic — state the mechanism.** `phase-O.md:29-30` requires "create 5 T Nodes + 10
-  typed edges → ≥ 20 nodes with typed edges." From an empty graph (N.B.0 Q4), 5 T nodes alone yield at
-  most 5 edge-origin nodes. To reach ≥ 20, the 10 edges must **originate from ≥ 20 distinct nodes** —
-  i.e., the seed must also `link_nodes` **from** existing K nodes to the new T nodes (targeted seeding,
-  NOT the out-of-scope 250-node bulk backfill). O.2b writes the edge into the *from*-node, so counting
-  is by origin. This must be settled at execution so the probe can actually pass. Open item, flagged
-  here rather than assumed.
+- **✅ HSC-3 metric — PARTICIPATION, not origins (resolved 2026-07-07).** The probe counts nodes that
+  participate in the typed-edge graph: a node counts if it is a **source** (own `graph_edges` non-empty)
+  OR a **target** (its stem appears as `[[target]]` in another node's `graph_edges`, and it is a real
+  node). This matches N.B `deep_recall`, which traverses **bidirectionally** (outgoing frontmatter edges
+  + incoming grep). So each Thought that `derives_from` N real papers contributes 1 source + up to N
+  targets. Live baseline is **12** (3 thoughts + the ~9 papers they point at); **5 real new thoughts +
+  their targets reach ≥ 20 with ZERO fabricated K→K edges.** Real paper→paper edges are a bonus only.
 
 ### 任务范围
 1. `docs/audits/obsidian-mcp-necessity.md` + `docs/phases/phase-O.md` O.3 note — record Option C / veto
    (no new dependency). (doc)
-2. Seal seed — via `create_node` + `link_nodes` + `apply_link_patch`, create 5 T Nodes and ≥10 typed
-   edges arranged so ≥ 20 distinct nodes end up with typed edges (targeted, not bulk). (verify)
-3. Run the vault typed-edge probe (the N.B.0 Q4 count) → confirm ≥ 20 nodes with non-empty `graph_edges`.
+2. Seal seed — via `create_node` (+ optional real `link_nodes`/`apply_link_patch`), create 5 real
+   Thought nodes each `derives_from` real papers, so thoughts + their targets reach ≥ 20 participants. (verify)
+3. Run the participation probe (`scripts/seed_hsc3.py probe`) → confirm ≥ 20 participating nodes.
 
 ### 验收
 - Veto recorded: `.mcp.json` unchanged (still 2 servers); no `obsidian` dependency added — verify by grep.
-- Vault probe reports **≥ 20 nodes with non-empty typed `graph_edges`** (HSC 3 / N.B unblock threshold).
+- Participation probe reports **≥ 20 participating nodes** (source ∪ target; HSC 3 / N.B unblock threshold).
 - The 5 seed T Nodes + their edges are user-reviewed staging → promoted (never auto-promoted).
 
 ### 红线
 - ❌ **No new dependency, no new MCP server** — `.mcp.json` stays 2 servers (phase-wide; Decision 4).
 - ❌ Seed nodes go through `docs/staging/` → user review before promotion — no auto-promote.
-- ❌ HSC-3 seeding is targeted (≤ ~20 nodes) — NOT the out-of-scope 250-node bulk backfill.
+- ❌ Do NOT fabricate K→K edges to inflate the count — only real relationships; NOT the out-of-scope 250-node backfill.
 - ❌ 不进行机会主义重构。
 
 ### 输出位置
@@ -389,16 +389,17 @@ MUST pass at `phase_review`:
    in frontmatter — verified by reading one staging file per type (O.1b acceptance).
 2. **link_nodes adds edges to existing nodes** — `link_nodes` → review → `apply_link_patch` appends
    `derives_from` / `synthesizes` (etc.) to a live node — verified by re-reading the target node (O.2b acceptance).
-3. **≥ 20 nodes with typed edges** — after the O.3 seed (5 T Nodes + ≥ 10 typed edges, arranged per the
-   O.3 arithmetic note), the vault typed-edge probe (N.B.0 Q4 count) reports ≥ 20 nodes with non-empty
-   `graph_edges` — the **N.B unblock threshold**. Verified by the probe output.
+3. **≥ 20 participating nodes** — after the O.3 seed (5 real Thoughts each `derives_from` real papers),
+   the participation probe (`scripts/seed_hsc3.py probe`; a node counts as **source OR target**) reports
+   ≥ 20 participating nodes — the **N.B unblock threshold**. Verified by the probe output. (Baseline 12.)
 
 ---
 
 ## Deferred / open (do not block O.1a–O.3)
 
-- **HSC-3 origin-count mechanism** — how the seed reaches ≥ 20 edge-origin nodes from an empty graph
-  (O.3 design point). Settle at O.3 execution; flagged, not assumed.
+- ~~**HSC-3 origin-count mechanism**~~ — **RESOLVED 2026-07-07**: the metric is **participation**
+  (source ∪ target), not origins, matching N.B's bidirectional `deep_recall`. Baseline 12; 5 real
+  thoughts reach ≥ 20 with no fabricated K→K edges. See `scripts/seed_hsc3.py`.
 - **Rich `.j2` node templates** (cross-finding #5) — minimal-dict frontmatter ships in O.1b; wiring the
   richer `obsidian_tpl/*.j2` (lesson/actionable/rationale scaffolds) is a deferred follow-up.
 - **Bulk backfill of ~250 existing K Nodes** — explicitly out of scope (`phase-O.md:43`); user work after O.3.

@@ -1,29 +1,33 @@
 #!/usr/bin/env python
-"""HSC-3 seal seed for Phase O — grow the vault typed-edge graph to >= 20 origin nodes.
+"""HSC-3 seal seed for Phase O — grow the vault typed-edge graph to >= 20 PARTICIPATING nodes.
 
-Phase O's Hard Sealing Condition 3 (docs/phases/phase-O.md) requires that, after seeding
-Thought nodes + typed edges, the vault shows >= 20 nodes whose ``graph_edges`` is non-empty
-(the N.B ``deep_recall`` unblock threshold; N.B.0 Q4 measured 0). This script drives the
-O.1b/O.2 write surface (StagingService + VaultReadAdapter) to seed that graph.
+Phase O's Hard Sealing Condition 3 (docs/phases/phase-O.md) requires >= 20 vault nodes that
+PARTICIPATE in the typed-edge graph (the N.B ``deep_recall`` unblock threshold; N.B.0 Q4
+measured 0). This script drives the O.1b/O.2 write surface (StagingService + VaultReadAdapter).
 
-ARITHMETIC (see docs/plans/Phase-O-batch.md, O.3 note). The probe counts EDGE-ORIGIN nodes —
-a node whose OWN frontmatter has a populated edge list (excluding .migration_backup/ and
-templates/). An edge added by ``link_nodes`` lands on its FROM node, so only FROM nodes count.
-Run `probe` first for the live baseline B; you then need (20 - B) more origin nodes:
-    5 Thought nodes (each with derives_from populated at creation) = 5 origins
-  + ~(15 - B) edges each originating from a DISTINCT existing Knowledge node
-  ----------------------------------------------------------------------------------
-  = >= 20 origin nodes.  (Live baseline is ~1, so ~14 K-origin edges + 5 thoughts.)
-So the seed necessarily touches ~15 existing K nodes (targeted, NOT the out-of-scope
-250-node bulk backfill). Fill KNOWLEDGE_EDGES below with REAL relationships between your
-papers — this is genuine graph-building, not metric-gaming.
+METRIC — participation, NOT origins. N.B ``deep_recall`` traverses BIDIRECTIONALLY: outgoing
+edges from a node's ``graph_edges`` frontmatter, AND incoming edges found by grepping other
+nodes' ``graph_edges`` for ``[[this-node]]``. A node is traversable — "participates" — if it is:
+  (a) a SOURCE — its own ``graph_edges`` has a non-empty list, OR
+  (b) a TARGET — its stem appears as ``[[target]]`` in some other node's ``graph_edges``
+                 (and it is a real vault node).
+Directed edges live only on the source, so a target-only node (a K paper a thought points at)
+is still fully traversable and MUST count. The old origin-only count under-reported and tempted
+fabricating K->K edges to hit the number — that is gaming, not graph-building.
+
+ARITHMETIC. A Thought that ``derives_from`` N real papers contributes 1 source + up to N new
+targets = up to N+1 participants. So:
+    3 existing thoughts + the ~9 distinct papers they point at   ~= 12 participating (today)
+  + 5 real new thoughts + their (mostly new) target papers        -> >= 20
+with ZERO fabricated K->K edges. Real paper->paper edges (A extends/contradicts B) are a BONUS,
+not a requirement — add them via KNOWLEDGE_EDGES only if genuinely true.
 
 USAGE (run from the repo root with the project venv):
-    .venv/Scripts/python.exe scripts/seed_hsc3.py probe     # count origin nodes (baseline / after)
+    .venv/Scripts/python.exe scripts/seed_hsc3.py probe     # participation count (baseline / after)
     .venv/Scripts/python.exe scripts/seed_hsc3.py create    # write the Thought nodes to docs/staging/
     #   --> REVIEW docs/staging/ by hand <--
     .venv/Scripts/python.exe scripts/seed_hsc3.py promote   # move the reviewed Thoughts into the vault
-    .venv/Scripts/python.exe scripts/seed_hsc3.py link      # stage + apply the typed edges
+    .venv/Scripts/python.exe scripts/seed_hsc3.py link      # (optional) apply REAL paper->paper edges
     .venv/Scripts/python.exe scripts/seed_hsc3.py probe     # confirm >= 20
 
 `create` and `promote` are separate ON PURPOSE — nothing reaches the live vault until you run
@@ -59,15 +63,14 @@ THOUGHTS: list[dict] = [
     {"title": "PLACEHOLDER Thought 5", "body": "...", "derives_from": ["<REAL_K_5>"]},
 ]
 
-# 2) Typed edges that make EXISTING Knowledge nodes into edge-origins (to clear >= 20).
-#    Each tuple: (from_node, edge_type, to_node). The from_node's frontmatter gains the edge.
+# 2) OPTIONAL — REAL paper->paper relationships only (A extends / contradicts / supersedes B).
+#    Each tuple: (from_node, edge_type, to_node); the from_node's frontmatter gains the edge.
 #    Valid K edges: derives_from | supersedes | contradicts (see NODE_ONTOLOGY.md).
-#    Add ~15 REAL relationships between your papers.  Run `python scripts/seed_hsc3.py suggest`
-#    to list Knowledge nodes that currently have NO typed edges (good link candidates).
+#    NOT required to reach >= 20 — thoughts + their targets already do that under the
+#    participation metric. Add entries here ONLY if the relationship is genuinely true; do NOT
+#    fabricate K->K edges to inflate the count. `suggest` lists nodes not yet in the graph.
 KNOWLEDGE_EDGES: list[tuple[str, str, str]] = [
-    # ("<K paper A stem or arxiv>", "contradicts", "<K paper B>"),
-    # ("<K paper C>", "supersedes", "<K paper D>"),
-    # ... ~15 real ones ...
+    # ("<K paper A stem or arxiv>", "contradicts", "<K paper B>"),  # only if REAL
 ]
 # =================================================================================
 
@@ -110,37 +113,72 @@ def _iter_notes(vault_root: Path):
         yield p
 
 
-def _has_typed_edges(fm: dict) -> bool:
-    ge = fm.get("graph_edges")
-    return isinstance(ge, dict) and any(
-        isinstance(v, list) and len(v) > 0 for v in ge.values()
-    )
+def _edge_target_stem(value) -> str:
+    """Normalize a graph_edges target ('[[stem|alias]]' / '[[stem#h]]' / 'stem') to its stem."""
+    s = str(value).strip()
+    if s.startswith("[[") and s.endswith("]]"):
+        s = s[2:-2]
+    return s.split("|", 1)[0].split("#", 1)[0].strip()
+
+
+def _scan_graph(vault_root: Path):
+    """Walk live nodes once. Returns (node_type, sources, targets):
+    node_type: {stem -> frontmatter type}; sources: stems with a non-empty own edge list;
+    targets: normalized target stems referenced by any node's graph_edges."""
+    node_type: dict[str, str] = {}
+    sources: set[str] = set()
+    targets: set[str] = set()
+    for p in _iter_notes(vault_root):
+        fm = _frontmatter(p.read_text(encoding="utf-8", errors="ignore"))
+        node_type.setdefault(p.stem, str(fm.get("type", "?")))
+        ge = fm.get("graph_edges")
+        if not isinstance(ge, dict):
+            continue
+        has_edge = False
+        for v in ge.values():
+            if isinstance(v, list):
+                for x in v:
+                    if x:
+                        has_edge = True
+                        targets.add(_edge_target_stem(x))
+        if has_edge:
+            sources.add(p.stem)
+    return node_type, sources, targets
 
 
 def cmd_probe(cfg, svc, adapter) -> None:
     vault_root = _vault_root(cfg)
-    total = 0
+    node_type, sources, targets = _scan_graph(vault_root)
+    all_stems = set(node_type)
+    resolved_targets = targets & all_stems       # targets that are real vault nodes
+    dangling = targets - all_stems
+    participants = sources | resolved_targets
+
     per_type: dict[str, int] = defaultdict(int)
-    for p in _iter_notes(vault_root):
-        fm = _frontmatter(p.read_text(encoding="utf-8", errors="ignore"))
-        if _has_typed_edges(fm):
-            total += 1
-            per_type[str(fm.get("type", "?"))] += 1
-    print(f"Nodes with non-empty typed graph_edges: {total}")
+    for stem in participants:
+        per_type[node_type.get(stem, "?")] += 1
+
+    print(f"Graph PARTICIPATION (source OR target): {len(participants)}")
+    print(f"    sources  (own non-empty edges) : {len(sources)}")
+    print(f"    targets  (pointed at, resolved): {len(resolved_targets)}")
+    if dangling:
+        print(f"    dangling targets (no vault node): {len(dangling)}")
     for t, n in sorted(per_type.items()):
-        print(f"    {t}: {n}")
-    print(f"HSC 3 (>= 20 origin nodes): {'PASS' if total >= 20 else 'NOT YET'}")
+        print(f"    participating {t}: {n}")
+    print(f"HSC 3 (>= 20 participating nodes): {'PASS' if len(participants) >= 20 else 'NOT YET'}")
 
 
 def cmd_suggest(cfg, svc, adapter) -> None:
-    """List Knowledge nodes that currently have NO typed edges — link candidates."""
+    """List Knowledge nodes NOT yet participating (neither source nor target) — the unconnected
+    papers a new thought could point at to grow participation."""
     vault_root = _vault_root(cfg)
-    candidates = []
-    for p in _iter_notes(vault_root):
-        fm = _frontmatter(p.read_text(encoding="utf-8", errors="ignore"))
-        if str(fm.get("type")) == "knowledge" and not _has_typed_edges(fm):
-            candidates.append(p.stem)
-    print(f"{len(candidates)} Knowledge node(s) with no typed edges (link candidates):")
+    node_type, sources, targets = _scan_graph(vault_root)
+    participating = sources | (targets & set(node_type))
+    candidates = [
+        stem for stem, t in sorted(node_type.items())
+        if t == "knowledge" and stem not in participating
+    ]
+    print(f"{len(candidates)} Knowledge node(s) not yet in the graph (link candidates):")
     for stem in candidates[:40]:
         print(f"    {stem}")
     if len(candidates) > 40:
