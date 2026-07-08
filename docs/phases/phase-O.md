@@ -46,6 +46,8 @@ Remaining O.3 work: the HSC-3 seal seed (`scripts/seed_hsc3.py`).
 
 ## Out of Scope
 
-- Auto-linking (AI infers edges) — Phase P+ if ever
+- Auto-linking (AI infers edges): the AUTONOMOUS BULK version (scan ~250 papers, invent a graph)
+  stays deferred. But `friction-260708-01` carved out the user-triggered / single-node / review-gated /
+  prose-grounded version, now scoped as **Phase P — Prose-Grounded Edge Inference** (`docs/phases/phase-P.md`).
 - Graph visualization — Obsidian plugin territory
 - Bulk backfill (filling edges for 250 existing K Nodes) — user work after O.3
