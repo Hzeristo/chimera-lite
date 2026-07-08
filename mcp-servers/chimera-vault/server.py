@@ -200,5 +200,26 @@ async def link_nodes(from_node: str, to_node: str, edge_type: str) -> str:
     return str(patch)
 
 
+@mcp.tool()
+async def apply_link_patch(patch_path: str) -> str:
+    """Apply a reviewed link patch — merge its edge into the target vault node in place.
+
+    Reads the patch from ``docs/staging/`` (produced by ``link_nodes``), appends the edge
+    to the target node's ``graph_edges`` (idempotent — a duplicate is a no-op), and consumes
+    the patch. Preserves the note body and every non-edge frontmatter line verbatim. This is
+    the ONLY vault-mutating tool — run it only after reviewing the patch.
+
+    Args:
+        patch_path: Path to the link patch in docs/staging/ (as returned by link_nodes).
+    """
+    from core.config import get_config
+    from staging_service import StagingService
+
+    config = get_config()
+    service = StagingService(config.system.staging_dir, config.require_path("vault_root"))
+    target = service.apply_link_patch(Path(patch_path))
+    return str(target)
+
+
 if __name__ == "__main__":
     mcp.run()

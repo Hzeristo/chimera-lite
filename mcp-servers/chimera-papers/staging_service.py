@@ -19,6 +19,30 @@ _TYPE_EDGES: dict[str, dict[str, list]] = {
 _SLUG_RE = re.compile(r'[\\/:*?"<>|\s]+')
 
 
+def _splice_graph_edges(fm_raw: str, graph_edges: dict) -> str:
+    """Replace ONLY the ``graph_edges:`` block in frontmatter text, leaving every other
+    line byte-identical. Re-serializes graph_edges (the edited structure) via yaml while
+    preserving all non-edge keys + their exact original formatting (quotes, inline lists)."""
+    lines = fm_raw.split("\n")
+    dumped = yaml.dump(
+        {"graph_edges": graph_edges},
+        allow_unicode=True, default_flow_style=False, sort_keys=False,
+    )
+    new_block = dumped.rstrip("\n").split("\n")
+    start = None
+    for i, ln in enumerate(lines):
+        if ln.strip() == "graph_edges:" and not ln[:1].isspace():
+            start = i
+            break
+    if start is None:  # no existing block — insert before the trailing blank line
+        at = len(lines) - 1 if lines and lines[-1] == "" else len(lines)
+        return "\n".join(lines[:at] + new_block + lines[at:])
+    end = start + 1  # consume only the block's indented children (NOT the trailing newline)
+    while end < len(lines) and lines[end][:1].isspace():
+        end += 1
+    return "\n".join(lines[:start] + new_block + lines[end:])
+
+
 class StagingService:
     def __init__(self, staging_dir: Path, vault_root: Path) -> None:
         self.staging_dir = staging_dir
@@ -129,3 +153,48 @@ class StagingService:
         )
         path.write_text(content, encoding="utf-8")
         return path
+
+    def apply_link_patch(self, patch_path: Path) -> Path:
+        """Apply a reviewed link patch: merge its edge into the target node in place.
+
+        Appends ``to`` to the target node's ``graph_edges.<edge_type>`` (idempotent — a
+        duplicate is a no-op), then consumes the patch. Only the ``graph_edges`` block is
+        rewritten; the note body and every other frontmatter line stay byte-identical.
+        Returns the target node path. This is the only vault-mutating operation here.
+        """
+        _, patch_fm_raw, _ = patch_path.read_text(encoding="utf-8").split("---", 2)
+        patch = yaml.safe_load(patch_fm_raw) or {}
+        if patch.get("patch_type") != "link":
+            raise ValueError(f"Not a link patch: {patch_path}")
+        target_path = Path(patch["from_path"])
+        edge_type = patch["edge_type"]
+        to_stem = patch["to"]
+        if not target_path.is_file():
+            raise FileNotFoundError(f"Target node not found: {target_path}")
+
+        pre, fm_raw, body = target_path.read_text(encoding="utf-8").split("---", 2)
+        fm = yaml.safe_load(fm_raw) or {}
+        node_type = str(fm.get("type", "")).lower()
+        if node_type not in _TYPE_EDGES:
+            raise ValueError(f"Target node has unknown type {node_type!r}: {target_path}")
+        if edge_type not in _TYPE_EDGES[node_type]:
+            raise ValueError(
+                f"Invalid edge {edge_type!r} for node type {node_type!r}; "
+                f"valid: {sorted(_TYPE_EDGES[node_type])}"
+            )
+
+        graph_edges = fm.get("graph_edges")
+        if not isinstance(graph_edges, dict):
+            graph_edges = {}
+        current = graph_edges.get(edge_type) or []
+        if not isinstance(current, list):
+            current = [current]
+        if to_stem in current:  # idempotent — leave the node byte-identical
+            patch_path.unlink()
+            return target_path
+        graph_edges[edge_type] = current + [to_stem]
+
+        new_fm_raw = _splice_graph_edges(fm_raw, graph_edges)
+        target_path.write_text(f"{pre}---{new_fm_raw}---{body}", encoding="utf-8")
+        patch_path.unlink()
+        return target_path
