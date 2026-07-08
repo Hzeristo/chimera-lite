@@ -1,6 +1,6 @@
 # Phase O — Exocortex Write Surface
 
-**Status:** Queued (after N.B deferred, before N.B resumes)
+**Status:** ✅ Sealed 2026-07-08 (`docs/sprints/phase-O/phase-review.md`) — HSC 1/2/3 all pass; unblocks Phase N.B
 **Sealed predecessor:** Phase N.A
 **Driving frictions:**
 - N.B.0 audit revealed vault typed-edge graph is empty

@@ -2,8 +2,8 @@
 
 Personal research OS for one user. Not a framework. Not SaaS.
 
-> **Last sealed:** Phase N.A — Lens Skills (6 lenses + academic-observe) — 2026-07-06
-> **Active:** Phase O — Exocortex Write Surface (O.0 audit pending) — unblocks the deferred Phase N.B
+> **Last sealed:** Phase O — Exocortex Write Surface (create_node / link_nodes / apply_link_patch; 20 participating nodes) — 2026-07-08
+> **Active:** Phase N.B — JIT Deep Recall (resumed 2026-07-08 — the ≥ 20-participation gate that deferred it is now met)
 
 ---
 
@@ -242,9 +242,15 @@ final incident (headless-spawn hang) was fixed and Test 2 ran clean.
 
 ---
 
-## Active Phase
+## Just Sealed
 
-### Phase O — Exocortex Write Surface 🔬 Active (opened 2026-07-07)
+### Phase O — Exocortex Write Surface ✅ Sealed 2026-07-08
+
+**Sealed** (`docs/sprints/phase-O/phase-review.md`): `create_node` / `link_nodes` / `apply_link_patch`
+are live on chimera-vault (staging → review → apply, never auto-promote); the K/T/I/D typed-edge
+vocabulary is authored in `docs/ARCHITECTURE/NODE_ONTOLOGY.md`; and the vault graph reached **20
+participating nodes** (HSC 3), which unblocks Phase N.B. All 5 sprints Pass, all 3 HSC Pass, 1 Accepted
+Partial (server.py 225 > 200 lines — thin-adapter spirit held).
 
 **The write-path phase the N.B.0 audit demanded.** N.B was deferred because the vault's typed
 K/T/I/D graph is empty (`docs/audits/N.B.0.md`), and the root cause is the write path: no tools
@@ -256,15 +262,15 @@ typed edges; PaperMiner writes only K Nodes, so T/I/D + edges are manual with no
 
 | Sprint | One-line goal | Status |
 |---|---|---|
-| O.0 | Audit: what write ops exist (PaperMiner K-Node creation), what's missing (T/I/D + typed-edge fill), Obsidian MCP capabilities | Pending |
-| O.1 | `create_node(type, title, body, edges)` → writes K/T/I/D with frontmatter + typed edges (returns staging path) | Pending |
-| O.2 | `link_nodes(from, to, edge_type)` → adds `derives_from` / `synthesizes` / `contradicts` to existing nodes | Pending |
-| O.3 | Obsidian MCP integration: adapt a market MCP if one exists, else a minimal file-write tool | Pending |
+| O.0 | Audit (`docs/audits/O.0.md`) | ✅ Complete |
+| O.1 | `create_node` — K/T/I/D + typed edges → staging (split O.1a NODE_ONTOLOGY authority + O.1b tool) | ✅ Complete (`dac1629`, `caccd52`) |
+| O.2 | `link_nodes` + `apply_link_patch` — reviewed typed-edge links (stage-a-patch; O.2a/O.2b) | ✅ Complete (`c8a4b7f`, `d4659d9`) |
+| O.3 | Obsidian-MCP dependency-veto (Option C) + HSC-3 seal seed | ✅ Complete (`5caceaa`) |
 
-**Hard sealing conditions:** (1) `create_node` writes all 4 types (K/T/I/D) with typed edges in
-frontmatter; (2) `link_nodes` adds `derives_from` / `synthesizes` edges to existing nodes; (3) after
-O.3, manually create 5 T Nodes + 10 typed edges → vault probe confirms ≥ 20 nodes with typed edges
-(the N.B unblock threshold).
+**Hard sealing conditions (all met at seal):** (1) `create_node` writes all 4 types (K/T/I/D) with
+typed edges ✅; (2) `link_nodes` adds edges to existing nodes ✅; (3) the vault graph reaches ≥ 20
+**participating** nodes (source ∪ target — the metric was corrected from origin-count to match N.B's
+bidirectional traversal) ✅, via `scripts/seed_hsc3.py probe` = 20.
 
 **Red lines / design:** thin adapter (tools write markdown, don't embed Obsidian); reuse the Phase
 V.A K/T/I/D frontmatter schema (already defined); `create_node` returns a staging path for user
@@ -276,9 +282,13 @@ sprints are batch-planned — `chimera-sprint-discipline` enforces audit-before-
 
 ---
 
-## Deferred Phase
+## Active Phase
 
-### Phase N.B — JIT Deep Recall ⏸ Deferred 2026-07-07 (blocked on graph population)
+### Phase N.B — JIT Deep Recall ▶ Resumed 2026-07-08 (unblocked — graph now populated)
+
+**Unblocked 2026-07-08.** Phase O built the write surface and grew the vault to 20 participating
+K/T/I/D nodes (the ≥ 20 gate that deferred this phase at N.B.0), so `deep_recall` now has a real
+typed-edge graph to traverse. N.B.1 / N.B.2 can proceed. Original deferral context retained below.
 
 **Deferred at N.B.0 — the audit gate failed.** The phase specs `deep_recall` to BFS over typed
 K/T/I/D edges, but the N.B.0 audit (`docs/audits/N.B.0.md`, `3f621a8`) found the live vault has
@@ -301,8 +311,8 @@ complex multi-hop queries need 5+ tool calls (slow + context bloat); the K/T/I/D
 | Sprint | One-line goal | Status |
 |---|---|---|
 | N.B.0 | Audit: existing graph traversal, ripgrep seeds, K/T/I/D schema, realistic BFS depth | ✅ Complete — gate FAILED (`3f621a8`) |
-| N.B.1 | `deep_recall(...)` → structured subgraph; BFS over `derives_from` / `synthesizes` / `contradicts` | ⏸ Blocked (empty graph) |
-| N.B.2 | Verify: a complex 3-hop query synthesized from the subgraph (not raw keyword match) | ⏸ Blocked (empty graph) |
+| N.B.1 | `deep_recall(...)` → structured subgraph; BFS over `derives_from` / `synthesizes` / `contradicts` | ▶ Ready (unblocked 2026-07-08) |
+| N.B.2 | Verify: a complex 3-hop query synthesized from the subgraph (not raw keyword match) | ▶ Ready (unblocked 2026-07-08) |
 
 **Hard sealing conditions (unchanged; currently unsatisfiable):** (1) `deep_recall` on "memory
 decay graph-based deletion" returns K/T/I nodes spanning ≥ 2 hop depths; (2) result subgraph

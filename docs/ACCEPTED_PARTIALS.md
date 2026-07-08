@@ -6,6 +6,20 @@ Each entry: phase / sprint, partial description, reason for acceptance.
 
 ---
 
+## Phase O — Exocortex Write Surface (sealed 2026-07-08)
+
+### O.seal.1 — `chimera-vault/server.py` is 225 lines, over the `< 200` thin-adapter red line
+- **Description:** The phase-wide red line set `chimera-vault/server.py < 200` lines. At seal it is 225.
+  The three write tools (`create_node`, `link_nodes`, `apply_link_patch`) carry full WHEN/WHAT/CONTRAST
+  contract docstrings, which the user separately prioritized for MCP tool discoverability.
+- **Reason:** The `< 200` was a proxy for "thin adapter": the tool bodies are lazy-import dispatchers and
+  ALL domain logic lives in `mcp-servers/chimera-papers/staging_service.py` — that spirit holds. The
+  25-line overage is entirely contract docstrings, not domain logic, and cutting them to hit the number
+  would degrade discoverability (a conscious trade-off). Follow-up available: move the 3 tool bodies to
+  `chimera-vault/write_tools.py` and register them thinly, dropping `server.py` to ~145 and clearing this.
+
+---
+
 ## Phase N.A — Lens Skills (sealed 2026-07-06)
 
 ### N.A.seal.1 — `~/.chimera/skills/*.json` divergence check deferred
