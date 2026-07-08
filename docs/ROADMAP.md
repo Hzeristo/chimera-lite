@@ -328,36 +328,6 @@ re-decided then. Batch-planning of N.B is **held** until then.
 
 ---
 
-## Next Phase
-
-### Phase P — Prose-Grounded Edge Inference 🌱 Queued (friction-driven 2026-07-08)
-
-**Driving friction:** `friction-260708-01` (`docs/logs/friction-260708.md`) — hand-lifting prose
-relationships ("Triggered By: [[X]]") into typed `graph_edges` is mechanical machine-work. The body
-is research judgment (the user's); the edges structure relationships the prose ALREADY STATES.
-
-**Mission.** After the user writes a thought body, Claude reads the prose, infers edge TYPES from what
-it states ("derives from X", "contradicts Y"), and stages the typed edges through Phase O's existing
-review flow (`link_nodes` → `apply_link_patch`). User reviews + approves. No more hand-filling frontmatter.
-
-**Distinct from Phase O's deferred "AI infers edges."** That out-of-scope item was AUTONOMOUS BULK
-inference (scan ~250 papers, invent a graph — high hallucination). This is the opposite risk profile:
-USER-TRIGGERED, SINGLE-NODE, REVIEW-GATED (staging), GROUNDED IN THE USER'S OWN PROSE (Claude types what
-the author already stated, not free invention). That difference promotes it from "Phase P+ if ever" to a
-near-term, friction-driven phase. Spec: `docs/phases/phase-P.md`.
-
-| Sprint | One-line goal | Status |
-|---|---|---|
-| P.0 | Audit: body-relationship extraction (existing `_wikilink_targets` / `_collect_graph_links` parsing), edge-type assignment, reuse of the O.2 stage-a-patch flow | Pending |
-| P.1 | Read a node body → propose typed edges grounded in the prose → stage them for review (never auto-apply) | Pending |
-| P.2 | Verify: a body stating "derives from X / contradicts Y" → correctly-typed edges staged → user approves → zero hand-filling | Pending |
-
-**Red line:** never free-invent edges — every staged edge must be grounded in a relationship the body
-actually states; single-node + review-gated (no bulk, no auto-apply). Design leaning: a thin addition or
-a skill over the sealed Phase O tools + existing body-wikilink parsing. Reuse, not new infrastructure.
-
----
-
 ## Queued
 
 ### Phase V — Exocortex & Memory

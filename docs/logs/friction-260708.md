@@ -41,9 +41,3 @@ graph — high hallucination risk). THIS is different:
   - GROUNDED IN MY PROSE (Claude types what I already stated, not free invention)
 Different risk profile. Justifies bringing "AI infers edges" from
 "Phase P+ if ever" to "Phase P, friction-driven".
-
-## Disposition (2026-07-08)
-Scoped as **Phase P — Prose-Grounded Edge Inference** — spec `docs/phases/phase-P.md`; ROADMAP
-"Next Phase". phase-O.md out-of-scope refined to split autonomous-bulk (deferred) from this
-user-triggered / single-node / review-gated / prose-grounded version. Status stays **OPEN** until
-P.1 ships the infer-and-stage flow.
