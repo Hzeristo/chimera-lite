@@ -80,6 +80,26 @@ async def daily_paper_pipeline(
 
 
 @mcp.tool()
+async def ingest_paper(arxiv_id: str | None = None, pdf_path: str | None = None) -> str:
+    """Ingest a SINGLE paper into a vault Knowledge node — the single-paper counterpart to
+    the batch daily pipeline. Pass an arXiv id (fetched) OR a local PDF path (converted
+    directly). Converts via MinerU (GPU), triages (FilterService), writes the K node, and
+    returns its path. Synchronous (no task_id). Deep reading is a separate step:
+    ``read_vault_file`` + an N.A lens skill.
+
+    Rejected while a long-running arXiv/pipeline job is active (they share the GPU / MinerU).
+
+    Args:
+        arxiv_id: arXiv identifier to fetch + ingest (e.g. "2604.14004").
+        pdf_path: Path to a local PDF to ingest directly (absolute, or project-relative).
+    """
+    async with _start_lock:
+        if get_task_service().has_active_long_task():
+            return _busy_message()
+    return await miner_tools.ingest_paper(arxiv_id=arxiv_id, pdf_path=pdf_path)
+
+
+@mcp.tool()
 async def check_task_status(task_id: str) -> str:
     """Return status or result for a background task (read-only poll).
 

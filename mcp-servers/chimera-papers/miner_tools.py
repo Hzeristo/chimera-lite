@@ -86,6 +86,36 @@ async def daily_paper_pipeline(
     )
 
 
+async def ingest_paper(
+    arxiv_id: str | None = None, pdf_path: str | None = None
+) -> str:
+    """Ingest ONE paper (arXiv id or local PDF) into a vault Knowledge node.
+
+    Synchronous — returns the written K-node path. The heavy MinerU convert + triage runs
+    in a worker thread so the event loop is not blocked.
+    """
+    has_arxiv = bool(arxiv_id and str(arxiv_id).strip())
+    has_pdf = bool(pdf_path and str(pdf_path).strip())
+    if not has_arxiv and not has_pdf:
+        return "[Tool Error]: ingest_paper requires arxiv_id or pdf_path."
+
+    # Lazy import: keep the heavy MinerU / LLM chain out of module load (matches the
+    # daily-pipeline lazy import).
+    from single_paper_ingest import ingest_single_paper
+
+    try:
+        out_path = await asyncio.to_thread(
+            ingest_single_paper,
+            arxiv_id=(str(arxiv_id).strip() if has_arxiv else None),
+            pdf_path=(str(pdf_path).strip() if has_pdf else None),
+        )
+    except FileNotFoundError as exc:
+        return f"[Ingest Error] PDF not found: {exc}"
+    except Exception as exc:  # network / MinerU / LLM / vault write
+        return f"[Ingest Error] {exc}"
+    return f"[✔] Knowledge node written: {out_path}"
+
+
 async def check_task_status(task_id: str) -> str:
     """Return persisted status / progress / result for a background task."""
     tid = (task_id or "").strip()
