@@ -2,8 +2,8 @@
 
 Personal research OS for one user. Not a framework. Not SaaS.
 
-> **Last sealed:** Phase O — Exocortex Write Surface (create_node / link_nodes / apply_link_patch; 20 participating nodes) — 2026-07-08
-> **Active:** Phase N.B — JIT Deep Recall (resumed 2026-07-08 — the ≥ 20-participation gate that deferred it is now met)
+> **Last sealed:** Phase N — Lens Skills + JIT Deep Recall — **SEALED / TRUNCATED 2026-07-09** (N.A Lens Skills sealed 2026-07-06; N.B JIT Deep Recall **cancelled** pre-execution). Verdict: `docs/sprints/phase-N/phase-review.md`. (Phase O — Exocortex Write Surface — sealed 2026-07-08.)
+> **Active:** none. Next phase pending Architect authorship — the two open blockers are the **agentic defect** (`friction-260709-01`: vault absent from the loop) and **filling the vault with ARA-styled structured nodes** (`friction-260708-01`). Advanced retrieval stays retired until both are addressed.
 
 ---
 
@@ -284,11 +284,47 @@ sprints are batch-planned — `chimera-sprint-discipline` enforces audit-before-
 
 ## Active Phase
 
-### Phase N.B — JIT Deep Recall ▶ Resumed 2026-07-08 (unblocked — graph now populated)
+**None** — Phase N sealed/truncated 2026-07-09. The next phase is pending Architect authorship.
 
-**Unblocked 2026-07-08.** Phase O built the write surface and grew the vault to 20 participating
-K/T/I/D nodes (the ≥ 20 gate that deferred this phase at N.B.0), so `deep_recall` now has a real
-typed-edge graph to traverse. N.B.1 / N.B.2 can proceed. Original deferral context retained below.
+**Two named blockers** gate any resumed advanced-retrieval work:
+- **Agentic defect** — the vault is absent from the agentic loop; the always-active observer never fires
+  (`friction-260709-01`). The consumer retrieval was missing is a vault-grounded reading loop (Architect's
+  preference: a forked subagent over the vault MCP methods).
+- **ARA-styled node population** — the vault graph is wide-and-shallow; it needs deep structured nodes
+  (ARA workflow-graph style, arXiv 2605.02651) before multi-hop recall has anything to traverse
+  (`friction-260708-01`; Phase O's write surface is the tooling for this).
+
+### Phase N — Lens Skills + JIT Deep Recall ⚠️✅ SEALED / TRUNCATED 2026-07-09
+
+Verdict: `docs/sprints/phase-N/phase-review.md`.
+- **N.A — Lens Skills** ✅ Sealed 2026-07-06 — 6 `chimera-lens-*` skills + `chimera-academic-observe`,
+  pure prompt skills, zero MCP changes, 3 HSC met. HSC-3's proactive observer is re-opened as a *usage*
+  defect (`friction-260709-01`): it passed its build test but never fires under real reading load.
+- **N.B — JIT Deep Recall** ⛔ Cancelled pre-execution (never batch-planned; `deep_recall` = 0 code).
+  Cause: no adequate typed edges / no path for deep recall (`docs/audits/N.B.0.md` + `N.B.0-reaudit.md`)
+  and the vault absent from the loop (`friction-260709-01`). The interim disposition-A rescope was
+  superseded by this cancellation. **Lesson:** retrieval is downstream of a loop that retrieves and a
+  graph worth retrieving from — N.B built neither. Phase O's write surface survives its stated purpose
+  (it is the tooling for ARA-node population).
+
+<details><summary>⤵ Retired lineage — pre-truncation N.B context (kept for history; superseded by the verdict above)</summary>
+
+### Phase N.B — JIT Deep Recall ▶ Rescoped 2026-07-09 (Architect disposition A — enhancement, not new tool)
+
+**Rescoped 2026-07-09 (Architect disposition A).** The post-O re-audit (`docs/audits/N.B.0-reaudit.md`)
+re-measured the graph: the ≥ 20-participation **count** gate is met, but the **structural depth** gate is
+not — the typed graph is 5 disjoint 1-hop stars (0 shared papers, directional BFS depth 1), so a typed
+multi-hop `deep_recall` has nothing to traverse. The Architect selected **Option A**: ship N.B as an
+*enhancement* to the existing `obsidian_graph_query` — add `edge_types` (typed filter), `edge_from`/`hops`
+provenance, and an optional `bidirectional` flag (which unlocks the one real depth-2 structure: the
+`paper → thought → sibling papers` co-citation 2-hop). **No new `deep_recall` tool; `.mcp.json` stays 2.**
+The rescoped mission / sprints / HSC live in `docs/audits/N.B.0-reaudit.md` §Disposition and supersede the
+original spec. Deepening the graph for true typed multi-hop is **Option B / write-path work** (`friction-260708-01`,
+stays OPEN; Architect-authored phasing). N.B batch-planning is now unblocked. Original deferral context retained below.
+
+**Prior unblock note (2026-07-08, superseded by the rescope above).** Phase O built the write surface and
+grew the vault to 20 participating K/T/I/D nodes — real, but a width measure; the re-audit showed it did
+not deliver the depth HSC 1 assumed.
 
 **Deferred at N.B.0 — the audit gate failed.** The phase specs `deep_recall` to BFS over typed
 K/T/I/D edges, but the N.B.0 audit (`docs/audits/N.B.0.md`, `3f621a8`) found the live vault has
@@ -308,16 +344,17 @@ vector store / embeddings. Spec: `docs/phases/phase-N.B.md`.
 complex multi-hop queries need 5+ tool calls (slow + context bloat); the K/T/I/D typed edges
 (`derives_from` / `synthesizes` / `contradicts`) go untraversed.
 
-| Sprint | One-line goal | Status |
+| Sprint | Rescoped goal (disposition A) | Status |
 |---|---|---|
-| N.B.0 | Audit: existing graph traversal, ripgrep seeds, K/T/I/D schema, realistic BFS depth | ✅ Complete — gate FAILED (`3f621a8`) |
-| N.B.1 | `deep_recall(...)` → structured subgraph; BFS over `derives_from` / `synthesizes` / `contradicts` | ▶ Ready (unblocked 2026-07-08) |
-| N.B.2 | Verify: a complex 3-hop query synthesized from the subgraph (not raw keyword match) | ▶ Ready (unblocked 2026-07-08) |
+| N.B.0 | Audit + post-O re-audit | ✅ Complete — count gate met, depth gate not (`docs/audits/N.B.0-reaudit.md`) |
+| N.B.1 | Add `edge_types` / `edge_from`+`hops` provenance / `bidirectional` params to **`obsidian_graph_query`** (no new tool; thin adapter) | ▶ Ready to batch-plan (rescoped 2026-07-09) |
+| N.B.2 | Verify: paper-seeded, typed-filtered, bidirectional query → co-citation subgraph with provenance ≤ `max_nodes`, synthesized in one call | ▶ Ready to batch-plan (rescoped 2026-07-09) |
 
-**Hard sealing conditions (unchanged; currently unsatisfiable):** (1) `deep_recall` on "memory
-decay graph-based deletion" returns K/T/I nodes spanning ≥ 2 hop depths; (2) result subgraph
-≤ 20 nodes (bounded BFS); (3) Claude synthesizes a coherent multi-hop answer without additional
-vault calls.
+**Hard sealing conditions (rescoped 2026-07-09 — original "≥ 2 typed hop depths" withdrawn as
+structurally unreachable per RE-Q4):** (1) `obsidian_graph_query` accepts `edge_types` and returns per-row
+`edge_from` + `hops`, verified live; (2) opt-in `bidirectional` surfaces the `paper → thought → sibling
+papers` co-citation 2-hop, bounded ≤ `max_nodes`; (3) Claude synthesizes a multi-hop answer from the single
+enhanced call, no additional vault calls. Full text: `docs/audits/N.B.0-reaudit.md` §Disposition.
 
 **Unblock condition:** ≥ 20 live nodes carry non-empty typed `graph_edges` pointing to other
 knowledge nodes (the N.B.0 gate threshold). Reaching it is **write-path work**, now scoped as the
@@ -325,6 +362,8 @@ active **Phase O — Exocortex Write Surface** (`docs/phases/phase-O.md`): tools
 and fill typed edges. N.B resumes once Phase O's HSC 3 confirms ≥ 20 nodes with typed edges; the
 N.B.1/N.B.2 disposition (typed-edge BFS as written vs. a rescope to body-wikilink recall) is
 re-decided then. Batch-planning of N.B is **held** until then.
+
+</details>
 
 ---
 

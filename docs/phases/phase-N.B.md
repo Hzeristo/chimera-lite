@@ -1,6 +1,14 @@
 # Phase N.B — JIT Deep Recall
 
-**Status:** Active (after N.A sealed)
+> ⛔ **CANCELLED / TRUNCATED 2026-07-09 (Phase N truncation seal).** N.B was never batch-planned and
+> never executed. Cause: the typed graph is wide-and-shallow with no path for typed multi-hop recall
+> (`docs/audits/N.B.0.md` + `N.B.0-reaudit.md`), and `friction-260709-01` established the vault is absent
+> from the agentic loop — advanced retrieval has no consumer. Retrieval is premature until the agentic
+> defect is sealed and the vault is filled with ARA-styled nodes. The interim disposition-A rescope was
+> itself superseded by this cancellation. **Everything below is retired intent / lineage.** Verdict:
+> `docs/sprints/phase-N/phase-review.md`.
+
+**Status:** ⛔ Cancelled / truncated (2026-07-09) — see `docs/sprints/phase-N/phase-review.md`
 **Sealed predecessor:** Phase N.A
 **Driving frictions:**
 - vault_query 是关键词匹配:模糊 query("那篇 memory 的")找不到
