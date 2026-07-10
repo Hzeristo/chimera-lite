@@ -63,9 +63,27 @@ Spawn subagents (Haiku) for:
 - Cross-file rule violation scanning
 
 Do NOT spawn subagent for:
-- Editing code (Edit/Write must be main session)
-- Reading source files for editing context
+- Editing code OUTSIDE batch_execution (Edit/Write stay in the main session; the
+  batch_execution delegation below is the sanctioned exception)
+- Reading source files for editing context (main session)
 - Self-check rule application (the rule application IS the reasoning)
+
+Batch-execution delegation (Sonnet — cost discipline). batch_execution is
+execution-shaped, not reasoning-shaped (see <expected_model>), so keep the main
+session's model free for orchestration and delegate the mechanical work. For each
+🟢 / 🟡 sprint in the approved batch, spawn ONE fresh Sonnet subagent (Agent tool,
+model: "sonnet", subagent_type: "general-purpose") whose prompt carries the sprint's
+FULL scope + red lines from the batch plan; it makes the edits, runs ruff + pytest,
+and returns the git diff + the verbatim exit code(s). The main session then reviews
+the diff, decides pass/fail from the exit code ALONE (0 = pass), and OWNS the commit.
+The taste rules travel to the subagent in its prompt; one subagent per sprint keeps
+the reasoning coherent (relocated, not fragmented). Why: it removes the manual
+/model switch and runs edits at the model the table already recommends (Sonnet),
+while preserving the main model's judgment for orchestration and review.
+
+KEEP 🔴 sprints in the main session (or an explicit-Opus subagent) AND gate them for
+per-sprint approval before executing — high blast radius earns the stronger model +
+the human gate. A subagent that reports a red-line violation halts the batch.
 
 Subagent return contract (verification tasks): the subagent MUST return the
 verbatim last 10 lines of check_taste.ps1 output AND the script's exit code.
