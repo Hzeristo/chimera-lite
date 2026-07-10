@@ -276,6 +276,43 @@ class DeepReadAtlas(BaseModel):
     structural_gaps: StructuralGaps | None = None
 
 
+# --- Phase Q: Knowledge extraction ---
+
+
+class ClaimFlag(str, Enum):
+    # Functional-defect vocabulary (Phase Q Decision 3): triggers a downstream lens by claim FUNCTION, not paper type.
+    NO_ABLATION = "no_ablation"
+    MATH_DECORATION = "math_decoration"
+    RESULT_UNGROUNDED = "result_ungrounded"
+    METHOD_ORPHANED = "method_orphaned"
+    SUSPICIOUS_DEPENDENCY = "suspicious_dependency"
+
+
+class ExtractedClaim(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    statement: str = Field(description="The mechanism/relationship the paper reveals — the reusable WHY. Carries NO run-numbers/scores/step-counts (those live in `sources`); its subject is a mechanism, never a named recipe.")
+    falsification: str = Field(description="A concrete observation that would disprove the claim — about the system/world, not a re-run of the same gate.")
+    sources: list[str] = Field(default_factory=list, description="Grounding-by-verbatim-quote for every load-bearing value: `<value> ← <source ref> «verbatim line»`. A bare path with no quote is invalid.")
+    status: Literal["hypothesis", "supported", "refuted"] = Field(description="Claim status.")
+    tags: list[str] = Field(default_factory=list, description="Keyword tags.")
+    flags: list[ClaimFlag] = Field(default_factory=list, description="Functional-defect flags that trigger a downstream lens (e.g. a claim asserted without an ablation -> no_ablation).")
+
+
+class EdgeProposal(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    target_stem: str = Field(description="Stem of an EXISTING vault node this edge points to (resolved from the paper's citations, never invented).")
+    edge_type: Literal["derives_from", "contradicts"] = Field(description="Only these two K-node inter-node edge types are proposed by extraction.")
+    source_citation: str = Field(description="The paper reference/related_work entry that resolved to `target_stem` — the grounding that licenses this edge (Decision D3).")
+
+
+class KClaimExtraction(BaseModel):
+    """Phase Q extraction payload: a paper's Knowledge distilled to mechanism-level claims + citation-grounded edge proposals. Produces NO Insight/Thought/Decision content (HSC 4)."""
+    model_config = ConfigDict(extra="forbid")
+    claims: list[ExtractedClaim] = Field(..., min_length=1, max_length=5, description="1-5 mechanism-level claims distilled from the paper.")
+    proposed_edges: list[EdgeProposal] = Field(default_factory=list, description="derives_from/contradicts edges to existing vault nodes, each grounded in a resolved citation. Empty when no citation resolves (caller stages `no_prior_match`).")
+    provenance: Literal["ai-suggested"] = Field(default="ai-suggested", description="Everything this model carries is AI-proposed and awaits human review.")
+
+
 class SkillDefinition(BaseModel):
     """`~/.chimera/skills/{skill_id}.json` 的纯净定义（不含使用统计）。
 
