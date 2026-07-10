@@ -116,6 +116,27 @@ async def ingest_paper(
     return f"[✔] Knowledge node written: {out_path}"
 
 
+async def extract_paper(paper_id: str) -> str:
+    """Extract ONE already-ingested paper into a STAGED Knowledge node (mechanism claims +
+    citation-grounded edges). Reuses the paper's converted markdown — NO MinerU. Returns the
+    staging path. Staging-only — never auto-promoted.
+    """
+    pid = (paper_id or "").strip()
+    if not pid:
+        return "[Tool Error]: extract_paper requires a non-empty paper_id."
+
+    # Lazy import: keep the LLM / grounding / vault chain out of module load.
+    from single_paper_extract import extract_single_paper
+
+    try:
+        out_path = await asyncio.to_thread(extract_single_paper, paper_id=pid)
+    except FileNotFoundError as exc:
+        return f"[Extract Error] {exc}"
+    except Exception as exc:  # markdown / LLM / grounding / staging
+        return f"[Extract Error] {exc}"
+    return f"[✔] Staged K node (review before promotion): {out_path}"
+
+
 async def check_task_status(task_id: str) -> str:
     """Return persisted status / progress / result for a background task."""
     tid = (task_id or "").strip()

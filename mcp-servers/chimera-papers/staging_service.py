@@ -117,7 +117,22 @@ class StagingService:
             encoding="utf-8",
         )
         staging_path.unlink()
+        self._unlink_superseded(fm, keep=dest_path)
         return dest_path
+
+    def _unlink_superseded(self, fm: dict, *, keep: Path) -> None:
+        """D1 supersede: a promoted node replaces the prior node(s) named in its
+        ``graph_edges.supersedes`` — remove those from the vault (never the just-promoted node)."""
+        ge = fm.get("graph_edges")
+        targets = ge.get("supersedes", []) if isinstance(ge, dict) else []
+        keep_resolved = keep.resolve()
+        for target in targets or []:
+            stem = str(target).strip().strip("[]").strip()
+            if not stem:
+                continue
+            for path in self.vault_root.rglob(f"{stem}.md"):
+                if path.resolve() != keep_resolved:
+                    path.unlink()
 
     def reject_node(self, staging_path: Path) -> None:
         staging_path.unlink()

@@ -109,6 +109,26 @@ async def ingest_paper(arxiv_id: str | None = None, pdf_path: str | None = None)
 
 
 @mcp.tool()
+async def extract_paper(paper_id: str) -> str:
+    """Extract ONE already-ingested paper into a STAGED Knowledge node — mechanism-level claims
+    plus citation-grounded ``derives_from`` edges (Phase Q disciplined extraction).
+
+    WHEN: you want to (re)distill a paper already in the vault into a reviewable Knowledge node with
+    typed edges — e.g. backfilling the graph. Reuses the paper's converted markdown (no MinerU).
+    WHAT: markdown → 1-5 mechanism claims + citation-resolved edges (or ``grounded: no_prior_match``)
+    → a node in ``docs/staging/`` for review. Writes NO Insight/Thought/Decision node and never
+    auto-promotes into the vault. Returns the staging path.
+
+    Args:
+        paper_id: arXiv identifier of an already-ingested paper (e.g. "2305.16291").
+    """
+    async with _start_lock:
+        if get_task_service().has_active_long_task():
+            return _busy_message()
+    return await miner_tools.extract_paper(paper_id)
+
+
+@mcp.tool()
 async def check_task_status(task_id: str) -> str:
     """Return status or result for a background task (read-only poll).
 
