@@ -1,6 +1,15 @@
 # Phase Q — Disciplined Knowledge Extraction
 
-**Status:** Active (Follows Phase N truncation)
+> ⛔ **REOPENED 2026-07-10 (`friction-260710-02`) — output-shape rebuild required.** The 2026-07-10 functional
+> seal (`docs/sprints/phase-Q/phase-review.md`) is **superseded**. `extract_paper` overcorrected into
+> **atomic-claim dumps**, dropping the founding VISION below (general synthesis → apply lens → human-readable
+> summary + critique). ARA's claim-as-mechanism discipline is a **QUALITY BAR for statements, not the OUTPUT
+> SHAPE** — it was misapplied as the whole output. The staging gate caught it (atomic-dump nodes rejected at
+> review; none promoted). **The engine + citation-grounded edges stand; the Mission's output shape must be
+> rebuilt** — a human-readable synthesis + critique, with the claim-discipline applied as a prose quality
+> bar. Re-spec pending. (The VISION section below is exactly what this drift violated.)
+
+**Status:** REOPENED 2026-07-10 (`friction-260710-02`) — was Functionally Sealed 2026-07-10; output-shape rebuild pending re-spec
 **Sealed predecessor:** Phase N (Truncated)
 **Driving frictions:**
 - Probabilistic skill activation fails under long-context load (DeepSeek/Claude forgets to check Vault).

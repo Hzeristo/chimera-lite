@@ -2,8 +2,8 @@
 
 Personal research OS for one user. Not a framework. Not SaaS.
 
-> **Last sealed:** Phase Q — Disciplined Knowledge Extraction — **FUNCTIONALLY SEALED 2026-07-10** (`extract_paper`: mechanism-level claims + citation-grounded K→K edges, staging-only; 8/13 backfilled → **21 real `derives_from` edges** staged for review — the vault's first populated typed edges). Verdict: `docs/sprints/phase-Q/phase-review.md`. (Phase N truncated 2026-07-09; Phase O sealed 2026-07-08.)
-> **Active:** none. Next phase pending Architect authorship. Open threads: the **8 staged K nodes** await review (`docs/staging/`, promote → supersedes the old node); the **5 missing-markdown papers** (`DEBT-016`); and `friction-260709-01`'s **ambient** half — Phase Q built the *explicit* extraction path, not the *conversational-loop* one (the observer still never fires unbidden).
+> **REOPENED:** Phase Q — Disciplined Knowledge Extraction — **REOPENED 2026-07-10** on `friction-260710-02` (spec drift: `extract_paper` emits **atomic-claim dumps**, violating the founding "synthesis → lens → human-readable summary + critique" VISION; the staging gate caught it — none promoted). The extraction **engine + citation-grounded edges stand**; the **output shape** must be rebuilt (synthesis + critique; ARA discipline as a *quality bar*, not the shape). Prior functional seal `docs/sprints/phase-Q/phase-review.md` (2026-07-10) is **superseded**. (Phase N truncated 2026-07-09; Phase O sealed 2026-07-08.)
+> **Active:** Phase Q (reopened) — rebuild `extract_paper`'s output from atomic claims to human-readable synthesis; **re-spec pending Architect authorship**. Also open: `friction-260710-01` (ingest triage prompt buried / low-quality); the 8 atomic-dump staged nodes in `docs/staging/` should be rejected/cleared; `DEBT-016` (5 missing-markdown papers); `friction-260709-01`'s ambient half.
 
 ---
 
