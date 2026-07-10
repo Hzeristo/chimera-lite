@@ -46,7 +46,7 @@ Replace the probabilistic "read and maybe use a lens" approach with a determinis
 
 ## Design Decisions (Architect Authorized)
 
-1. **Path B — Claude Code Workflow**: We will NOT use Claude Code background hooks (`PreToolUse` etc.) because they obscure the control flow. A `/read`-style command triggers the main agent to run a Workflow: `pipeline(Grounding → Extraction)`. The Grounding agent calls vault MCP tools. The Extraction agent returns schema-constrained JSON. Staging via `create_node`. This is the ONLY viable path — MCP tools cannot spawn Claude Code subagents (B1 audit).
+1. **Path: Extend `ingest_paper` with a `mode='ara'` parameter** (resolves B1/R1 per `docs/audits/Q.0.md` cross-finding #1): `ingest_paper` already owns MinerU, schema-constrained LLM (`generate_structured_data`), `StagingService` in-process access, the TaskService poll model, and context isolation (returns a summary string). ARA extraction is an additional `response_model`, not a new pipeline. This satisfies R1 (zero new dependencies) and VISION (no `/read` ritual; one command, optional flag).
 2. **Subagent Isolation (The Execution Tree)**:
    - **Grounding Subagent**: Queries Vault for context. Fast, cheap model.
    - **Extraction Subagent**: Reads the heavy PDF markdown + Grounding summary. Produces rigid JSON/XML ARA structure. Expensive model.
@@ -82,3 +82,10 @@ Replace the probabilistic "read and maybe use a lens" approach with a determinis
 ## Explicit Scope Cuts
 
 - This phase does NOT address ambient-observe (`friction-260709`'s second face — the always-on observer during ordinary conversation). `/read` is an explicit invocation; ambient activation is deferred.
+
+## Cross-Findings
+
+- **Two write paths (design reconciliation, not a blocker).** `ingest_paper` writes K nodes to `inbox/`
+  (immediate, no review). `create_staging_node` writes to `docs/staging/` (review required). The ARA
+  pipeline should write to **staging** (Architect's judgment, review-gated). See `docs/audits/Q.0.md`
+  cross-finding #4.
