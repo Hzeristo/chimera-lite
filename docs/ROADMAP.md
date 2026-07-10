@@ -3,7 +3,7 @@
 Personal research OS for one user. Not a framework. Not SaaS.
 
 > **Last sealed:** Phase N — Lens Skills + JIT Deep Recall — **SEALED / TRUNCATED 2026-07-09** (N.A Lens Skills sealed 2026-07-06; N.B JIT Deep Recall **cancelled** pre-execution). Verdict: `docs/sprints/phase-N/phase-review.md`. (Phase O — Exocortex Write Surface — sealed 2026-07-08.)
-> **Active:** none. Next phase pending Architect authorship — the two open blockers are the **agentic defect** (`friction-260709-01`: vault absent from the loop) and **filling the vault with ARA-styled structured nodes** (`friction-260708-01`). Advanced retrieval stays retired until both are addressed.
+> **Active:** Phase Q — Disciplined Knowledge Extraction. Spec + re-audit + batch plan **approved 2026-07-09** (`docs/plans/Phase-Q-batch.md`); ready for `chimera-code-taste` execution (Q.1a–Q.4; Q.2b 🔴 gated). `extract_paper` stages K nodes + grounded edges via citation-resolution (no fabrication; ARA *discipline* not *format*) — addressing `friction-260709-01` (explicit extraction replaces the absent ambient loop) + `friction-260708-01` (typed-edge fill).
 
 ---
 
