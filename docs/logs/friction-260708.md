@@ -1,7 +1,7 @@
 # friction-260708-01 — Manual typed-edge filling after writing thought body
 
 **Date:** 2026-07-08
-**Status:** OPEN
+**Status:** RESOLVED (2026-07-10, Phase Q) — `extract_paper` auto-proposes typed `derives_from` edges from a paper's citations (review-gated, `ai-suggested`); the Q.4 backfill minted 21 real edges. Typed-edge filling is no longer hand labor.
 **Phase context:** Phase O (write surface) sealing
 
 ## What I wanted to do

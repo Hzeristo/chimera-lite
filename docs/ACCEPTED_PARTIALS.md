@@ -6,6 +6,30 @@ Each entry: phase / sprint, partial description, reason for acceptance.
 
 ---
 
+## Phase Q — Disciplined Knowledge Extraction (functionally sealed 2026-07-10)
+
+### Q.seal.1 — Backfill covered 8 of 13 Schema-C nodes
+- **Description:** Q.4's target was the 13 Schema-C nodes. Only 8 had their converted `source_md` present
+  at `papers/md_papers/<id>.md`; the other 5 (`2606.19319`, `2606.30639`, `2607.01224`, `2607.02509`,
+  `2607.02514`) point `source_md` at a path whose file is gone. Rather than half-run in the dark, the
+  user-approved live backfill ran the 8 available — 8/8 staged, 21 grounded edges, 3 `no_prior_match`,
+  zero fabrication, zero I/T/D.
+- **Reason:** The extraction machinery is proven; the gap is data (missing markdown), not code. The 5 are
+  tracked as `DEBT-016`. Running the 8 delivered the phase's core value — the vault's first typed K→K edges.
+
+### Q.seal.2 — Extraction design re-scopes (declared during the batch)
+- **Description:** (a) The mechanism-vs-recipe / name-deletion discipline is enforced by the extraction
+  **prompt** (`extract_claims.j2`) + validated on live output, NOT by a schema linter (`schemas.py` stays a
+  pure data dictionary). (b) `contradicts` is out of grounding scope — it needs semantic claim-conflict
+  detection, not citation-resolution; only `derives_from` is minted. (c) `extract_paper` stages
+  `title=paper_id` (old moniker dropped; reviewer renames on promotion); the LLM's
+  `KClaimExtraction.proposed_edges` is filled but IGNORED (edges come from grounding); the new-paper
+  fetch+MinerU path is a stub (backfill reuses `source_md`).
+- **Reason:** Each is the honest shape of the discipline (semantic checks live in prompts + review; the LLM
+  cannot know vault stems). None blocks the seal; recorded for a future refinement pass.
+
+---
+
 ## Phase O — Exocortex Write Surface (sealed 2026-07-08)
 
 ### O.seal.1 — `chimera-vault/server.py` is 225 lines, over the `< 200` thin-adapter red line

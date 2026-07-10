@@ -1,7 +1,7 @@
 # friction-260709-01 — Vault absent from the agentic loop (the always-active observer never fires)
 
 **Date:** 2026-07-09
-**Status:** OPEN
+**Status:** OPEN — PARTIALLY ADDRESSED (2026-07-10, Phase Q). The explicit disciplined vault-write path now exists (`extract_paper`: distill a paper into K claims + grounded edges, on demand). But the friction's **ambient** half — the always-active observer never firing during ordinary conversation — remains OPEN; Phase Q scoped ambient-observe OUT (Scope Cut G2). Still the dominant blocker for a vault-grounded reading loop.
 **Phase context:** Post-Phase-O; Phase N.B rescoped the same day (disposition A). This friction
 re-prioritizes those two — it says the substrate under N.B is broken.
 
