@@ -1,11 +1,11 @@
-# Phase Q — Deterministic ARA Workflow & Subagent Orchestration
+# Phase Q — Disciplined Knowledge Extraction
 
 **Status:** Active (Follows Phase N truncation)
 **Sealed predecessor:** Phase N (Truncated)
 **Driving frictions:**
 - Probabilistic skill activation fails under long-context load (DeepSeek/Claude forgets to check Vault).
 - Vault graph lacks depth (N.B.0 audit: no K->K edges, no deep T nodes).
-- Need a rigid, deterministic pipeline to enforce ARA (Agent-Native Research Artifact, arXiv 2604.24658) structure on ingested papers.
+- Need disciplined extraction that enforces ARA's *epistemic discipline* (claim-as-mechanism, falsification, grounding-by-quote), NOT ARA's file-system format, on ingested papers (ARA = Agent-Native Research Artifact, arXiv 2604.24658).
 
 ## VISION — Why We Build This
 
@@ -17,8 +17,8 @@ research.
 
 Technical metrics are means, not ends:
 - "HSC ≥ 20" is a proxy for "the graph has real value to traverse"
-- "ARA structure" is a proxy for "the vault captures real knowledge"
-- "Deterministic workflow" is a proxy for "I can trust it to work"
+- "ARA discipline" is a proxy for "the vault captures real knowledge"
+- "A deterministic pipeline" is a proxy for "I can trust it to work"
 
 If the system is technically perfect but you don't reach for it when you sit down to read papers — **it
 has failed.**
@@ -31,61 +31,95 @@ This means:
 - If something works in demo but fails in your actual research flow, **it fails** (test against real
   use, not synthetic scenarios).
 
-The system earns its place in your workflow only if it makes research **faster, deeper, or more
+The system earns its place in your daily work only if it makes research **faster, deeper, or more
 connected** — not if it makes you a better systems builder.
 
 **Success metric: you open this tool without being reminded to.**
 
 ## Mission
 
-Replace the probabilistic "read and maybe use a lens" approach with a deterministic, multi-subagent pipeline. Every paper reading MUST extract a structured **ARA artifact** — the four layers `/logic` (claims, heuristics, experiments), `/src`, `/trace` (exploration: decisions, dead_ends, pivots), and `/evidence` — per arXiv 2604.24658 (Agent-Native Research Artifact). This is NOT a linear `sources → methods → experiments → outputs` graph (that schema came from the mis-cited 2605.02651). The main agent's role shifts from doing the reading to orchestrating subagents and presenting the final distilled knowledge.
+Extract structured knowledge from existing papers to populate the vault
+with typed K nodes and grounded edges — using ARA's epistemic discipline,
+not its file-system format.
 
-**Design goal (R1) — zero new dependencies.** ARA extraction is an ADDITION to the existing `ingest_paper` pipeline, not a parallel construction. Reuse MinerU (PDF → markdown), the LLM client, vault tools, and `create_staging_node`.
+The key distinction (from ARA repo analysis):
+  - ARA's FORMAT (4 layers, /trace DAG, exploration_tree.yaml) is for
+    WRITING research artifacts — you cannot extract a git log from someone
+    else's paper. Wrong for extraction.
+  - ARA's DISCIPLINE (claim-as-mechanism, name-deletion test,
+    falsification, grounding-by-verbatim-quote, provenance tags) is
+    EXCELLENT for extraction. Keep all of it.
 
-**Scope note (M1).** ARA's reconstructability / reproducibility score is deliberately out of scope — a triage signal, not a vault-enrichment signal. It may be surfaced to the user but does not affect node creation.
+The extraction payload:
+  1. K node: paper claims distilled to 1-5 mechanism-level statements
+     ("why it works", no numbers). Explicit paper-reported failures
+     fold into K body (high value, only when explicit).
+  2. Typed edges: minted ONLY from Grounding (not from extraction).
+     derives_from / contradicts. No prior match → explicit
+     grounded: no_prior_match, staged edgeless. Zero fabrication.
+  3. Provenance tags: ai-suggested / user-confirmed / inferred
+     so review knows what to verify.
+
+What Phase Q does NOT extract:
+  - No D nodes from papers (inference, not fact)
+  - No T nodes from papers (T is your interpretation, you author it)
+  - No I nodes from papers. An Insight is crystallized ONLY per explicit user
+    call in chat (NEVER automatic generation), from a group of T nodes that were
+    reproduced, verified in direct PI discussion, or affirmed in a seminar /
+    conference (ICLR/NeurIPS) invited oral.
+  - No ARA /trace DAG (you don't have the git log)
+  - No /src code, /evidence PNGs, full artifact
+
+## ARA Steal Table
+
+| ARA artifact | Steal what | Into what |
+|---|---|---|
+| rigor-reviewer skill | 6-dimension epistemic review (Evidence-Relevance, Falsifiability, Scope-Calibration, Argument-Coherence, Exploration-Integrity, Methodological-Rigor) | Chimera lens skill upgrade (or new chimera-rigor-review skill) |
+| compiler discipline | Claim-as-mechanism, name-deletion test, grounding-by-quote, 16 anti-hallucination rules | Phase Q extraction prompt content |
+| Provenance tags (ai-suggested / user-confirmed / inferred) | Trust layer for AI-extracted fields | K node frontmatter |
+| research-foresight | Honesty-envelope pattern (grounded_inference / speculative_leap / confidence / falsifiable) | N.B successor — vault Q&A with honesty bounds |
+
+SKIP (already handled by existing tools):
+  - ara-viewer (Obsidian renders vault graph)
+  - ara-submit (no publishing; we have our own skill system)
 
 ## Design Decisions (Architect Authorized)
 
-1. **Path: Extend `ingest_paper` with a `mode='ara'` parameter** (resolves B1/R1 per `docs/audits/Q.0.md` cross-finding #1): `ingest_paper` already owns MinerU, schema-constrained LLM (`generate_structured_data`), `StagingService` in-process access, the TaskService poll model, and context isolation (returns a summary string). ARA extraction is an additional `response_model`, not a new pipeline. This satisfies R1 (zero new dependencies) and VISION (no `/read` ritual; one command, optional flag).
-2. **Subagent Isolation (The Execution Tree)**:
-   - **Grounding Subagent**: Queries Vault for context. Fast, cheap model.
-   - **Extraction Subagent**: Reads the heavy PDF markdown + Grounding summary. Produces rigid JSON/XML ARA structure. Expensive model.
-   - **Main Agent**: Receives structured output, never sees the full paper text.
-3. **Lens Demotion (function-triggered, not type-triggered)**: Lenses are NOT triggered by content TYPE (e.g., "this paper has math, use Math Lens"). They are triggered by content FUNCTION (e.g., "ARA extraction flagged this section as EVIDENCE for a claim without ablation → Forensic Leakage"). The ARA extraction schema must include a flag vocabulary: `[suspicious_dependency, no_ablation, math_decoration, method_orphaned, result_ungrounded, ...]` that maps to lens triggers. This changes N.A lens skills' activation model (auto-select-by-type → reactive-on-flag) — document this as touching N.A deliverables. (Function-based abstraction confirmed by the ARA audit Q4, §2.1/§2.2.)
-4. **Graph Edges via ARA (the key unresolved design item)**: ARA's four-layer artifact (`/logic` `/src` `/trace` `/evidence`) is **INTRA-paper** structure (how THIS paper is assembled — the `claims → experiments → evidence` forensic bindings, the `/trace` DAG). Vault typed edges are **INTER-node** (how THIS paper relates to OTHER vault nodes). They are not the same graph.
-
-   Primitive mapping (per `docs/audits/ara-2604.24658-structure.md` Q3): `/logic` claims + `/evidence` → **K**; `/logic` heuristics (trick / sensitivity / bounds) → **I**; `/trace` `decision` nodes → **D**; `/trace` `dead_end` / `pivot` / `question` + reader interpretation → **T**.
-
-   A `derives_from` edge to a prior vault node comes from the **GROUNDING** step (which found the prior node) via ARA's `related_work.md` / imports — NOT from the intra-paper extraction step.
-
-   This mapping (B2) is the single most important unresolved design item and MUST be specified before Q.1 begins.
+1. **Extend the existing ingest infrastructure — no new pipeline.** `extract_paper(paper_id)` reuses `ingest_paper`'s MinerU (PDF→markdown), the schema-constrained LLM path (`generate_structured_data`), in-process `StagingService`, and the poll model. The paper markdown never leaves the server, so the caller only ever sees the staged result. Zero new dependencies.
+2. **In-server stages (a single MCP tool, all in-process).** (1) **Grounding** — query the vault for prior nodes related to the paper. (2) **Extraction** — one schema-constrained LLM call over the markdown → K claims + provenance tags. (3) **Staging** — write to `docs/staging/`. Context isolation is automatic: the tool returns only the staged summary, never the paper text.
+3. **Lens Demotion (function-triggered, not type-triggered)**: Lenses are NOT triggered by content TYPE (e.g., "this paper has math, use Math Lens"). They are triggered by content FUNCTION (e.g., "extraction flagged this section as EVIDENCE for a claim without ablation → Forensic Leakage"). The extraction schema must include a flag vocabulary: `[suspicious_dependency, no_ablation, math_decoration, method_orphaned, result_ungrounded, ...]` that maps to lens triggers. This changes N.A lens skills' activation model (auto-select-by-type → reactive-on-flag) — document this as touching N.A deliverables.
+4. **Edges are INTER-node, minted by Grounding — never reconstructed from the paper.** The vault's typed edges (`derives_from` / `contradicts`) describe how THIS paper relates to OTHER vault nodes; they are minted by the **Grounding** step matching a prior vault node, NOT reconstructed from the paper's internal structure. Extraction produces the K node's content; Grounding produces its edges.
 
 ## Sprint Sequence
 
 | Sprint | One-line goal |
 |---|---|
-| Q.0 | Audit: Claude Code native Task/Workflow primitives (schema-constrained agent output, model/effort overrides, context isolation, `pipeline()` returning validated objects) + existing `ingest_paper` pipeline as the substrate to EXTEND, not replace. Phase III.E `fork_agent`/`fork_subagent` is RETIRED — do NOT audit it. |
-| Q.1 | Subagent 1 (Grounding): Build the lightweight Vault-querying sub-routine. |
-| Q.2 | Subagent 2 (Extraction): Build the ARA structural extraction prompt and force rigid schema output. |
-| Q.3 | Pipeline Orchestrator: Wire Subagent 1 -> Subagent 2 -> Main Agent summary. |
-| Q.4 | Staging Integration: Convert ARA output into `create_staging_node` calls for the Vault. |
+| Q.1 | Define K Claim Pydantic model (mechanism-distilled claims, provenance tags, no numbers); verify it captures the discipline from ARA compiler |
+| Q.2 | Implement extract_paper(paper_id) — ingest + grounding + disciplined extraction + staging |
+| Q.3 | Test on 5 existing K nodes; verify claims are mechanism-level and edges come from grounding only (no I/T/D nodes produced) |
+| Q.4 | Backfill 20 existing K nodes via extract_paper; verify ≥1 grounded edge or explicit no_prior_match |
 
 ## Cross-Sprint Red Lines
-- ❌ Do NOT rely on the Main Agent to "read" the paper text. Full text stays in Subagent 2.
-- ❌ Do NOT use probabilistic prompts ("Please try to check the vault") for CONTROL FLOW. Use hard-coded control flow for orchestration. Schema-constrained LLM extraction (Q.2) is permitted and necessary — "deterministic" refers to the workflow steps being forced, not to the extraction being non-LLM.
-- ❌ Do NOT overwrite existing K/T/I/D node schemas; map ARA outputs to the existing ontology.
+- ❌ Do NOT let the paper's full markdown reach the calling agent's context — it stays inside the in-server extraction step; only the staged summary crosses back.
+- ❌ Do NOT use probabilistic prompts ("Please try to check the vault") for CONTROL FLOW — the grounding → extraction → staging steps are hard-coded and always run. Schema-constrained LLM extraction is permitted and necessary; "disciplined" refers to the steps being forced and the output schema-bound, not to the extraction being non-LLM.
+- ❌ Do NOT overwrite existing K/T/I/D node schemas; map extracted output onto the existing ontology.
 
 ## Hard Sealing Conditions
-1. Grounding attempt succeeds. The pipeline STAGES a node for every run. If a prior Vault node was found in grounding → the staged node has ≥1 `derives_from` edge. If no prior match found → the staged node carries an explicit `grounded: no_prior_match` field, no fabricated edges. Zero fabrication of K→K edges to hit a number. (First papers into an empty graph stage edgeless — that is valid, not a failure.)
-2. Under Path B (Workflow fork), context isolation is guaranteed by construction — the fork keeps paper text out of the main context. Tool output stays in the subagent; only the schema-constrained JSON crosses the boundary. This is architecturally verified, not empirically measured.
+
+1. **Mechanism-level claims (HSC 1):** Extracted K claims are mechanism-distilled ("why"), not recipe ("how") or numbers. Name-deletion test passes: if the claim still makes sense after deleting the paper's name, it is mechanism-level.
+
+2. **Grounded edges only (HSC 2):** Every derives_from / contradicts edge is minted from a confirmed grounding match. Zero fabrication. Edgeless staging is valid (grounded: no_prior_match) for cold-start papers.
+
+3. **Provenance on every field (HSC 3):** Every AI-extracted field (claim, edge) carries a provenance tag (ai-suggested / inferred). User review can confirm or reject each.
+
+4. **Zero I/T/D from extraction (HSC 4):** extract_paper never writes a I, T or D node.
 
 ## Explicit Scope Cuts
 
-- This phase does NOT address ambient-observe (`friction-260709`'s second face — the always-on observer during ordinary conversation). `/read` is an explicit invocation; ambient activation is deferred.
+- This phase does NOT address ambient-observe (`friction-260709`'s second face — the always-on observer during ordinary conversation). `extract_paper` is an explicit invocation; ambient activation is deferred.
 
 ## Cross-Findings
 
 - **Two write paths (design reconciliation, not a blocker).** `ingest_paper` writes K nodes to `inbox/`
-  (immediate, no review). `create_staging_node` writes to `docs/staging/` (review required). The ARA
-  pipeline should write to **staging** (Architect's judgment, review-gated). See `docs/audits/Q.0.md`
-  cross-finding #4.
+  (immediate, no review). `create_staging_node` writes to `docs/staging/` (review required). `extract_paper`
+  writes to **staging** (Architect's judgment, review-gated). See `docs/audits/Q.0.md` cross-finding #4.
