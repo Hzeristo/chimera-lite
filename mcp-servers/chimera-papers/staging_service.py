@@ -64,7 +64,14 @@ class StagingService:
         title: str,
         body: str,
         edges: dict | None = None,
+        metadata: dict | None = None,
     ) -> Path:
+        """Write a reviewable K/T/I/D node to the staging area (no live vault write).
+
+        ``metadata`` is an optional passthrough of extra staging-node frontmatter
+        (e.g. provenance / ``grounded``) merged in after the fixed keys below.
+        When ``metadata`` is omitted the output is byte-identical to the fixed-keys-only
+        form (backward-compat)."""
         node_type = type.lower()
         if node_type not in _TYPE_DEST:
             raise ValueError(f"Unknown node type: {type!r}")
@@ -85,6 +92,8 @@ class StagingService:
             "tags": [node_type],
             "graph_edges": graph_edges,
         }
+        if metadata:
+            fm.update(metadata)
         slug = _SLUG_RE.sub("_", title)[:60].rstrip("_")
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         path = self.staging_dir / f"{stamp}-{slug}.md"
