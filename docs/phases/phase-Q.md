@@ -3,7 +3,8 @@
 > ✅ **REOPENED 2026-07-10 (`friction-260710-02`) → REBUILT 2026-07-10.** The output shape has been rebuilt
 > per the Architect's authored target (an ideal reader's K node) and the approved **A-refined** lens
 > architecture. `extract_paper` now stages a human-readable node — **Synthesis** (BB's analysis + mechanism
-> walkthrough + algorithm steps) + **Lens Critique** (the single most-relevant lens, function-selected) +
+> walkthrough + algorithm steps) +
+> **Lens Critique** (1-2 function-selected lenses — a second only on independent hybrid detection) +
 > **Attack Vectors** (offensive read) + **Mechanism Claims** (ARA-disciplined — the epistemic FLOOR, not the
 > whole output) — with `[My Critique]` human-fill review hooks and the citation-grounded edges kept. ARA's
 > claim-as-mechanism discipline is applied as a **prose QUALITY BAR**, never as the output shape. Lens
@@ -66,9 +67,12 @@ The extraction payload — a K node with FOUR reader-facing sections:
      what the paper does and WHY it works, a prose mechanism walkthrough, and
      human-readable algorithm steps; connects the paper to existing vault
      concepts. Carries a `[My Critique]` hook the Architect fills at review.
-  2. Lens Critique — the SINGLE most relevant lens, selected by paper FUNCTION
-     (not content type): trigger + findings + verdict. Canonical lens definition
-     per lens in prompts/lenses/*.md, read by BOTH server and skills (one source).
+  2. Lens Critique — 1-2 lenses selected by paper FUNCTION (not content type):
+     the single best-matching lens by default; a SECOND only when another lens's
+     trigger independently scores high (a genuine hybrid — e.g. a benchmark ABOUT
+     a mechanism warrants both benchmark-integrity and mechanism-depth lenses).
+     Trigger + findings + verdict per lens. Canonical lens definition per lens in
+     prompts/lenses/*.md, read by BOTH server and skills (one source).
   3. Attack Vectors — the offensive read: how to beat this baseline / exploit the
      flaw. Actionable, adversarial. Carries its own `[My Critique]` hook.
   4. Mechanism Claims (ARA-disciplined) — the epistemic floor: 1-5 mechanism-level

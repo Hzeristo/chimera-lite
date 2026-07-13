@@ -93,18 +93,19 @@ def _render_node_body(node: KNodeExtraction) -> str:
         "",
         "> **[My Critique]**: <INSTRUCTION: BB 说得对吗？有什么漏洞？> _[User fills this during review]_",
         "",
-        "---",
-        "",
-        f"## Lens Critique — {node.lens.lens_name}",
-        "",
-        f"**Triggered by:** {node.lens.triggered_by}",
     ]
-    for finding in node.lens.findings:
-        lines += ["", f"### {finding.heading}", "", finding.body]
+    for lens in node.lenses:
+        lines += [
+            "---",
+            "",
+            f"## Lens Critique — {lens.lens_name}",
+            "",
+            f"**Triggered by:** {lens.triggered_by}",
+        ]
+        for finding in lens.findings:
+            lines += ["", f"### {finding.heading}", "", finding.body]
+        lines += ["", f"**Verdict:** {lens.verdict}", ""]
     lines += [
-        "",
-        f"**Verdict:** {node.lens.verdict}",
-        "",
         "---",
         "",
         "## 💥 Attack Vectors (Offensive Perspective)",

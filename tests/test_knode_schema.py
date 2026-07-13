@@ -37,7 +37,16 @@ def _claim(**overrides: object) -> dict:
     return base
 
 
-def _node(n_claims: int = 1, **overrides: object) -> dict:
+def _lens(name: str = "Forensic Leakage Audit") -> dict:
+    return {
+        "lens_name": name,
+        "triggered_by": "Reports benchmark gains without ablating prompt asymmetry.",
+        "findings": [{"heading": "Baseline Asymmetry", "body": "Baselines run 0-shot; method gets CoT."}],
+        "verdict": "The gain is real but the comparison is not fairly matched.",
+    }
+
+
+def _node(n_claims: int = 1, n_lenses: int = 1, **overrides: object) -> dict:
     base = {
         "title": "MemAgent: RL-Driven Memory Overwrite for Unbounded Context",
         "synthesis": {
@@ -45,12 +54,7 @@ def _node(n_claims: int = 1, **overrides: object) -> dict:
             "mechanism": "Chunks are read sequentially; a fixed token buffer is overwritten each step.",
             "algorithm_steps": ["Split into chunks", "Overwrite buffer", "Answer from buffer"],
         },
-        "lens": {
-            "lens_name": "Forensic Leakage Audit",
-            "triggered_by": "Reports benchmark gains without ablating prompt asymmetry.",
-            "findings": [{"heading": "Baseline Asymmetry", "body": "Baselines run 0-shot; method gets CoT."}],
-            "verdict": "The gain is real but the comparison is not fairly matched.",
-        },
+        "lenses": [_lens() for _ in range(n_lenses)],
         "attack": {
             "vectors": ["Monolithic overwrite discards contradictory early evidence."],
             "beat_baseline": "Hybrid memory: compression cache + retrieval over raw chunks.",
@@ -71,7 +75,8 @@ def test_model_json_schema_renders() -> None:
 def test_valid_node_validates() -> None:
     node = KNodeExtraction(**_node())
     assert node.title.startswith("MemAgent")
-    assert node.lens.lens_name == "Forensic Leakage Audit"
+    assert len(node.lenses) == 1
+    assert node.lenses[0].lens_name == "Forensic Leakage Audit"
     assert node.synthesis.algorithm_steps  # populated
     assert len(node.claims) == 1
 
@@ -79,6 +84,19 @@ def test_valid_node_validates() -> None:
 def test_node_rejects_unknown_key() -> None:
     with pytest.raises(ValidationError):
         KNodeExtraction(**_node(), unexpected_field="nope")
+
+
+def test_lenses_zero_raises() -> None:
+    with pytest.raises(ValidationError):
+        KNodeExtraction(**_node(n_lenses=0))
+
+
+def test_lenses_default_one_hybrid_two_pass_three_raises() -> None:
+    # Default is one lens; a second fires only for a genuine hybrid; never more than two.
+    assert len(KNodeExtraction(**_node(n_lenses=1)).lenses) == 1
+    assert len(KNodeExtraction(**_node(n_lenses=2)).lenses) == 2
+    with pytest.raises(ValidationError):
+        KNodeExtraction(**_node(n_lenses=3))
 
 
 def test_claim_source_requires_quote_and_location() -> None:

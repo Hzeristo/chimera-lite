@@ -47,12 +47,12 @@ def _extraction(n: int = 1) -> KNodeExtraction:
             mechanism="Identity shortcuts let gradients skip layers.",
             algorithm_steps=["Add identity shortcut", "Train deeper"],
         ),
-        lens=LensCritique(
+        lenses=[LensCritique(
             lens_name="Math Decoration Verdict",
             triggered_by="Reformulates plain nets and asks the reader to accept the residual as load-bearing.",
             findings=[LensFinding(heading="Residual as identity", body="The residual is a plain identity add.")],
             verdict="Load-bearing: removing the shortcut breaks deep training.",
-        ),
+        )],
         attack=AttackVectors(
             vectors=["Shortcut helps optimization, not representation."],
             beat_baseline="Normalized init + a careful LR schedule.",
@@ -126,6 +126,22 @@ def test_render_strips_double_markers() -> None:
     assert "> 💥 💥" not in body
     assert "1. first" in body and "2. second" in body
     assert "> 💥 boom" in body and "> 💥 vs" in body and "> 💥 plain" in body
+
+
+def test_render_two_lenses_both_appear() -> None:
+    # Hybrid policy: a benchmark-about-a-mechanism (STALE) carries two lenses; both render.
+    node = _extraction()
+    node.lenses.append(
+        LensCritique(
+            lens_name="State Collision Stress Test",
+            triggered_by="The paper's subject is conflict arbitration under contradiction.",
+            findings=[LensFinding(heading="Arbitration", body="Superposition vs. true resolution?")],
+            verdict="Superposition, not true arbitration.",
+        )
+    )
+    body = _render_node_body(node)
+    assert "## Lens Critique — Math Decoration Verdict" in body
+    assert "## Lens Critique — State Collision Stress Test" in body
 
 
 def test_extract_grounded_edge(tmp_path: Path) -> None:

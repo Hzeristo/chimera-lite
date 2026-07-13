@@ -61,3 +61,18 @@ and the **citation-grounded edges** (`grounding.py`, D4) were correct and are un
 - **`friction-260710-01`** (ingest triage) is separate and still OPEN — the triage prompt is already
   external (`prompts/chimera_sys/reviewer_zero.j2`); the real ask is *tunable judgement criteria*, not
   relocation. Not addressed here.
+
+## Addendum — 2026-07-13 (first live run + lens policy)
+
+- **First live extraction** (STALE, arXiv 2605.06527) — ingest → extract produced a genuinely rich,
+  readable node (synthesis, lens findings, C01–C04 with quote-grounded sources, `supersedes` the thin
+  triage node, honest `no_prior_match`). `friction-260710-02` resolved in practice.
+- **Incident:** the run surfaced doubled list markers (`1. 1.`, `> 💥 💥`) — the LLM prefixes them and
+  the renderer also did. Fixed with defensive strips + prompt notes + regression test
+  (`docs/incidents/2026-07-13-extract-node-double-markers.md`).
+- **Lens policy (Architect decision):** `lens` → `lenses: list[LensCritique]` (1-2). ONE lens by
+  default; a SECOND fires only when another lens's trigger scores high INDEPENDENTLY on the same paper
+  (hybrid detection, prompt-managed — no override param). STALE is the exemplar: a benchmark ABOUT a
+  mechanism warrants both Forensic Leakage (benchmark integrity) and State Collision (mechanism depth).
+- **Live re-seal still pending** a server reconnect (the Python fixes need a process reload — prompts
+  hot-reload, module code does not) + operator review of a clean re-extraction.

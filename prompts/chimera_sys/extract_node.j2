@@ -20,13 +20,21 @@ Overwrite for Unbounded Context"). No arxiv id.
 - `algorithm_steps`: the core procedure as human-readable steps (plain text per step — do NOT
   prefix a step number; the renderer numbers them).
 
-## lens  (select EXACTLY ONE, by FUNCTION)
-From the lens catalog below, choose the SINGLE lens whose function-based trigger best matches
-what THIS paper asks the reader to trust — by the paper's FUNCTION (what it claims), NOT its
-surface content type. Apply that lens's Method and honor its Discipline (mechanism + evidence +
-falsifiability on every finding).
+## lenses  (1-2, selected by FUNCTION)
+From the lens catalog below, choose the lens whose function-based trigger best matches what THIS
+paper asks the reader to trust — by the paper's FUNCTION (what it claims), NOT its surface content
+type. That is the PRIMARY lens, and the default is exactly ONE.
+
+Add a SECOND lens ONLY when a different lens's trigger ALSO scores high on this same paper
+INDEPENDENTLY — a genuine hybrid, not a stretch. The canonical example: a benchmark ABOUT a
+mechanism warrants BOTH lenses — e.g. STALE (a benchmark for implicit-conflict resolution) deserves
+Forensic Leakage (is the benchmark's integrity sound?) AND State Collision (how deep is the
+conflict-arbitration mechanism?). Emit two ONLY for a true hybrid; never more than two.
+
+For each lens, apply its Method and honor its Discipline (mechanism + evidence + falsifiability on
+every finding):
 - `lens_name`: the chosen lens's human name (from the catalog).
-- `triggered_by`: the function-based reason THIS paper summoned THIS lens.
+- `triggered_by`: the function-based reason THIS paper INDEPENDENTLY summoned THIS lens.
 - `findings`: 1-4 findings (heading + body), each meeting the discipline triple.
 - `verdict`: the lens's bottom-line on the paper's central claim.
 

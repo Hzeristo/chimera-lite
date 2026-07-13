@@ -329,10 +329,10 @@ class LensFinding(BaseModel):
 
 
 class LensCritique(BaseModel):
-    """Section 2 — the SINGLE most-relevant critical lens, selected by paper FUNCTION (not content type)."""
+    """Section 2 — one critical lens (of 1-2), selected by paper FUNCTION (not content type)."""
     model_config = ConfigDict(extra="forbid")
     lens_name: str = Field(description="The applied lens's human name (e.g. 'Forensic Leakage Audit'), from prompts/lenses/<name>.md.")
-    triggered_by: str = Field(description="The FUNCTION-based trigger: what about this paper's role/claims summoned THIS lens (e.g. 'reports eval gains without ablating prompt asymmetry'), not 'it has experiments'.")
+    triggered_by: str = Field(description="The FUNCTION-based trigger: what about this paper's role/claims INDEPENDENTLY summoned THIS lens (e.g. 'reports eval gains without ablating prompt asymmetry'), not 'it has experiments'.")
     findings: list[LensFinding] = Field(default_factory=list, description="1-4 findings the lens surfaces.")
     verdict: str = Field(description="The lens's bottom-line verdict on the paper's central claim.")
 
@@ -359,7 +359,7 @@ class KNodeExtraction(BaseModel):
     model_config = ConfigDict(extra="forbid")
     title: str = Field(description="The node title — the paper's system/model name + a one-line what-it-is (e.g. 'MemAgent: RL-Driven Memory Overwrite for Unbounded Context').")
     synthesis: PaperSynthesis
-    lens: LensCritique
+    lenses: list[LensCritique] = Field(..., min_length=1, max_length=2, description="1-2 critical lenses selected by paper FUNCTION: the single best-matching lens by default; a SECOND only when another lens's trigger INDEPENDENTLY scores high on the same paper (a genuine hybrid — e.g. a benchmark ABOUT a mechanism warrants both a benchmark-integrity lens and a mechanism-depth lens).")
     attack: AttackVectors
     claims: list[ExtractedClaim] = Field(..., min_length=1, max_length=5, description="1-5 mechanism-level ARA-disciplined claims — the epistemic floor beneath the synthesis.")
 
