@@ -149,10 +149,10 @@ def test_render_two_lenses_both_appear() -> None:
     assert "## Lens Critique — State Collision Stress Test" in body
 
 
-def test_extract_grounded_edge(tmp_path: Path) -> None:
+async def test_extract_grounded_edge(tmp_path: Path) -> None:
     vault = _make_vault(tmp_path)
     staging = StagingService(tmp_path / "staging", vault)
-    path = extract_single_paper(
+    path = await extract_single_paper(
         paper_id="2305.16291",
         paper=_paper("2305.16291", cites="builds on 2409.07429"),
         llm_client=_StubClient(_extraction()),
@@ -170,10 +170,10 @@ def test_extract_grounded_edge(tmp_path: Path) -> None:
     assert len(list((tmp_path / "staging").glob("*.md"))) == 1
 
 
-def test_extract_no_prior_match(tmp_path: Path) -> None:
+async def test_extract_no_prior_match(tmp_path: Path) -> None:
     vault = _make_vault(tmp_path)
     staging = StagingService(tmp_path / "staging", vault)
-    path = extract_single_paper(
+    path = await extract_single_paper(
         paper_id="2305.16291",
         paper=_paper("2305.16291", cites="no citations here"),
         llm_client=_StubClient(_extraction()),
@@ -184,10 +184,10 @@ def test_extract_no_prior_match(tmp_path: Path) -> None:
     assert fm["graph_edges"]["derives_from"] == []
 
 
-def test_extract_excludes_migration_backup(tmp_path: Path) -> None:
+async def test_extract_excludes_migration_backup(tmp_path: Path) -> None:
     vault = _make_vault(tmp_path)
     staging = StagingService(tmp_path / "staging", vault)
-    path = extract_single_paper(
+    path = await extract_single_paper(
         paper_id="2305.16291",
         paper=_paper("2305.16291", cites="cite 2508.06433"),  # present only in .migration_backup
         llm_client=_StubClient(_extraction()),
@@ -197,11 +197,11 @@ def test_extract_excludes_migration_backup(tmp_path: Path) -> None:
     assert fm["grounded"] == "no_prior_match"  # backup node is never resolvable
 
 
-def test_supersede_edge_when_existing_node(tmp_path: Path) -> None:
+async def test_supersede_edge_when_existing_node(tmp_path: Path) -> None:
     vault = _make_vault(tmp_path)
     _k_node(vault / "inbox" / "Skim" / "2305.16291-VOYAGER.md")
     staging = StagingService(tmp_path / "staging", vault)
-    path = extract_single_paper(
+    path = await extract_single_paper(
         paper_id="2305.16291",
         paper=_paper("2305.16291"),
         llm_client=_StubClient(_extraction()),
@@ -209,6 +209,27 @@ def test_supersede_edge_when_existing_node(tmp_path: Path) -> None:
     )
     fm, _ = _read_staged(path)
     assert fm["graph_edges"]["supersedes"] == ["[[2305.16291-VOYAGER]]"]
+
+
+async def test_extract_reports_progress(tmp_path: Path) -> None:
+    # Incident 2026-07-13: silent blocking tool. The domain function emits stage progress at the
+    # documented boundaries; the other tests exercise the progress=None (no-ctx) path.
+    vault = _make_vault(tmp_path)
+    staging = StagingService(tmp_path / "staging", vault)
+    seen: list[tuple[float, str]] = []
+
+    async def _progress(frac: float, msg: str) -> None:
+        seen.append((frac, msg))
+
+    await extract_single_paper(
+        paper_id="2305.16291",
+        paper=_paper("2305.16291"),
+        llm_client=_StubClient(_extraction()),
+        staging_service=staging,
+        progress=_progress,
+    )
+    assert [f for f, _ in seen] == [0.0, 0.25, 0.5, 0.85, 1.0]
+    assert any("Extracting" in m for _, m in seen)
 
 
 def test_promote_unlinks_superseded(tmp_path: Path) -> None:

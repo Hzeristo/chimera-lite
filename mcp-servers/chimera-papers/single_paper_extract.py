@@ -11,9 +11,11 @@ operator promotes. The new node supersedes the paper's prior node on promotion.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 
 from core.config import ChimeraConfig, get_config
@@ -207,7 +209,7 @@ def _resolve_markdown(paper_id: str, settings: ChimeraConfig) -> Path:
     )
 
 
-def extract_single_paper(
+async def extract_single_paper(
     *,
     paper_id: str,
     settings: ChimeraConfig | None = None,
@@ -215,10 +217,16 @@ def extract_single_paper(
     staging_service: StagingService | None = None,
     paper: Paper | None = None,
     markdown_path: Path | None = None,
+    progress: Callable[[float, str], Awaitable[None]] | None = None,
 ) -> Path:
-    """Extract ONE paper into a STAGED Knowledge node: 1-5 mechanism claims + citation-grounded
-    ``derives_from`` edges (or ``no_prior_match``), superseding the paper's existing node on
-    promotion. Writes NO I/T/D node (HSC 4). Returns the staging path; never touches the live vault.
+    """Extract ONE paper into a STAGED Knowledge node: the reader's synthesis + 1-2 lenses + attack +
+    ARA-disciplined claims, plus citation-grounded ``derives_from`` edges (or ``no_prior_match``),
+    superseding the paper's existing node on promotion. Writes NO I/T/D node (HSC 4). Returns the
+    staging path; never touches the live vault.
+
+    Async so the MCP tool can stream stage progress via ``progress`` (``None`` in tests). The blocking
+    work (LLM, grounding walk, file writes) runs in worker threads so the event loop stays free; stage
+    labels ALSO go to stderr (chimera-mcp-taste Rule #4 fallback) so a no-ctx run is never silent.
 
     Dependencies (``settings`` / ``llm_client`` / ``staging_service`` / ``paper`` / ``markdown_path``)
     are injectable for testing; when omitted they are resolved from config lazily.
@@ -230,52 +238,60 @@ def extract_single_paper(
             settings = get_config()
         return settings
 
+    async def report(frac: float, msg: str) -> None:
+        logger.info("[Extract] %s %.0f%% — %s", paper_id, frac * 100, msg)
+        if progress is not None:
+            await progress(frac, msg)
+
+    await report(0.0, "Resolving markdown...")
     vault_root = (
         staging_service.vault_root
         if staging_service is not None
         else cfg().require_path("vault_root")
     )
-
     if paper is None:
         from ports.papers.paper_loader import PaperLoader
 
         md_path = markdown_path or _resolve_markdown(paper_id, cfg())
-        paper = PaperLoader().load_paper(md_path)
-
+        paper = await asyncio.to_thread(PaperLoader().load_paper, md_path)
     if llm_client is None:
         from bootstrap import build_openai_client
 
         llm_client = build_openai_client(cfg())
 
-    extraction = _extract_node(
-        paper, llm_client=llm_client, prompt_manager=PromptManager()
-    )
-
+    await report(0.25, "Grounding citations...")
     # Edges: citation-resolution ONLY (D3/D4). Empty resolution ⇒ no_prior_match, edgeless.
-    edge_props = resolve_citations(
-        _cited_arxiv_ids(paper.raw_text, exclude=paper_id), vault_root
+    edge_props = await asyncio.to_thread(
+        resolve_citations, _cited_arxiv_ids(paper.raw_text, exclude=paper_id), vault_root
     )
     edges: dict[str, list[str]] = {}
     if edge_props:
         edges["derives_from"] = [p.target_stem for p in edge_props]
-    superseded = _find_superseded_stem(paper_id, vault_root)
+    superseded = await asyncio.to_thread(_find_superseded_stem, paper_id, vault_root)
     if superseded:
         edges["supersedes"] = [superseded]
 
+    await report(0.5, "Extracting structure...")
+    extraction = await asyncio.to_thread(
+        _extract_node, paper, llm_client=llm_client, prompt_manager=PromptManager()
+    )
+
+    await report(0.85, "Staging node...")
     metadata = {
         "provenance": "ai-suggested",
         "grounded": "citation_resolved" if edge_props else "no_prior_match",
         "arxiv_id": paper_id,
     }
-
     staging = staging_service or StagingService(cfg().system.staging_dir, vault_root)
-    path = staging.create_staging_node(
+    path = await asyncio.to_thread(
+        staging.create_staging_node,
         type="knowledge",
         title=extraction.title,
         body=_render_node_body(extraction),
         edges=edges or None,
         metadata=metadata,
     )
+    await report(1.0, "Done")
     logger.info(
         "[Extract] Staged K node for %s: %s (edges=%s grounded=%s)",
         paper_id,

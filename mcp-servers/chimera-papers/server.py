@@ -10,8 +10,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import sys
+from collections.abc import Awaitable, Callable
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp import Context, FastMCP
 
 import miner_tools
 from task_service import get_task_service
@@ -25,6 +26,8 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
 )
 
+logger = logging.getLogger(__name__)
+
 mcp = FastMCP("chimera-papers")
 
 # Serialize the check-and-start critical section so two concurrent calls cannot both pass
@@ -37,6 +40,20 @@ def _busy_message() -> str:
         "[Busy] A long-running task is already in progress. Poll check_task_status "
         "first — only one arXiv/pipeline job runs at a time."
     )
+
+
+def _reporter(ctx: Context) -> Callable[[float, str], Awaitable[None]]:
+    """Adapt the FastMCP ``ctx`` into the domain layer's ``progress(frac, msg)`` callback — emitting
+    MCP progress notifications at stage boundaries. Best-effort: a notification failure never aborts
+    the tool (the domain function also logs each stage to stderr, chimera-mcp-taste Rule #4)."""
+
+    async def report(frac: float, msg: str) -> None:
+        try:
+            await ctx.report_progress(frac, 1.0, msg)
+        except Exception:  # noqa: BLE001 — progress is decorative; never fail the tool over it
+            logger.debug("progress notification failed", exc_info=True)
+
+    return report
 
 
 @mcp.tool()
@@ -83,7 +100,9 @@ async def daily_paper_pipeline(
 
 
 @mcp.tool()
-async def ingest_paper(arxiv_id: str | None = None, pdf_path: str | None = None) -> str:
+async def ingest_paper(
+    ctx: Context, arxiv_id: str | None = None, pdf_path: str | None = None
+) -> str:
     """Add ONE specific, already-known paper to the vault as a Knowledge node (single-paper ingest).
 
     WHEN: you have a particular paper to bring into the vault — identified by an arXiv id
@@ -105,11 +124,13 @@ async def ingest_paper(arxiv_id: str | None = None, pdf_path: str | None = None)
     async with _start_lock:
         if get_task_service().has_active_long_task():
             return _busy_message()
-    return await miner_tools.ingest_paper(arxiv_id=arxiv_id, pdf_path=pdf_path)
+    return await miner_tools.ingest_paper(
+        arxiv_id=arxiv_id, pdf_path=pdf_path, progress=_reporter(ctx)
+    )
 
 
 @mcp.tool()
-async def extract_paper(paper_id: str) -> str:
+async def extract_paper(paper_id: str, ctx: Context) -> str:
     """Extract ONE already-ingested paper into a STAGED Knowledge node — mechanism-level claims
     plus citation-grounded ``derives_from`` edges (Phase Q disciplined extraction).
 
@@ -125,7 +146,7 @@ async def extract_paper(paper_id: str) -> str:
     async with _start_lock:
         if get_task_service().has_active_long_task():
             return _busy_message()
-    return await miner_tools.extract_paper(paper_id)
+    return await miner_tools.extract_paper(paper_id, progress=_reporter(ctx))
 
 
 @mcp.tool()

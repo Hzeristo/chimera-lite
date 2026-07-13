@@ -7,6 +7,7 @@ Long-running tools return a ``task_id`` immediately; callers poll ``check_task_s
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
 
 from core.schemas import ToolOutput
 from fetch_arxiv_workflow import fetch_and_process_arxiv
@@ -87,12 +88,15 @@ async def daily_paper_pipeline(
 
 
 async def ingest_paper(
-    arxiv_id: str | None = None, pdf_path: str | None = None
+    arxiv_id: str | None = None,
+    pdf_path: str | None = None,
+    progress: Callable[[float, str], Awaitable[None]] | None = None,
 ) -> str:
     """Ingest ONE paper (arXiv id or local PDF) into a vault Knowledge node.
 
-    Synchronous — returns the written K-node path. The heavy MinerU convert + triage runs
-    in a worker thread so the event loop is not blocked.
+    Returns the written K-node path. The heavy download / MinerU convert / triage each run in a
+    worker thread inside the domain function so the event loop is not blocked; ``progress`` (from the
+    MCP tool wrapper) streams stage labels to the client.
     """
     has_arxiv = bool(arxiv_id and str(arxiv_id).strip())
     has_pdf = bool(pdf_path and str(pdf_path).strip())
@@ -104,10 +108,10 @@ async def ingest_paper(
     from single_paper_ingest import ingest_single_paper
 
     try:
-        out_path = await asyncio.to_thread(
-            ingest_single_paper,
+        out_path = await ingest_single_paper(
             arxiv_id=(str(arxiv_id).strip() if has_arxiv else None),
             pdf_path=(str(pdf_path).strip() if has_pdf else None),
+            progress=progress,
         )
     except FileNotFoundError as exc:
         return f"[Ingest Error] PDF not found: {exc}"
@@ -116,10 +120,14 @@ async def ingest_paper(
     return f"[✔] Knowledge node written: {out_path}"
 
 
-async def extract_paper(paper_id: str) -> str:
+async def extract_paper(
+    paper_id: str,
+    progress: Callable[[float, str], Awaitable[None]] | None = None,
+) -> str:
     """Extract ONE already-ingested paper into a STAGED Knowledge node (mechanism claims +
     citation-grounded edges). Reuses the paper's converted markdown — NO MinerU. Returns the
-    staging path. Staging-only — never auto-promoted.
+    staging path. Staging-only — never auto-promoted. ``progress`` streams stage labels; the domain
+    function runs its blocking steps in worker threads.
     """
     pid = (paper_id or "").strip()
     if not pid:
@@ -129,7 +137,7 @@ async def extract_paper(paper_id: str) -> str:
     from single_paper_extract import extract_single_paper
 
     try:
-        out_path = await asyncio.to_thread(extract_single_paper, paper_id=pid)
+        out_path = await extract_single_paper(paper_id=pid, progress=progress)
     except FileNotFoundError as exc:
         return f"[Extract Error] {exc}"
     except Exception as exc:  # markdown / LLM / grounding / staging

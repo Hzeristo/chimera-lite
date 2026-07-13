@@ -12,7 +12,9 @@ This path stops at convert → triage → K node.
 
 from __future__ import annotations
 
+import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 
 import requests
@@ -57,21 +59,32 @@ def _fetch_arxiv_pdf(arxiv_id: str, settings: ChimeraConfig) -> Path:
     return pdf_path
 
 
-def ingest_single_paper(
+async def ingest_single_paper(
     *,
     arxiv_id: str | None = None,
     pdf_path: str | None = None,
     settings: ChimeraConfig | None = None,
+    progress: Callable[[float, str], Awaitable[None]] | None = None,
 ) -> Path:
     """Ingest ONE paper into a vault Knowledge node; return the written K-node path.
 
     ``arxiv_id`` → fetch the PDF first; ``pdf_path`` → convert directly. Always writes the
     K node (explicit ingest — no verdict gate). Never calls OpticsService.irradiate.
+
+    Async so the MCP tool can stream stage progress via ``progress`` (``None`` in a direct call).
+    The blocking steps (download, MinerU convert, triage LLM, vault write) run in worker threads so
+    the event loop stays free; stage labels ALSO go to stderr (chimera-mcp-taste Rule #4 fallback).
     """
     settings = settings or get_config()
 
+    async def report(frac: float, msg: str) -> None:
+        logger.info("[Ingest] %.0f%% — %s", frac * 100, msg)
+        if progress is not None:
+            await progress(frac, msg)
+
     if arxiv_id and arxiv_id.strip():
-        src_pdf = _fetch_arxiv_pdf(arxiv_id.strip(), settings)
+        await report(0.0, "Fetching arXiv PDF...")
+        src_pdf = await asyncio.to_thread(_fetch_arxiv_pdf, arxiv_id.strip(), settings)
     elif pdf_path and pdf_path.strip():
         src_pdf = Path(pdf_path.strip()).expanduser()
     else:
@@ -79,16 +92,23 @@ def ingest_single_paper(
 
     # Convert: the Rule-10-compliant MinerU path (creationflags + stdin=DEVNULL + temp-file
     # output) lives in ports.ingest.paper2md.MineruClient.convert, reused via ingest_to_papers.
-    _staged_pdf, _raw_dir, clean_md = ingest_to_papers(pdf_path=src_pdf, settings=settings)
+    await report(0.15, "Converting PDF (MinerU)...")
+    _staged_pdf, _raw_dir, clean_md = await asyncio.to_thread(
+        ingest_to_papers, pdf_path=src_pdf, settings=settings
+    )
 
     # Load → triage (FilterService, NOT OpticsService) → write the Knowledge node.
+    await report(0.7, "Triaging (LLM)...")
     prompt_manager = PromptManager()
-    paper = PaperLoader().load_paper(clean_md)
+    paper = await asyncio.to_thread(PaperLoader().load_paper, clean_md)
     engine = FilterService(
         llm_client=build_openai_client(settings), prompt_manager=prompt_manager
     )
-    result = engine.evaluate_paper(paper)
+    result = await asyncio.to_thread(engine.evaluate_paper, paper)
+
+    await report(0.9, "Writing node...")
     writer = VaultNoteWriter(settings=settings, prompt_manager=prompt_manager)
-    out_path = writer.write_knowledge_node(paper, result)
+    out_path = await asyncio.to_thread(writer.write_knowledge_node, paper, result)
+    await report(1.0, "Done")
     logger.info("[Ingest] Knowledge node written: %s", out_path)
     return out_path
