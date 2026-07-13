@@ -315,11 +315,14 @@ class ExtractedClaim(BaseModel):
 
 
 class PaperSynthesis(BaseModel):
-    """Section 1 — the human-readable synthesis (the reader's entry point)."""
+    """Section 1 — the human-readable synthesis (the reader's entry point). Traces the full reading
+    arc: motivation (the gap) -> contribution + insight -> mechanism / steps -> results (the payoff)."""
     model_config = ConfigDict(extra="forbid")
-    bb_analysis: str = Field(description="One dense analytical paragraph in BB's voice: what the paper does and WHY it works, connected to existing vault concepts (e.g. Memory Physics). Mechanism-level, not a results recap.")
+    motivation: str = Field(description="The GAP the paper exists to close — 1-2 sentences, the problem only (NOT the contribution), grounded by a verbatim quote in the form 'quote ← location' (same discipline as claims).")
+    bb_analysis: str = Field(description="One dense analytical paragraph in BB's voice: the CONTRIBUTION and the insight — what the paper does and WHY it works, connected to existing vault concepts (e.g. Memory Physics). Mechanism-level, not a results recap.")
     mechanism: str = Field(description="A prose walkthrough of the core mechanism — how the method actually operates, in plain language a researcher reads.")
     algorithm_steps: list[str] = Field(default_factory=list, description="Human-readable numbered steps of the core algorithm/procedure.")
+    results: str = Field(description="Did it work — the headline outcomes WITH key numbers (not a full table), each grounded by a verbatim quote 'quote ← location'. This is the HOME for the numbers; the mechanism claims carry none.")
 
 
 class LensFinding(BaseModel):

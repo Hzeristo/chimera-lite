@@ -79,6 +79,8 @@ def _render_node_body(node: KNodeExtraction) -> str:
         "",
         "## Synthesis",
         "",
+        f"**Motivation (the gap):** {syn.motivation}",
+        "",
         f"> 🤖 **BB's Analysis**: {syn.bb_analysis}",
         "",
         syn.mechanism,
@@ -90,6 +92,8 @@ def _render_node_body(node: KNodeExtraction) -> str:
             for i, step in enumerate(syn.algorithm_steps, start=1)
         ]
     lines += [
+        "",
+        f"**Results (did it work):** {syn.results}",
         "",
         "> **[My Critique]**: <INSTRUCTION: BB 说得对吗？有什么漏洞？> _[User fills this during review]_",
         "",

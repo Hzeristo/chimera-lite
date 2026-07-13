@@ -43,9 +43,11 @@ def _extraction(n: int = 1) -> KNodeExtraction:
     return KNodeExtraction(
         title="ResNet: Residual Learning for Deep Networks",
         synthesis=PaperSynthesis(
+            motivation='Deep plain nets degrade in training. "deeper nets, higher training error" ← Intro',
             bb_analysis="Depth without the vanishing-gradient tax.",
             mechanism="Identity shortcuts let gradients skip layers.",
             algorithm_steps=["Add identity shortcut", "Train deeper"],
+            results='3.57% top-5 on ImageNet. "3.57% top-5 error" ← Results',
         ),
         lenses=[LensCritique(
             lens_name="Math Decoration Verdict",
@@ -106,6 +108,8 @@ def test_cited_arxiv_ids_excludes_self() -> None:
 def test_render_body_has_all_four_sections() -> None:
     body = _render_node_body(_extraction())
     assert "## Synthesis" in body
+    assert "**Motivation (the gap):**" in body  # arc opens with the gap
+    assert "**Results (did it work):**" in body  # arc closes with the payoff
     assert "## Lens Critique" in body
     assert "Attack Vectors" in body
     assert "## Mechanism Claims" in body and "**Statement:**" in body

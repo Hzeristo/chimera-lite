@@ -63,10 +63,11 @@ The key distinction (from ARA repo analysis):
     quality bar on the synthesis prose and made explicit in the claims section.
 
 The extraction payload — a K node with FOUR reader-facing sections:
-  1. Synthesis — a general, mechanism-level synthesis in BB's analytical voice:
-     what the paper does and WHY it works, a prose mechanism walkthrough, and
-     human-readable algorithm steps; connects the paper to existing vault
-     concepts. Carries a `[My Critique]` hook the Architect fills at review.
+  1. Synthesis — the reader's FULL arc: motivation (the gap, grounded) →
+     contribution + insight in BB's analytical voice → mechanism walkthrough →
+     algorithm steps → results (headline outcomes + key numbers, grounded — the
+     home for the numbers the claims strip). Connects to existing vault concepts;
+     carries a `[My Critique]` hook the Architect fills at review. (`friction-260713-01`)
   2. Lens Critique — 1-2 lenses selected by paper FUNCTION (not content type):
      the single best-matching lens by default; a SECOND only when another lens's
      trigger independently scores high (a genuine hybrid — e.g. a benchmark ABOUT

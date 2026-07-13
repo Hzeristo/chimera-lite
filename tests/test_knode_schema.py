@@ -50,9 +50,11 @@ def _node(n_claims: int = 1, n_lenses: int = 1, **overrides: object) -> dict:
     base = {
         "title": "MemAgent: RL-Driven Memory Overwrite for Unbounded Context",
         "synthesis": {
+            "motivation": 'Prior benchmarks test static recall, not belief revision. "benchmarks overlook updating" ← Intro',
             "bb_analysis": "A competent buffer trick wearing a memory costume.",
             "mechanism": "Chunks are read sequentially; a fixed token buffer is overwritten each step.",
             "algorithm_steps": ["Split into chunks", "Overwrite buffer", "Answer from buffer"],
+            "results": 'Best model only 55.2%. "even the best model achieves 55.2%" ← Abstract',
         },
         "lenses": [_lens() for _ in range(n_lenses)],
         "attack": {
