@@ -6,6 +6,35 @@ Each entry: phase / sprint, partial description, reason for acceptance.
 
 ---
 
+## Phase Q — Disciplined Knowledge Extraction — RE-SEAL (functionally sealed 2026-07-13, reopened 2026-07-10 on `friction-260710-02`)
+
+### Q.reseal.1 — Sealed on live single-paper validation (STALE); corpus re-backfill deferred
+- **Description:** The rebuilt `extract_paper` was validated end-to-end on one real paper (STALE,
+  arXiv `2605.06527`): full reading arc, hybrid lenses (Forensic + State Collision), clean render,
+  grounded headline numbers, `supersedes` the triage node, `no_prior_match`. The Q.4 8/13 atomic-shape
+  backfill was **cleared** (wrong shape); re-running the backfill across the corpus with the rebuilt
+  extractor is deferred operational work.
+- **Reason:** The extraction ENGINE is proven live end-to-end; backfill is running the tool N times
+  over available markdown, not a code deliverable. Mirrors Q.seal.1. The 5 missing-markdown papers
+  remain `DEBT-016`.
+
+### Q.reseal.2 — motivation / results grounding is prompt-enforced, not schema-structural
+- **Description:** `PaperSynthesis.motivation` and `.results` are `str` fields whose
+  grounding-by-quote (`"quote" ← location`) is enforced by the extraction prompt + human review, NOT
+  by a structural `sources` list like `ExtractedClaim`.
+- **Reason:** The honest shape of the discipline — same precedent as Q.seal.2 (semantic checks live in
+  prompts + review; `schemas.py` stays a data dictionary). Validated live: STALE's motivation and all
+  five results bullets carried grounded quotes.
+
+### Q.reseal.3 — hybrid lens second-fire is LLM-judged, not a numeric threshold
+- **Description:** The "second lens only when its trigger independently scores high" policy is
+  prompt-managed LLM judgment (no numeric score field, no user override param), per the Architect's
+  explicit decision.
+- **Reason:** Architect-authored design; validated live — STALE (a benchmark ABOUT a mechanism)
+  correctly fired both Forensic Leakage and State Collision.
+
+---
+
 ## Phase Q — Disciplined Knowledge Extraction (functionally sealed 2026-07-10)
 
 ### Q.seal.1 — Backfill covered 8 of 13 Schema-C nodes

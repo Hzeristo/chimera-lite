@@ -31,7 +31,9 @@ edit the judgement criteria (for example: "if this is a memory-benchmark paper, 
 # friction-260710-02 — Phase Q output violated the founding vision (spec drift)
 
 **Date:** 2026-07-10
-**Status:** OPEN — **reopens Phase Q**.
+**Status:** RESOLVED (2026-07-13, Phase Q re-seal) — was OPEN / reopened Phase Q. The output shape was
+rebuilt (synthesis + lens + attack + claims-as-floor, then the motivation/results arc) and validated
+end-to-end on a real paper (STALE, arXiv 2605.06527). See `docs/sprints/phase-Q/phase-reseal.md`.
 **Phase context:** Phase Q functionally sealed 2026-07-10, then reopened the same day on this friction.
 
 ## What I wanted
