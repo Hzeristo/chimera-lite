@@ -1,6 +1,7 @@
 # Incident 2026-07-13 — extract_paper / ingest_paper block silently for minutes
 
-**Severity:** UX (no data loss). **Status:** fixed (live-verify pending a server reconnect).
+**Severity:** UX (no data loss). **Status:** fixed and live-verified 2026-07-13 — the operator
+confirmed the stage labels render below the tool-call line during `extract_paper` / `ingest_paper`.
 
 ## Symptom
 `extract_paper` (and `ingest_paper`) block for minutes — a long LLM call, and for ingest a MinerU
