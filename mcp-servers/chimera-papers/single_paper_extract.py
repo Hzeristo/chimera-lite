@@ -26,6 +26,10 @@ logger = logging.getLogger(__name__)
 
 _ARXIV_ID_RE = re.compile(r"\d{4}\.\d{4,5}")
 _NONVAULT_DIRS = {".obsidian", ".migration_backup", "templates"}
+# Strip an LLM-supplied leading enumerator ("1.", "2)", "3:") so the renderer doesn't double it.
+_STEP_ENUM_RE = re.compile(r"^\s*\d+[.):]\s*")
+# Strip LLM-supplied leading 💥 markers (+ variation selectors) so the renderer doesn't double them.
+_ATTACK_MARK_RE = re.compile(r"^[\s💥️]+")
 
 
 def _arxiv_id(text: str) -> str:
@@ -81,7 +85,10 @@ def _render_node_body(node: KNodeExtraction) -> str:
     ]
     if syn.algorithm_steps:
         lines += ["", "**Core Algorithm Steps:**", ""]
-        lines += [f"{i}. {step}" for i, step in enumerate(syn.algorithm_steps, start=1)]
+        lines += [
+            f"{i}. {_STEP_ENUM_RE.sub('', step).strip()}"
+            for i, step in enumerate(syn.algorithm_steps, start=1)
+        ]
     lines += [
         "",
         "> **[My Critique]**: <INSTRUCTION: BB 说得对吗？有什么漏洞？> _[User fills this during review]_",
@@ -104,7 +111,8 @@ def _render_node_body(node: KNodeExtraction) -> str:
         "",
     ]
     for vector in node.attack.vectors:
-        lines += [f"> 💥 {vector}", ""]
+        clean = _ATTACK_MARK_RE.sub("", vector).strip()
+        lines += [f"> 💥 {clean}", ""]
     lines += [
         "**Actionable Attack:**",
         "",

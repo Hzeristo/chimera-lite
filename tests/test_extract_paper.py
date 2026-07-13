@@ -115,6 +115,19 @@ def test_render_body_has_all_four_sections() -> None:
     assert "[My Critique]" in body
 
 
+def test_render_strips_double_markers() -> None:
+    # Live smoke (STALE, 2605.06527) exposed the LLM prefixing steps with numbers and vectors with
+    # 💥, which the renderer then doubled ("1. 1.", "> 💥 💥"). The renderer strips defensively.
+    node = _extraction()
+    node.synthesis.algorithm_steps = ["1. first", "2) second"]
+    node.attack.vectors = ["💥 💥 boom", "\U0001f4a5️ vs", "plain"]
+    body = _render_node_body(node)
+    assert "1. 1." not in body and "2. 2)" not in body
+    assert "> 💥 💥" not in body
+    assert "1. first" in body and "2. second" in body
+    assert "> 💥 boom" in body and "> 💥 vs" in body and "> 💥 plain" in body
+
+
 def test_extract_grounded_edge(tmp_path: Path) -> None:
     vault = _make_vault(tmp_path)
     staging = StagingService(tmp_path / "staging", vault)
