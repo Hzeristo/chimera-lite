@@ -66,3 +66,43 @@ Rebuild `extract_paper`'s **output shape**: a human-readable synthesis (contribu
 with the ARA claim-discipline applied as a *quality bar on the prose* (mechanism-level, grounded, honest),
 NOT as the emitted structure. Keep the citation-grounded edges — those were correct. Re-anchor on the VISION
 before re-implementing.
+
+---
+
+# friction-260710-03 — Lens logic was single-address; server extraction risked a second copy
+
+**Date:** 2026-07-10
+**Status:** RESOLVED (design decision, Phase Q rebuild — A-refined).
+**Phase context:** Phase Q reopened on `friction-260710-02`; the rebuilt node carries a Lens Critique
+section, so the lens methodology now has to reach the server-side `extract_paper` LLM call as well as the
+interactive Claude-Code lens skills.
+
+## What I wanted
+The lens methodology available to BOTH consumers — the server extraction call AND the six interactive
+`chimera-lens-*` skills — without the two drifting apart.
+
+## The trap (A-naive)
+The obvious move — copy each lens's method into the server prompt (`extract_node.j2`) — creates a SECOND
+source of truth. Lens logic would then live in two places (`.claude/skills/chimera-lens-*/SKILL.md` and the
+server prompt) that inevitably drift. That is the SAME friction the rebuild exists to fix (buried,
+non-single-source prompt) — made worse by duplication.
+
+## Resolution (A-refined — one canonical source)
+One canonical definition per lens: `prompts/lenses/<name>.md` (function-based trigger + analysis method),
+plain markdown, externally editable. Both consumers read it:
+- **server:** `extract_node.j2` includes the canonical lens files; the extraction call selects ONE by paper
+  FUNCTION (per G1: function, not content type).
+- **interactive:** the six `chimera-lens-*/SKILL.md` bodies are thinned to a one-line pointer
+  (`Apply the lens methodology in prompts/lenses/<name>.md`), keeping only their `description` frontmatter
+  for auto-selection.
+
+Zero drift; one home; externally tunable. (This touches Phase N.A sealed deliverables — flagged for
+explicit sign-off before editing.)
+
+## Same principle, applied to friction-260710-01
+The buried triage prompt (`single_paper_ingest.py` → `reviewer_zero.j2` / `filter_task.j2`) moves to an
+external `prompts/triage.j2` for the same reason — one editable home per prompt.
+
+## Lesson
+**Every prompt is an externally-editable file with ONE source of truth.** Never inline prompt logic in code,
+and never duplicate it across consumers — give it one canonical file and have each consumer read that file.

@@ -1,15 +1,18 @@
 # Phase Q — Disciplined Knowledge Extraction
 
-> ⛔ **REOPENED 2026-07-10 (`friction-260710-02`) — output-shape rebuild required.** The 2026-07-10 functional
-> seal (`docs/sprints/phase-Q/phase-review.md`) is **superseded**. `extract_paper` overcorrected into
-> **atomic-claim dumps**, dropping the founding VISION below (general synthesis → apply lens → human-readable
-> summary + critique). ARA's claim-as-mechanism discipline is a **QUALITY BAR for statements, not the OUTPUT
-> SHAPE** — it was misapplied as the whole output. The staging gate caught it (atomic-dump nodes rejected at
-> review; none promoted). **The engine + citation-grounded edges stand; the Mission's output shape must be
-> rebuilt** — a human-readable synthesis + critique, with the claim-discipline applied as a prose quality
-> bar. Re-spec pending. (The VISION section below is exactly what this drift violated.)
+> ✅ **REOPENED 2026-07-10 (`friction-260710-02`) → REBUILT 2026-07-10.** The output shape has been rebuilt
+> per the Architect's authored target (an ideal reader's K node) and the approved **A-refined** lens
+> architecture. `extract_paper` now stages a human-readable node — **Synthesis** (BB's analysis + mechanism
+> walkthrough + algorithm steps) + **Lens Critique** (the single most-relevant lens, function-selected) +
+> **Attack Vectors** (offensive read) + **Mechanism Claims** (ARA-disciplined — the epistemic FLOOR, not the
+> whole output) — with `[My Critique]` human-fill review hooks and the citation-grounded edges kept. ARA's
+> claim-as-mechanism discipline is applied as a **prose QUALITY BAR**, never as the output shape. Lens
+> methodology is single-sourced in `prompts/lenses/*.md` (read by both this server's extraction and the
+> interactive `chimera-lens-*` skills; `friction-260710-03`). The prior functional seal
+> (`docs/sprints/phase-Q/phase-review.md`) remains **superseded**; the rebuild record is
+> `docs/sprints/phase-Q/Q.R-rebuild.md`. **Pending re-seal:** a live re-extraction reviewed by the operator.
 
-**Status:** REOPENED 2026-07-10 (`friction-260710-02`) — was Functionally Sealed 2026-07-10; output-shape rebuild pending re-spec
+**Status:** REBUILT 2026-07-10 (`friction-260710-02`) — output shape rebuilt (synthesis + lens + attack + claims); pending live re-extraction + re-seal
 **Sealed predecessor:** Phase N (Truncated)
 **Driving frictions:**
 - Probabilistic skill activation fails under long-context load (DeepSeek/Claude forgets to check Vault).
@@ -47,27 +50,37 @@ connected** — not if it makes you a better systems builder.
 
 ## Mission
 
-Extract structured knowledge from existing papers to populate the vault
-with typed K nodes and grounded edges — using ARA's epistemic discipline,
-not its file-system format.
+Extract structured knowledge from an existing paper into a vault K node the
+Architect actually wants to read — a human-readable SYNTHESIS + CRITIQUE. ARA's
+epistemic discipline is a QUALITY BAR on the prose, NOT the output shape.
 
 The key distinction (from ARA repo analysis):
-  - ARA's FORMAT (4 layers, /trace DAG, exploration_tree.yaml) is for
-    WRITING research artifacts — you cannot extract a git log from someone
-    else's paper. Wrong for extraction.
-  - ARA's DISCIPLINE (claim-as-mechanism, name-deletion test,
-    falsification, grounding-by-verbatim-quote, provenance tags) is
-    EXCELLENT for extraction. Keep all of it.
+  - ARA's FORMAT (4 layers, /trace DAG, exploration_tree.yaml) is for WRITING
+    artifacts — you cannot extract a git log from someone else's paper. Wrong.
+  - ARA's DISCIPLINE (claim-as-mechanism, name-deletion, falsification,
+    grounding-by-verbatim-quote, provenance) is EXCELLENT — applied as the
+    quality bar on the synthesis prose and made explicit in the claims section.
 
-The extraction payload:
-  1. K node: paper claims distilled to 1-5 mechanism-level statements
-     ("why it works", no numbers). Explicit paper-reported failures
-     fold into K body (high value, only when explicit).
-  2. Typed edges: minted ONLY from Grounding (not from extraction).
-     derives_from / contradicts. No prior match → explicit
-     grounded: no_prior_match, staged edgeless. Zero fabrication.
-  3. Provenance tags: ai-suggested / user-confirmed / inferred
-     so review knows what to verify.
+The extraction payload — a K node with FOUR reader-facing sections:
+  1. Synthesis — a general, mechanism-level synthesis in BB's analytical voice:
+     what the paper does and WHY it works, a prose mechanism walkthrough, and
+     human-readable algorithm steps; connects the paper to existing vault
+     concepts. Carries a `[My Critique]` hook the Architect fills at review.
+  2. Lens Critique — the SINGLE most relevant lens, selected by paper FUNCTION
+     (not content type): trigger + findings + verdict. Canonical lens definition
+     per lens in prompts/lenses/*.md, read by BOTH server and skills (one source).
+  3. Attack Vectors — the offensive read: how to beat this baseline / exploit the
+     flaw. Actionable, adversarial. Carries its own `[My Critique]` hook.
+  4. Mechanism Claims (ARA-disciplined) — the epistemic floor: 1-5 mechanism-level
+     claims (statement / falsification / verbatim-grounded sources / status /
+     tags / flags). A SECTION beneath the synthesis, NEVER the whole node.
+
+Plus:
+  - Typed edges: minted ONLY from Grounding (citation resolution), never from
+    extraction. derives_from / contradicts. No match → grounded: no_prior_match,
+    staged edgeless. Zero fabrication.
+  - Provenance (ai-suggested) + `[My Critique]` hooks make the staging review
+    literal; every node is staged, never auto-promoted.
 
 What Phase Q does NOT extract:
   - No D nodes from papers (inference, not fact)
@@ -107,6 +120,7 @@ SKIP (already handled by existing tools):
 | Q.2 | Implement extract_paper(paper_id) — ingest + grounding + disciplined extraction + staging |
 | Q.3 | Test on 5 existing K nodes; verify claims are mechanism-level and edges come from grounding only (no I/T/D nodes produced) |
 | Q.4 | Backfill 20 existing K nodes via extract_paper; verify ≥1 grounded edge or explicit no_prior_match |
+| Q.R | **Rebuild (`friction-260710-02`):** output shape → reader's K node = Synthesis + Lens Critique + Attack Vectors + Mechanism Claims (floor); function-selected lens from single-source `prompts/lenses/*.md` (A-refined); reader-facing renderer + `[My Critique]` hooks; edges kept. See `docs/sprints/phase-Q/Q.R-rebuild.md`. |
 
 ## Cross-Sprint Red Lines
 - ❌ Do NOT let the paper's full markdown reach the calling agent's context — it stays inside the in-server extraction step; only the staged summary crosses back.
@@ -115,7 +129,7 @@ SKIP (already handled by existing tools):
 
 ## Hard Sealing Conditions
 
-1. **Mechanism-level claims (HSC 1):** Extracted K claims are mechanism-distilled ("why"), not recipe ("how") or numbers. Name-deletion test passes: if the claim still makes sense after deleting the paper's name, it is mechanism-level.
+1. **Mechanism-level claims (HSC 1):** The Mechanism Claims section (the epistemic FLOOR beneath the synthesis, never the whole node) holds 1-5 claims that are mechanism-distilled ("why"), not recipe ("how") or numbers. Name-deletion test passes: if the claim still makes sense after deleting the paper's name, it is mechanism-level.
 
 2. **Grounded edges only (HSC 2):** Every derives_from / contradicts edge is minted from a confirmed grounding match. Zero fabrication. Edgeless staging is valid (grounded: no_prior_match) for cold-start papers.
 

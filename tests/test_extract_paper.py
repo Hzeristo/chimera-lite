@@ -1,6 +1,8 @@
-"""Q.2b: extract_paper orchestration (staging-only) + promote-time supersede.
+"""Phase Q (rebuilt): extract_paper orchestration (staging-only) + promote-time supersede.
 
-All deps injected (stub LLM client, tmp staging + vault) — no real LLM / MinerU / config.
+All deps injected (stub LLM client, tmp staging + vault) — no real LLM / MinerU / config. The stub
+returns a full ``KNodeExtraction`` (synthesis + lens + attack + claims); the extraction prompt is
+still rendered (it reads the canonical lens catalog), so this also proves the prompt loads.
 """
 
 from __future__ import annotations
@@ -9,34 +11,64 @@ from pathlib import Path
 
 import yaml
 
-from core.schemas import ClaimFlag, ExtractedClaim, KClaimExtraction, Paper
+from core.schemas import (
+    AttackVectors,
+    ClaimFlag,
+    ClaimSource,
+    ExtractedClaim,
+    KNodeExtraction,
+    LensCritique,
+    LensFinding,
+    Paper,
+    PaperSynthesis,
+)
 from single_paper_extract import (
     _cited_arxiv_ids,
-    _render_claims_body,
+    _render_node_body,
     extract_single_paper,
 )
 from staging_service import StagingService
 
 
-def _extraction(n: int = 1) -> KClaimExtraction:
+def _extraction(n: int = 1) -> KNodeExtraction:
     claim = ExtractedClaim(
+        title="Identity shortcuts decouple optimization from depth",
         statement="Residual routing decouples optimization difficulty from network depth.",
         falsification="A depth scan where residual and plain nets degrade identically.",
-        sources=["3.57% ← Results «3.57% top-5 error»"],
         status="supported",
+        sources=[ClaimSource(quote="3.57% top-5 error", location="Results")],
         tags=["residual"],
         flags=[ClaimFlag.NO_ABLATION],
     )
-    return KClaimExtraction(claims=[claim for _ in range(n)], proposed_edges=[])
+    return KNodeExtraction(
+        title="ResNet: Residual Learning for Deep Networks",
+        synthesis=PaperSynthesis(
+            bb_analysis="Depth without the vanishing-gradient tax.",
+            mechanism="Identity shortcuts let gradients skip layers.",
+            algorithm_steps=["Add identity shortcut", "Train deeper"],
+        ),
+        lens=LensCritique(
+            lens_name="Math Decoration Verdict",
+            triggered_by="Reformulates plain nets and asks the reader to accept the residual as load-bearing.",
+            findings=[LensFinding(heading="Residual as identity", body="The residual is a plain identity add.")],
+            verdict="Load-bearing: removing the shortcut breaks deep training.",
+        ),
+        attack=AttackVectors(
+            vectors=["Shortcut helps optimization, not representation."],
+            beat_baseline="Normalized init + a careful LR schedule.",
+            exploit_flaw="Probe whether the gains persist with better init alone.",
+        ),
+        claims=[claim for _ in range(n)],
+    )
 
 
 class _StubClient:
-    def __init__(self, extraction: KClaimExtraction) -> None:
+    def __init__(self, extraction: KNodeExtraction) -> None:
         self._extraction = extraction
 
     def generate_structured_data(
         self, *, system_prompt: str, user_prompt: str, response_model: object
-    ) -> KClaimExtraction:
+    ) -> KNodeExtraction:
         return self._extraction
 
 
@@ -71,9 +103,16 @@ def test_cited_arxiv_ids_excludes_self() -> None:
     ) == ["2409.07429"]
 
 
-def test_render_body_has_claims() -> None:
-    body = _render_claims_body(_extraction())
-    assert "## Claims" in body and "Statement" in body
+def test_render_body_has_all_four_sections() -> None:
+    body = _render_node_body(_extraction())
+    assert "## Synthesis" in body
+    assert "## Lens Critique" in body
+    assert "Attack Vectors" in body
+    assert "## Mechanism Claims" in body and "**Statement:**" in body
+    # grounding-by-quote renders as "quote" <- location
+    assert '"3.57% top-5 error" ← Results' in body
+    # human-fill review hook is injected
+    assert "[My Critique]" in body
 
 
 def test_extract_grounded_edge(tmp_path: Path) -> None:
@@ -90,7 +129,9 @@ def test_extract_grounded_edge(tmp_path: Path) -> None:
     assert fm["graph_edges"]["derives_from"] == ["[[2409.07429-AWM]]"]
     assert fm["provenance"] == "ai-suggested"
     assert fm["grounded"] == "citation_resolved"
-    assert "Statement" in body
+    assert fm["arxiv_id"] == "2305.16291"  # identity preserved even though title is the paper name
+    assert fm["title"] == "ResNet: Residual Learning for Deep Networks"
+    assert "## Synthesis" in body
     # exactly ONE staged file (the K node) — no Insight/Thought/Decision file
     assert len(list((tmp_path / "staging").glob("*.md"))) == 1
 

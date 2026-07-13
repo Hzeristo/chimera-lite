@@ -5,49 +5,11 @@ description: Judge whether a paper's mathematics is load-bearing or decorative �
 
 # chimera-lens-math-decoration
 
-## What this lens is for
+The canonical methodology for this lens lives in `prompts/lenses/math-decoration.md` — the
+SINGLE source of truth, read by both this interactive skill and the server-side `extract_paper`
+extraction. Apply the trigger, method, and discipline defined there.
 
-The math validator — extract the formal content, then judge whether it earns its place. Extraction
-ancestor: the `math_arch` lens (`optics_lens_registry.py:87`; `core/schemas.py:156-167` —
-`core_equations`, `pseudo_code`, `architecture_narrative`) + `method_scalpel.j2` Objective 1. The
-**delta** is the validation judgment, fused from the Architect's stance
-(`prompts/chimera_sys/user_profile.j2:24-25`): value grounded modeling over engineering boilerplate;
-expose math that only scales context without introducing true dynamics.
+(Do not duplicate the method here. Edit the canonical file to change the lens.)
 
-## When it fires
-
-Auto-select on modeling / algorithm / architecture papers carrying equations or formal notation.
-Not `chimera-lens-forensic-leakage` (pure empirical audit) or `chimera-lens-ontological-map` (surveys).
-
-## The validation — extract, then judge
-
-Step 1 — **extract** (the `math_arch` skeleton): core equations (LaTeX), the essential forward-pass
-pseudocode, the architecture narrative (design philosophy + data flow).
-
-Step 2 — **judge each equation** (this is the delta; do not stop at extraction):
-
-a. **Load-bearing vs decorative.** Does the equation *do work* — predict, constrain, or define the
-   mechanism — or does it restate a simple operation (a mean, a concat, a softmax) in heavy notation
-   to look rigorous? Decorative math dresses up plumbing.
-b. **Deletion test.** If you replaced the equation with its plain-language operation, would any
-   result change? Decorative math survives deletion untouched; load-bearing math does not.
-c. **Dynamics vs scaling.** Does the formalism introduce genuine dynamics, or does it merely
-   parameterize "use a bigger buffer / more context"? Scaling wearing a Greek letter is still
-   scaling (`../_shared/falsifiability.md`).
-
-## Output contract
-
-Apply the shared academic-taste contract — `../_shared/falsifiability.md`. **Mechanism + Evidence +
-Falsifiability**:
-
-- **Extraction** — core equations, forward-pass pseudocode, architecture narrative.
-- **Decoration verdict** — per key equation: load-bearing or decorative, with the reason.
-- **Falsifiability** — the deletion / ablation test that would prove the math is (or is not) doing
-  work.
-
-## Red lines
-- ❌ Do NOT merely re-extract what `math_arch` already extracts — the judgment (load-bearing vs
-  decorative) is mandatory and is the reason this lens exists.
-- ❌ Do not be impressed by notation density — price the math against what it does.
-- ❌ Falsifiability is mandatory (`../_shared/falsifiability.md`).
-- ❌ Pure English only. No opportunistic refactor.
+The discipline contract this lens enforces (mechanism + evidence + falsifiability) is folded
+into the canonical file directly, sourced from `../_shared/falsifiability.md`.

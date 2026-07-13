@@ -276,7 +276,12 @@ class DeepReadAtlas(BaseModel):
     structural_gaps: StructuralGaps | None = None
 
 
-# --- Phase Q: Knowledge extraction ---
+# --- Phase Q: Knowledge extraction (rebuilt — friction-260710-02) ---
+#
+# The extraction payload is a READER'S node: a human-readable synthesis + the single most-relevant
+# critical lens + an offensive attack read, with ARA-disciplined mechanism claims as the epistemic
+# FLOOR (a section), never the whole output. It produces NO Insight/Thought/Decision content (HSC 4);
+# inter-node edges are minted by citation-grounding (grounding.py), never by the LLM here (D4).
 
 
 class ClaimFlag(str, Enum):
@@ -288,14 +293,56 @@ class ClaimFlag(str, Enum):
     SUSPICIOUS_DEPENDENCY = "suspicious_dependency"
 
 
-class ExtractedClaim(BaseModel):
+class ClaimSource(BaseModel):
+    """Grounding-by-verbatim-quote: a load-bearing value tied to where it came from. The discipline is
+    quote-or-drop — a reported result with no ClaimSource is invalid."""
     model_config = ConfigDict(extra="forbid")
+    quote: str = Field(description="The verbatim line/value copied from the paper — evidence, not paraphrase.")
+    location: str = Field(description="Where in the paper the quote lives (e.g. 'Abstract', 'Figure 5', 'Section 3.2').")
+
+
+class ExtractedClaim(BaseModel):
+    """One ARA-disciplined mechanism claim — the epistemic floor beneath the synthesis."""
+    model_config = ConfigDict(extra="forbid")
+    title: str = Field(description="A short mechanism-level title (rendered as the `C0N:` heading). No paper/model name, no numbers — passes the name-deletion test.")
     statement: str = Field(description="The mechanism/relationship the paper reveals — the reusable WHY. Carries NO run-numbers/scores/step-counts (those live in `sources`); its subject is a mechanism, never a named recipe.")
     falsification: str = Field(description="A concrete observation that would disprove the claim — about the system/world, not a re-run of the same gate.")
-    sources: list[str] = Field(default_factory=list, description="Grounding-by-verbatim-quote for every load-bearing value: `<value> ← <source ref> «verbatim line»`. A bare path with no quote is invalid.")
     status: Literal["hypothesis", "supported", "refuted"] = Field(description="Claim status.")
+    status_note: str | None = Field(default=None, description="Optional caveat qualifying the status (e.g. 'tested to 3.5M tokens, but ablation shows memory-without-RL degrades').")
+    sources: list[ClaimSource] = Field(default_factory=list, description="Grounding-by-verbatim-quote for every load-bearing value. A claim asserting a result with no source is invalid.")
     tags: list[str] = Field(default_factory=list, description="Keyword tags.")
     flags: list[ClaimFlag] = Field(default_factory=list, description="Functional-defect flags that trigger a downstream lens (e.g. a claim asserted without an ablation -> no_ablation).")
+
+
+class PaperSynthesis(BaseModel):
+    """Section 1 — the human-readable synthesis (the reader's entry point)."""
+    model_config = ConfigDict(extra="forbid")
+    bb_analysis: str = Field(description="One dense analytical paragraph in BB's voice: what the paper does and WHY it works, connected to existing vault concepts (e.g. Memory Physics). Mechanism-level, not a results recap.")
+    mechanism: str = Field(description="A prose walkthrough of the core mechanism — how the method actually operates, in plain language a researcher reads.")
+    algorithm_steps: list[str] = Field(default_factory=list, description="Human-readable numbered steps of the core algorithm/procedure.")
+
+
+class LensFinding(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    heading: str = Field(description="Short subsection heading for this finding (e.g. 'Baseline Asymmetry').")
+    body: str = Field(description="The finding prose — what the lens exposes, grounded in the paper: mechanism + evidence + what would falsify it.")
+
+
+class LensCritique(BaseModel):
+    """Section 2 — the SINGLE most-relevant critical lens, selected by paper FUNCTION (not content type)."""
+    model_config = ConfigDict(extra="forbid")
+    lens_name: str = Field(description="The applied lens's human name (e.g. 'Forensic Leakage Audit'), from prompts/lenses/<name>.md.")
+    triggered_by: str = Field(description="The FUNCTION-based trigger: what about this paper's role/claims summoned THIS lens (e.g. 'reports eval gains without ablating prompt asymmetry'), not 'it has experiments'.")
+    findings: list[LensFinding] = Field(default_factory=list, description="1-4 findings the lens surfaces.")
+    verdict: str = Field(description="The lens's bottom-line verdict on the paper's central claim.")
+
+
+class AttackVectors(BaseModel):
+    """Section 3 — the offensive read: how to beat or exploit this work."""
+    model_config = ConfigDict(extra="forbid")
+    vectors: list[str] = Field(default_factory=list, description="Each an attack surface / structural weakness, stated offensively (the 💥 bullets).")
+    beat_baseline: str = Field(description="A concrete way to beat this baseline (the actionable 'Beat this baseline by:' line).")
+    exploit_flaw: str = Field(description="A concrete way to exploit the central flaw (the actionable 'Exploit the flaw:' line).")
 
 
 class EdgeProposal(BaseModel):
@@ -305,12 +352,16 @@ class EdgeProposal(BaseModel):
     source_citation: str = Field(description="The paper reference/related_work entry that resolved to `target_stem` — the grounding that licenses this edge (Decision D3).")
 
 
-class KClaimExtraction(BaseModel):
-    """Phase Q extraction payload: a paper's Knowledge distilled to mechanism-level claims + citation-grounded edge proposals. Produces NO Insight/Thought/Decision content (HSC 4)."""
+class KNodeExtraction(BaseModel):
+    """Phase Q extraction payload (rebuilt — friction-260710-02): a reader's K node = synthesis + lens
+    critique + attack vectors, with 1-5 ARA-disciplined mechanism claims as the epistemic floor. Produces
+    NO Insight/Thought/Decision content (HSC 4); the LLM proposes NO edges (grounding mints them, D4)."""
     model_config = ConfigDict(extra="forbid")
-    claims: list[ExtractedClaim] = Field(..., min_length=1, max_length=5, description="1-5 mechanism-level claims distilled from the paper.")
-    proposed_edges: list[EdgeProposal] = Field(default_factory=list, description="derives_from/contradicts edges to existing vault nodes, each grounded in a resolved citation. Empty when no citation resolves (caller stages `no_prior_match`).")
-    provenance: Literal["ai-suggested"] = Field(default="ai-suggested", description="Everything this model carries is AI-proposed and awaits human review.")
+    title: str = Field(description="The node title — the paper's system/model name + a one-line what-it-is (e.g. 'MemAgent: RL-Driven Memory Overwrite for Unbounded Context').")
+    synthesis: PaperSynthesis
+    lens: LensCritique
+    attack: AttackVectors
+    claims: list[ExtractedClaim] = Field(..., min_length=1, max_length=5, description="1-5 mechanism-level ARA-disciplined claims — the epistemic floor beneath the synthesis.")
 
 
 class SkillDefinition(BaseModel):

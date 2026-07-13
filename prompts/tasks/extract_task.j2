@@ -1,10 +1,14 @@
-Extract the mechanism-level Knowledge claims from the paper below, as JSON matching this schema:
+Extract ONE Knowledge node from the paper below, as JSON matching this schema:
 
 {{ json_schema }}
 
-Return 1-5 claims — mechanism `statement`s (no numbers), each with a `falsification`, grounded
-`sources` (verbatim quotes), a `status`, `tags`, and any functional-defect `flags`. Leave
-`proposed_edges` empty (edges are added by a separate grounding step).
+Produce: a `title`; a `synthesis` (`bb_analysis` + `mechanism` + `algorithm_steps`); ONE `lens`
+selected by the paper's FUNCTION (`lens_name` + `triggered_by` + `findings` + `verdict`); an
+`attack` (`vectors` + `beat_baseline` + `exploit_flaw`); and 1-5 disciplined `claims` — each with
+a mechanism `statement` (no numbers), a `falsification`, grounded `sources` as `{quote, location}`,
+a `status` (+ optional `status_note`), `tags`, and any functional-defect `flags`. Apply the
+selected lens's discipline to its findings. Do NOT emit vault edges or any Insight/Thought/Decision
+content.
 
 --- PAPER: {{ paper.title }} ---
 

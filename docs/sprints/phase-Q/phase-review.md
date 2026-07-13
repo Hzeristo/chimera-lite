@@ -1,5 +1,11 @@
 # Phase Review Verdict: Phase Q — Disciplined Knowledge Extraction
 
+> ⛔ **SUPERSEDED 2026-07-10 by the reopen (`friction-260710-02`).** This "Functionally Sealed"
+> verdict covered the atomic-claims output shape, which drifted from the founding VISION and was
+> reopened the same day. The extraction engine + grounded edges reviewed here still stand; the
+> **output shape was rebuilt** — see `docs/sprints/phase-Q/Q.R-rebuild.md`. Read this verdict as the
+> history of the pre-rebuild build, not the current state.
+
 **Audit reference:** `docs/audits/Q.0.md` + `docs/audits/Q.0-reaudit.md` (2026-07-09)
 **Batch plan reference:** `docs/plans/Phase-Q-batch.md` (approved 2026-07-09)
 **Sprints in batch:** Q.1a, Q.1b, Q.2a, Q.2b, Q.3, Q.4 (6 of 6)
