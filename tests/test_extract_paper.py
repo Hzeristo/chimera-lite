@@ -109,6 +109,7 @@ def test_render_body_has_all_four_sections() -> None:
     body = _render_node_body(_extraction())
     assert "## Synthesis" in body
     assert "**Motivation (the gap):**" in body  # arc opens with the gap
+    assert "**Mechanism:**" in body
     assert "**Results (did it work):**" in body  # arc closes with the payoff
     assert "## Lens Critique" in body
     assert "Attack Vectors" in body

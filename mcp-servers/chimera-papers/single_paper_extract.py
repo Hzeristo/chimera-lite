@@ -83,6 +83,8 @@ def _render_node_body(node: KNodeExtraction) -> str:
         "",
         f"> 🤖 **BB's Analysis**: {syn.bb_analysis}",
         "",
+        "**Mechanism:**",
+        "",
         syn.mechanism,
     ]
     if syn.algorithm_steps:
@@ -93,7 +95,9 @@ def _render_node_body(node: KNodeExtraction) -> str:
         ]
     lines += [
         "",
-        f"**Results (did it work):** {syn.results}",
+        "**Results (did it work):**",
+        "",
+        syn.results,
         "",
         "> **[My Critique]**: <INSTRUCTION: BB 说得对吗？有什么漏洞？> _[User fills this during review]_",
         "",

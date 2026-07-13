@@ -12,19 +12,24 @@ The paper's system/model name + a one-line what-it-is (e.g. "MemAgent: RL-Driven
 Overwrite for Unbounded Context"). No arxiv id.
 
 ## synthesis  (the reader's entry point — trace the FULL reading arc)
+Write every field for a HUMAN reader. Use light Markdown inside the text — **bold the load-bearing
+concepts**, break enumerable content into short bullet lines (`- ` on their own line), keep
+paragraphs short. A wall of text is the failure mode.
 - `motivation`: the GAP the paper exists to close — 1-2 sentences, the problem ONLY (not the
   contribution). Ground it in a verbatim quote in the form `"..." ← location`, same discipline as
   the claims.
 - `bb_analysis`: ONE dense analytical paragraph in BB's voice — clinical, incisive, unimpressed by
   hype. The CONTRIBUTION and the insight: what the paper does and WHY it works, connected to the
   operator's standing concerns (Memory Physics, state overwrite, agentic plumbing) where honest.
-  Not a results recap.
-- `mechanism`: a prose walkthrough of how the method actually operates.
+  Not a results recap. (Prose paragraph — bold key terms, but no bullets here.)
+- `mechanism`: how the method actually operates — **bold the key concepts** and use short bullet
+  lines for the distinct components/phases. Do NOT emit one dense paragraph.
 - `algorithm_steps`: the core procedure as human-readable steps (plain text per step — do NOT
   prefix a step number; the renderer numbers them).
 - `results`: did it work — the headline outcomes WITH key numbers (NOT a full table). This is the
   HOME for the numbers: the mechanism claims carry NONE, so put the load-bearing figures here, each
-  grounded in a verbatim quote `"..." ← location`.
+  grounded in a verbatim quote `"..." ← location`. Format as a short Markdown bullet per result
+  group (per model / per dimension), **bolding the headline number** — not one dense paragraph.
 
 ## lenses  (1-2, selected by FUNCTION)
 From the lens catalog below, choose the lens whose function-based trigger best matches what THIS
@@ -41,7 +46,8 @@ For each lens, apply its Method and honor its Discipline (mechanism + evidence +
 every finding):
 - `lens_name`: the chosen lens's human name (from the catalog).
 - `triggered_by`: the function-based reason THIS paper INDEPENDENTLY summoned THIS lens.
-- `findings`: 1-4 findings (heading + body), each meeting the discipline triple.
+- `findings`: 1-4 findings (heading + body). Write the body with light Markdown — **bold** the
+  Mechanism / Evidence / Falsifiability beats of the discipline triple; avoid a wall of text.
 - `verdict`: the lens's bottom-line on the paper's central claim.
 
 ### Lens catalog
