@@ -1,4 +1,4 @@
-# Phase O — Exocortex Write Surface
+# Phase O — Ousia: Exocortex Write Surface
 
 **Status:** ✅ Sealed 2026-07-08 (`docs/sprints/phase-O/phase-review.md`) — HSC 1/2/3 all pass; unblocks Phase N.B
 **Sealed predecessor:** Phase N.A

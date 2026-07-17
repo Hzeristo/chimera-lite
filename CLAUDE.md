@@ -6,6 +6,19 @@ This is the **Claude-Code-native** successor to Project Chimera. The custom olig
 agent loop and the astrocyte frontend are retired; Claude Code *is* the agent loop,
 and the surviving domain tools are exposed as MCP servers.
 
+## Product philosophy
+Chimera Lite is **not an agent** — it is an **epistemic instrument**. Claude supplies the
+intelligence; what this repo engineers is the *fidelity of what the researcher comes to believe
+through the tool*. Capability is cheap (Claude-provided); **fidelity is the scarce good**, and it
+is bought by refactoring the foundation, not by adding features — which is why the hard recent
+phases (**L — Locus**, **K — Katalepsis**) grow *backward* from the migration pivot. Corollary
+(the north star, and it is self-suspicious): **advisory rigor is negative value** — a provenance
+flag / criteria / verifier that only *performs* rigor launders opinion into knowledge, worse than
+nothing. Enforce it or delete it; the permanent adversary is the instrument's own theater. The
+dev-phase codename motif encodes this arc (neural horror → epistemology); full *why* in
+[`docs/phases/PHILOSOPHY.md`](docs/phases/PHILOSOPHY.md), the naming grammar in
+[`docs/phases/CODENAMES.md`](docs/phases/CODENAMES.md).
+
 ## Migration context
 **This repo is mid-migration.** It is not a greenfield project — it is the operational
 port of `project_chimera` (a bespoke agent + Tauri frontend) onto Claude Code + MCP.
@@ -21,12 +34,17 @@ Read this before assuming anything about how a feature "should" work.
   Both retired, preserved on the `archive/chimera-oligo` branch of that repo.
 - **Why:** feasibility verdict — `../project_chimera/docs/audits/chimera-to-code-feasibility.md`.
   The tools migrate to MCP and improve; the agent loop is deleted (native loop replaces it).
-- **Active phase:** **Phase M — Chimera Lite Migration** (`docs/phases/phase-M.md`).
-  Its sprint sequence (M.0 audit → M.1 vault wiring → M.2 papers wiring → M.3 BB persona
-  → M.4 cleanup → M.5 E2E) and red lines are authoritative for migration work.
-- **Current state:** foundation scaffold only. The MCP servers declare tool **contracts**;
-  their bodies lazy-import and return a NOT-WIRED sentinel. Domain wiring is Phase M.
-  See "Migration status" below for the exact gap.
+- **Active phase:** **Phase L — Locus: The Research Harness** (`docs/phases/phase-L.md`).
+  Automates the manual research harness into two Claude-subagent workflows — W1 (claim
+  verbatim verification) and W2 (breadth mapping) — with paper-type criteria loaded
+  dynamically from the vault (`vault/criteria/{type}.md`). Sprint sequence: L.0 audit →
+  L.1 criteria infra → L.2 W1 → L.3 W2 → L.4 optional HTML panel. Judgment moves to Task
+  subagents; MCP demotes to primitives. Absorbs the retired **Phase R**
+  (`docs/phases/phase-R.md`). The migration itself (Phase M) is SEALED — see "Migration
+  status" below; that section's sprint history stays authoritative as lineage.
+- **Current state:** migration complete and sealed (Phase M, then N.A / O / Q). MCP tool
+  bodies are wired to real domain logic — no NOT-WIRED sentinels remain. The active build
+  is Phase L (the research harness); L.0 (audit) is the current sprint.
 - **Phase M red lines (summary; full list in `phase-M.md`):** no oligo loop code, no
   astrocyte/Tauri/Svelte, no text-DSL parsing, no SSE protocol, MCP servers stay thin
   adapters (<200 lines), TaskService stays poll-model, BB persona via skill only.

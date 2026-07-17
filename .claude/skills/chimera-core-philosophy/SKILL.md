@@ -1,6 +1,6 @@
 ---
 name: chimera-core-philosophy
-description: Core design philosophy for Project Chimera, a personal research OS. Activate when working on Chimera codebase, discussing architecture decisions, or when scope decisions are being made. Reinforces single-user focus, friction-driven development, and anti-framework stance.
+description: Core design philosophy for Project Chimera, a personal research OS — the principles that govern BOTH building the tool and using it for research. Activate when working on the Chimera codebase, making architecture or scope decisions, OR when judging research substance — pricing a paper's claims, deciding whether a mechanism truly enforces rigor or only performs it, or weighing reported gains against their baseline. Reinforces single-user focus, friction-driven development, anti-framework stance, and fidelity-over-theater (advisory rigor is negative value).
 ---
 
 # Chimera Core Philosophy
@@ -17,6 +17,18 @@ Chimera is a **personal research OS** for one user. Not a SaaS, not a framework,
 - **Not SOTA chasing.** Chimera is "2024.5 architecture" — mature tech combined with novel integration, not bleeding-edge "2026.5" papers.
 
 ## Core Principles
+
+### Fidelity Over Theater
+- Chimera is an **epistemic instrument**: Claude supplies the intelligence; this repo engineers the
+  *fidelity* of what the researcher comes to believe through the tool. Capability is cheap
+  (Claude-provided); **fidelity is the scarce good**.
+- **Advisory rigor is negative value.** A provenance flag, criteria matrix, or verifier that only
+  *performs* rigor — a `[V]` tag that doesn't carry the guarantee it claims — launders opinion into
+  knowledge. That is worse than nothing: it manufactures false confidence.
+- The test for any fidelity mechanism: *does it enforce, or just perform?* Enforce it or delete it.
+  The permanent adversary is the instrument's own theater.
+- This is why the hard refactor phases (**L — Locus**, **K — Katalepsis**) grow *backward* from the
+  migration pivot: securing fidelity, not adding capability. Full rationale: `docs/phases/PHILOSOPHY.md`.
 
 ### Friction-Driven Development
 - Priorities come from **friction logs** (real usage pain), not benchmarks, not roadmaps.

@@ -2,14 +2,14 @@
 
 Personal research OS for one user. Not a framework. Not SaaS.
 
-> **SEALED:** Phase Q — Disciplined Knowledge Extraction — reopened 2026-07-10 (`friction-260710-02`: `extract_paper` had drifted to **atomic-claim dumps**) and **RE-SEALED (Functionally) 2026-07-13** after the output-shape rebuild, validated end-to-end on a real paper (STALE, arXiv 2605.06527): the full reading arc (**motivation → contribution → mechanism/steps → results**) + **hybrid function-selected lenses** (1-2, a 2nd only on hybrid detection) + citation-grounded edges, single-sourced lens methodology in `prompts/lenses/*.md` (`friction-260710-03`). Verdict: `docs/sprints/phase-Q/phase-reseal.md` (supersedes the 2026-07-10 functional seal, `phase-review.md`). (Phase N truncated 2026-07-09; Phase O sealed 2026-07-08.)
+> **SEALED:** Phase Q — Quiddity: Disciplined Knowledge Extraction — reopened 2026-07-10 (`friction-260710-02`: `extract_paper` had drifted to **atomic-claim dumps**) and **RE-SEALED (Functionally) 2026-07-13** after the output-shape rebuild, validated end-to-end on a real paper (STALE, arXiv 2605.06527): the full reading arc (**motivation → contribution → mechanism/steps → results**) + **hybrid function-selected lenses** (1-2, a 2nd only on hybrid detection) + citation-grounded edges, single-sourced lens methodology in `prompts/lenses/*.md` (`friction-260710-03`). Verdict: `docs/sprints/phase-Q/phase-reseal.md` (supersedes the 2026-07-10 functional seal, `phase-review.md`). (Phase N truncated 2026-07-09; Phase O sealed 2026-07-08.)
 > **Open follow-ups (not blockers):** `friction-260710-01` (ingest triage tunability), `friction-260709-01`'s ambient half, `DEBT-016` (5 missing-markdown papers), `DEBT-017` (re-extraction supersede idempotency).
 
 ---
 
 ## Sealed Phases
 
-### Phase N.A — Lens Skills ✅ Sealed 2026-07-06
+### Phase N.A — Noesis: Lens Skills ✅ Sealed 2026-07-06
 
 **First phase post-migration.** Crystallized the 6 research-analysis lenses (project_chimera's
 `OpticsService` prompts) as Claude Code **skills** + the always-on `chimera-academic-observe`.
@@ -47,7 +47,7 @@ by this phase; the lens skills now exist natively.
 
 ---
 
-### Phase M — Chimera Lite Migration ✅ Sealed (full seal) 2026-07-03
+### Phase M — Migration: The Chimera Lite Port ✅ Sealed (full seal) 2026-07-03
 
 **First phase of the chimera-lite repo.** Migrated project_chimera (oligo agent +
 Astrocyte) onto Claude Code + MCP. See `docs/phases/phase-M.md`, `docs/plans/Phase-M-batch.md`,
@@ -244,7 +244,7 @@ final incident (headless-spawn hang) was fixed and Test 2 ran clean.
 
 ## Just Sealed
 
-### Phase O — Exocortex Write Surface ✅ Sealed 2026-07-08
+### Phase O — Ousia: Exocortex Write Surface ✅ Sealed 2026-07-08
 
 **Sealed** (`docs/sprints/phase-O/phase-review.md`): `create_node` / `link_nodes` / `apply_link_patch`
 are live on chimera-vault (staging → review → apply, never auto-promote); the K/T/I/D typed-edge
@@ -294,7 +294,7 @@ sprints are batch-planned — `chimera-sprint-discipline` enforces audit-before-
   (ARA workflow-graph style, arXiv 2605.02651) before multi-hop recall has anything to traverse
   (`friction-260708-01`; Phase O's write surface is the tooling for this).
 
-### Phase N — Lens Skills + JIT Deep Recall ⚠️✅ SEALED / TRUNCATED 2026-07-09
+### Phase N — Noesis: Lens Skills + JIT Deep Recall ⚠️✅ SEALED / TRUNCATED 2026-07-09
 
 Verdict: `docs/sprints/phase-N/phase-review.md`.
 - **N.A — Lens Skills** ✅ Sealed 2026-07-06 — 6 `chimera-lens-*` skills + `chimera-academic-observe`,
@@ -309,7 +309,7 @@ Verdict: `docs/sprints/phase-N/phase-review.md`.
 
 <details><summary>⤵ Retired lineage — pre-truncation N.B context (kept for history; superseded by the verdict above)</summary>
 
-### Phase N.B — JIT Deep Recall ▶ Rescoped 2026-07-09 (Architect disposition A — enhancement, not new tool)
+### Phase N.B — Noesis: JIT Deep Recall ▶ Rescoped 2026-07-09 (Architect disposition A — enhancement, not new tool)
 
 **Rescoped 2026-07-09 (Architect disposition A).** The post-O re-audit (`docs/audits/N.B.0-reaudit.md`)
 re-measured the graph: the ≥ 20-participation **count** gate is met, but the **structural depth** gate is

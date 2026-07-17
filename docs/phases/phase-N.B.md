@@ -1,4 +1,4 @@
-# Phase N.B — JIT Deep Recall
+# Phase N.B — Noesis: JIT Deep Recall
 
 > ⛔ **CANCELLED / TRUNCATED 2026-07-09 (Phase N truncation seal).** N.B was never batch-planned and
 > never executed. Cause: the typed graph is wide-and-shallow with no path for typed multi-hop recall

@@ -1,4 +1,4 @@
-# Phase Q — Disciplined Knowledge Extraction
+# Phase Q — Quiddity: Disciplined Knowledge Extraction
 
 > ✅ **REOPENED 2026-07-10 (`friction-260710-02`) → REBUILT 2026-07-10.** The output shape has been rebuilt
 > per the Architect's authored target (an ideal reader's K node) and the approved **A-refined** lens
