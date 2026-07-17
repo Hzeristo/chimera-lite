@@ -251,5 +251,50 @@ async def apply_link_patch(patch_path: str) -> str:
     return str(target)
 
 
+@mcp.tool()
+async def write_result(
+    kind: str,
+    identity: str,
+    title: str,
+    body: str,
+    verdict: str | None = None,
+    depends_on: list[str] | None = None,
+) -> str:
+    """Write a research-harness result artifact into the vault for the Architect's review.
+
+    WHEN: a Phase L W1/W2 workflow has produced a result to persist — a W1 claim verdict
+    ([V]/[P]/[U] + verbatim grounding quotes) now; W2 breadth-map rows later. Writes into
+    ``<vault>/Harness/`` with ``status: PENDING_REVIEW`` so the Architect curates it in Obsidian
+    (the harness + Obsidian "two curation paths"). This is NOT a K/T/I/D node and is never
+    auto-promoted.
+    WHAT: writes one markdown artifact keyed by ``(kind, identity)``. Re-running with the SAME
+    identity (claim_hash / arxiv_id) SUPERSEDES the prior artifact — one file, never a duplicate.
+    For a W1 verdict pass ``verdict`` + ``depends_on``: the dependency structure is recorded in
+    frontmatter (Phase K Gate 1 reads it — the verdict is never stored bare). Returns the path.
+
+    Args:
+        kind: Artifact kind, e.g. ``w1_verdict``.
+        identity: Stable identity for supersede — a claim_hash or arxiv_id.
+        title: Human-readable artifact title.
+        body: Markdown body — the verdict + verbatim grounding quotes.
+        verdict: For ``w1_verdict`` — the tag ``V`` / ``P`` / ``U``.
+        depends_on: The claim / quote ids the verdict rests on (C1 — recorded, not just the verdict).
+    """
+    from core.config import get_config
+    from result_service import ResultService
+
+    config = get_config()
+    metadata: dict = {}
+    if verdict is not None:
+        metadata["verdict"] = verdict
+    if depends_on is not None:
+        metadata["depends_on"] = depends_on
+    service = ResultService(config.require_path("vault_root") / "Harness")
+    path = service.write_result(
+        kind=kind, identity=identity, title=title, body=body, metadata=metadata or None
+    )
+    return str(path)
+
+
 if __name__ == "__main__":
     mcp.run()
