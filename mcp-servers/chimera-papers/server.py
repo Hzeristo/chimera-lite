@@ -130,6 +130,50 @@ async def ingest_paper(
 
 
 @mcp.tool()
+async def fetch_paper(arxiv_id: str) -> str:
+    """Download ONE arXiv paper's PDF; writes NO vault node (bare fetch primitive).
+
+    WHEN: you want the raw PDF for a specific, already-known arXiv paper without committing it
+    to the vault — e.g. inspecting it first, or as a manual fetch step paired with
+    ``convert_pdf_to_md``. Contrast with ``ingest_paper``, which always writes a Knowledge node.
+    WHAT: downloads the PDF via arXiv (or reuses an already-downloaded local copy) and returns
+    its local path. Synchronous (no task_id). Rejected while a long-running arXiv/pipeline job is
+    active (shared GPU / network discipline — same guard as ``ingest_paper``).
+
+    Args:
+        arxiv_id: arXiv identifier to fetch (e.g. "2604.14004").
+    """
+    async with _start_lock:
+        if get_task_service().has_active_long_task():
+            return _busy_message()
+    return await miner_tools.fetch_paper(arxiv_id)
+
+
+@mcp.tool()
+async def convert_pdf_to_md(pdf_path: str | None = None, arxiv_id: str | None = None) -> str:
+    """Convert ONE PDF to Markdown via MinerU (GPU); writes NO vault node (standalone convert
+    primitive).
+
+    WHEN: you want just the converted markdown for a PDF or arXiv paper, with no triage and no
+    vault write — e.g. a manual fetch→convert flow paired with ``fetch_paper``. Contrast with
+    ``ingest_paper``, which converts AND writes a Knowledge node.
+    WHAT: PDF → Markdown via the same MinerU convert ``ingest_paper`` uses. If ``arxiv_id`` is
+    given and ``pdf_path`` is not, fetches the PDF first. Returns the markdown path. Synchronous
+    (no task_id). Rejected while a long-running arXiv/pipeline job is active (shared GPU / MinerU
+    — same guard as ``ingest_paper``).
+
+    Args:
+        pdf_path: Path to a local PDF to convert directly (absolute, or project-relative).
+        arxiv_id: arXiv identifier to fetch + convert (e.g. "2604.14004"), when pdf_path is not
+            given.
+    """
+    async with _start_lock:
+        if get_task_service().has_active_long_task():
+            return _busy_message()
+    return await miner_tools.convert_pdf_to_md(pdf_path=pdf_path, arxiv_id=arxiv_id)
+
+
+@mcp.tool()
 async def extract_paper(paper_id: str, ctx: Context) -> str:
     """Extract ONE already-ingested paper into a STAGED Knowledge node — mechanism-level claims
     plus citation-grounded ``derives_from`` edges (Phase Q disciplined extraction).
