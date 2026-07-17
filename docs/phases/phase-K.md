@@ -57,6 +57,12 @@ T/I/D judgments. Two orthogonal gates:
   Architect is presented under N≥2 competing hypotheses, each with its falsification
   condition, and at least ONE framing is produced by a CROSS-MODEL critic (codex MCP).
   Catches framing bias (a [V] number read under a single, usually the author's, frame).
+  Gate 2 in Phase K is SINGLE-SHOT: each framer produces its interpretation + falsification
+  condition ONCE, and the reconcile step presents the plural framings to the Architect. Phase K
+  does NOT iterate the framers against each other. Iterative adversarial argue — where advocate
+  and skeptic exchange multiple rounds and the dialogue risks entropy-collapse — is Phase I
+  (Isostheneia), a separate phase with its own lifecycle machinery. Phase K presents N parallel
+  one-shot framings; Phase I would make them argue.
 
 Human authors T/I/D (Phase L confirmed). Phase K's gates do not author judgment —
 they guarantee the candidate material feeding the Architect's authorship is
@@ -158,8 +164,24 @@ layer and is the seal gate.
   built the harness (capability + disposition, externalized to the KG). Katalepsis builds
   the guarantee that the harness's output caries the truth-warant its labels claim.
 
+- **Gate 2 is single-shot; iterative argue is Phase I (ST 2026-07-16).**
+  Real cross-validation is iterative: advocate ⇄ skeptic over multiple rounds, refining. But
+  iterative adversarial dialogue entropy-collapses (premature consensus, loss of opposing force,
+  sycophantic convergence), requiring collapse-detection + rollback + session-forking —
+  academic-grade external lifecycle management, a serious harness-engineering capability in its own
+  right. Phase K deliberately stops at single-shot N-framing: each framer (including the cross-model
+  codex framer) speaks ONCE, and the plural framings are presented to the Architect for
+  hand-authored choice. This already defeats the confession's failure (the 99.8% number reaches the
+  Architect under BOTH framings, not just the author's). Making the framers ARGUE — and managing
+  when that argument dies — is Phase I. Phase K does not need iteration to break single-framing; it
+  needs plurality, and one-shot plurality suffices.
+
 ## Out of Scope (→ later)
 
+- **Iterative adversarial argue + its lifecycle** (entropy-collapse detection, rollback,
+  session-forking) → Phase I (Isostheneia). Phase K's Gate 2 is single-shot plurality; Phase I
+  would make the framings iterate and manage the dialogue's life. Phase K seals without it —
+  single-shot plurality is sufficient for the confession's fixture.
 - **Certification / building an eval Chimera wins on** — the confession's own warning:
   "the probe is reviewer-proof only if you don't ship a method that wins on it." Phase K
   builds the truth-warant, not a benchmark. Certification is a solution whose problem is
@@ -173,10 +195,12 @@ layer and is the seal gate.
 ## Notes
 
 - K.0 MUST verify codex MCP empirically: is it registerable in .mcp.json, can a Claude
-  Code session invoke it as a framing critic, what is the invocation cost. The entire Gate 2
-  cross-model requirement rests on codex MCP doing what the Architect's "(笑)" assumed.
+  Code session invoke it as a framing critic, what is the SINGLE-SHOT invocation cost. The entire
+  Gate 2 cross-model requirement rests on codex MCP doing what the Architect's "(笑)" assumed.
   Do NOT assume from this spec — verify against the harness (same discipline as L.0's
-  Task-lifecycle probe).
+  Task-lifecycle probe). K.0 does NOT scope iterative-argue machinery (entropy-collapse detection,
+  rollback, session-forking) — that moves to Phase I (Isostheneia)'s own audit; Phase K's Gate 2 is
+  single-shot.
 - K.0 MUST confirm Phase L honored the three forward-compat constraints (dependency links
   recorded, W1 verificational-only, W2 stores number+verbatim without single-framing
   conclusion). If L did not, Gate 1/Gate 2 face a retrofit — flag it as an L-debt before
