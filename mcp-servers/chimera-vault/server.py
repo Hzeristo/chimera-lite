@@ -87,6 +87,36 @@ async def read_vault_file(path: str) -> str:
 
 
 @mcp.tool()
+async def load_criteria(type: str, role: str, field: str | None = None) -> str:
+    """Compose the runtime criteria matrix for a research-harness subagent (W1/W2 etc).
+
+    Reads up to four vault files under ``criteria/`` and concatenates them, IN THIS EXACT
+    ORDER — capability axes always load before disposition axes:
+
+        1. ``criteria/type/{type}.md``           (capability — verification shape)
+        2. ``criteria/field/{field}.md``         (capability — domain taste; only if field given)
+        3. ``criteria/disposition/{role}.md``    (disposition — anti-bias posture)
+        4. ``criteria/disposition/_general.md``  (disposition — anti-early-stop / graded-confidence)
+
+    This order is load-bearing: capability criteria establish what "verified" even means for
+    this paper type/field before the disposition axes bias how the subagent should carry
+    itself while verifying. Because criteria live in the vault (not in code), editing a file
+    in Obsidian changes subagent behavior on the very next run — no commit required. A missing
+    file is never fabricated; it is replaced with an explicit
+    ``[no criteria file: criteria/<...>.md]`` marker in its place.
+
+    Args:
+        type: Paper type — the closed 4-class set {benchmark, method, theory, survey}
+            (not hard-validated here).
+        role: Disposition role, e.g. ``paper-critic`` or ``proposal-evaluator``.
+        field: Optional domain/field (e.g. ``nlp``, ``robotics``); an open axis, frequently
+            absent — omit to skip that section entirely.
+    """
+    _ensure_adapter()
+    return await vault_tools.load_criteria(type, role, field=field)
+
+
+@mcp.tool()
 async def obsidian_graph_query(
     node_type: str | None = None,
     link_pattern: str | None = None,
