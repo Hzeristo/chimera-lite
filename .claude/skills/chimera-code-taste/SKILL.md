@@ -49,18 +49,22 @@ If the current model is Opus, before any other work output the cost note
 (batch_execution is execution-shaped, not reasoning-shaped; Sonnet suffices;
 ~3-5x overrun on Opus) and wait for confirmation.
 
-Subagent verification tasks should use Haiku via Agent tool with
-{model: "haiku"} parameter (or a current Haiku model id).
+Model binding is PINNED in the agent definitions, never passed as a call-site
+`model:` param — that regime-(b) fragility (a dropped param silently fell back to
+the Opus session) is exactly what the model-routing audit flagged. Delegate to the
+pinned agent types; no spawn relies on remembering a model:
+- sprint edits + ruff/pytest → `chimera-sprint-executor` (pinned **Sonnet**)
+- running check_taste.ps1 / pytest / ruff / mypy → `chimera-verify-runner` (pinned **Haiku**)
+- cross-file read-only scans → `chimera-repo-scout` (pinned **Haiku**)
 </expected_model>
 
 <subagent_routing>
 Generic delegation policy (Haiku for scans, structured returns, prose is never
 the verdict): see ../_shared/subagent_routing.md. Skill-specific:
 
-Spawn subagents (Haiku) for:
-- Running check_taste.ps1 and parsing output
-- Running pytest suite and summarizing failures
-- Cross-file rule violation scanning
+Spawn PINNED agent types (model bound in the agent def, never a call-site param):
+- Running check_taste.ps1 / pytest / ruff / mypy and returning output → `chimera-verify-runner` (pinned Haiku)
+- Cross-file read-only rule-violation scanning → `chimera-repo-scout` (pinned Haiku)
 
 Do NOT spawn subagent for:
 - Editing code OUTSIDE batch_execution (Edit/Write stay in the main session; the
@@ -68,30 +72,33 @@ Do NOT spawn subagent for:
 - Reading source files for editing context (main session)
 - Self-check rule application (the rule application IS the reasoning)
 
-Batch-execution delegation (Sonnet — cost discipline). batch_execution is
+Batch-execution delegation (pinned Sonnet — cost discipline). batch_execution is
 execution-shaped, not reasoning-shaped (see <expected_model>), so keep the main
 session's model free for orchestration and delegate the mechanical work. For each
-🟢 / 🟡 sprint in the approved batch, spawn ONE fresh Sonnet subagent (Agent tool,
-model: "sonnet", subagent_type: "general-purpose") whose prompt carries the sprint's
-FULL scope + red lines from the batch plan; it makes the edits, runs ruff + pytest,
-and returns the git diff + the verbatim exit code(s). The main session then reviews
-the diff, decides pass/fail from the exit code ALONE (0 = pass), and OWNS the commit.
-The taste rules travel to the subagent in its prompt; one subagent per sprint keeps
-the reasoning coherent (relocated, not fragmented). Why: it removes the manual
-/model switch and runs edits at the model the table already recommends (Sonnet),
-while preserving the main model's judgment for orchestration and review.
+🟢 / 🟡 sprint in the approved batch, spawn ONE fresh `chimera-sprint-executor`
+subagent (pinned Sonnet — the model is bound in the agent def, NOT a call-site
+`model:` param) whose prompt carries the sprint's FULL scope + red lines from the
+batch plan AND ONLY the sprint-scope files, never the whole-repo context (R3 context
+surgery). It makes the edits, runs ruff + pytest, and returns the git diff + the
+verbatim exit code(s). The main session then reviews the diff, decides pass/fail from
+the exit code ALONE (0 = pass), and OWNS the commit. The taste rules travel to the
+subagent in its prompt; one subagent per sprint keeps the reasoning coherent
+(relocated, not fragmented). Why the pin, not a param: a dropped `model:` param
+silently fell back to the Opus session (the audit's regime-(b) gap #3); binding the
+model in the agent def removes that failure mode entirely, and the sprint-scope-only
+context keeps the executor cheap.
 
 KEEP 🔴 sprints in the main session (or an explicit-Opus subagent) AND gate them for
 per-sprint approval before executing — high blast radius earns the stronger model +
 the human gate. A subagent that reports a red-line violation halts the batch.
 
-Subagent return contract (verification tasks): the subagent MUST return the
-verbatim last 10 lines of check_taste.ps1 output AND the script's exit code.
+Subagent return contract (verification tasks): `chimera-verify-runner` MUST return the
+verbatim last ~10 lines of the verification output AND the command's exit code.
 The main session decides pass/fail from the **exit code alone** (0 = pass,
 non-zero = fail) — never from the subagent's prose. A paraphrased summary may
 accompany the tail for context, but it is NOT authoritative; the exit code is.
 A missing or non-integer exit code is treated as FAIL (halt), never as pass.
-For non-verification scans, subagents return file:line of violations.
+For non-verification scans, `chimera-repo-scout` returns file:line of violations.
 </subagent_routing>
 
 <core_principles>

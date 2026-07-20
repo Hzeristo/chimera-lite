@@ -88,19 +88,32 @@ conceptual model in CLAUDE.md ("Source of truth").
 </doc_folders>
 
 <subagent_routing>
-Generic delegation policy (Haiku for scans, structured returns, prose is never
+Generic delegation policy (pinned agent types, structured returns, prose is never
 the verdict): see ../_shared/subagent_routing.md. Skill-specific:
 
-Spawn subagents (Haiku) for:
+Spawn `chimera-repo-scout` (pinned Haiku — model bound in the agent def, never a
+call-site `model:` param) for:
 - Repo-wide pattern scans (Select-String / Grep across many files)
 - Migration drift detection (broken imports, missing files)
 - Test/lint output parsing
+- The mandatory scout-before-audit pass (see <scout_before_audit>)
 
 Do NOT spawn subagent for:
 - Reasoning across audit findings
 - Planning decisions
 - Phase review verdicts
 </subagent_routing>
+
+<scout_before_audit>
+R1 — scout precedes the Opus read (mandatory, not opportunistic; Phase H.0 did this
+ad-hoc, it is now the process). phase_audit and batch_planning MUST run a
+`chimera-repo-scout` (Haiku) pass FIRST: the scout reads the file list, line counts, and
+greps the audit-question keywords, then returns the relevant file set. The Opus session
+then reads IN FULL only the scout-selected files — never the whole in-scope tree (R3
+context surgery). The expensive model must not pay to read files the cheap one already
+ruled out. Full procedure: references/phase-audit-process.md (step 3) and
+references/batch-planning-process.md (step 1.5).
+</scout_before_audit>
 
 <core_principles>
 1. **Phase-level only** — never plan or review individual sprints in isolation; sprints exist within phases.

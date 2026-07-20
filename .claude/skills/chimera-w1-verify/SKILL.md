@@ -5,6 +5,20 @@ description: Run W1 — Claim Verbatim Verification (Phase L research harness). 
 
 # W1 — Claim Verbatim Verification
 
+<expected_model>
+**Run this orchestration loop at Sonnet.** W1's loop is glue — normalize the claim, resolve the
+paper, sequence the MCP primitives (`fetch_paper` / `convert_pdf_to_md` / `load_criteria` /
+`write_result`), assemble the verdict, report. Every unit of *judgment* is delegated to a
+**pinned-Sonnet** worker (`chimera-paper-classifier`, `chimera-verbatim-verifier`), so the loop
+itself carries no reasoning that needs Opus. Running it at Opus is dev-time overspend with zero
+fidelity gain (`docs/audits/model-routing-gaps.md`, gap #2).
+
+If the session model is Opus, follow the recommendation procedure (detect → inform → wait, never
+auto-switch): see ../_shared/expected_model.md. The pinned workers stay Sonnet regardless of the
+session model — do NOT downgrade `chimera-verbatim-verifier`; it is the fidelity-critical judgment,
+so if anything spend UP there, never down.
+</expected_model>
+
 You (the main agent) **orchestrate**; the judgment happens in an **isolated subagent**. Never perform
 the verbatim check yourself in the main context — the paper's full text must stay in the worker
 (isolation by construction).

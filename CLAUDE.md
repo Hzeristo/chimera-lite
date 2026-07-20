@@ -131,6 +131,9 @@ contract `.claude/skills/_shared/falsifiability.md`:
 - `chimera-lens-math-decoration` — modeling / algorithm papers: load-bearing vs decorative math.
 - `chimera-lens-ontological-map` — surveys / position papers: consolidated ontology (axes + categories + bottlenecks + gaps + edges).
 
+## Model routing (dev-time)
+Dev sessions default to Sonnet 5; escalate to Opus only for phase_audit / batch_planning / seal / architectural decisions. (Worker pins enforced in `.claude/agents/*.md`, checked by `.claude/skills/chimera-code-taste/scripts/check_model_routing.ps1`; rationale in `docs/audits/model-routing-gaps.md`.)
+
 ## Hard rules
 - This repo has ONE user. Do not generalize.
 - Skill rules override generic best practices.

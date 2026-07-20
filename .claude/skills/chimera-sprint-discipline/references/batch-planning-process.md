@@ -18,6 +18,16 @@ The mitigation: sprint dependencies explicit, predecessor assumptions named.
 Read phase audit IN FULL. Identify confirmed facts vs open questions.
 </step>
 
+<step n="1.5">
+R1 — scout before the Opus read (mandatory). The phase audit already anchored most
+file:line evidence; where step 2 needs file scope the audit did not pin, spawn
+`chimera-repo-scout` (pinned Haiku — model in the agent def, never a call-site param)
+with the candidate file globs + keyword patterns → the relevant file set. The Opus
+planner then reads only the audit + the scout-selected files, never the whole repo
+(R3 context surgery). Do not broad-read the tree to "get oriented" — the scout does
+that at Haiku cost.
+</step>
+
 <step n="2">
 For each sprint name in phase doc, derive:
 - Single objective (one sentence, verb-led)

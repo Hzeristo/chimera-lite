@@ -5,6 +5,19 @@ description: Run W2 — Breadth Mapping (Phase L research harness). Activate whe
 
 # W2 — Breadth Mapping
 
+<expected_model>
+**Run this orchestration loop at Sonnet.** W2's loop is scheduling + assembly — bounded-BFS frontier
+planning, wave batching, keyed-block collection, merge, report. It is the longest-lived context in
+the harness (resident across up to `max_papers` papers × 2 worker spawns), which is exactly why it
+must not sit at Opus. Every per-paper *judgment* is delegated to **pinned-Sonnet** workers
+(`chimera-paper-classifier`, `chimera-breadth-reducer`); the loop carries none. Running it at Opus
+is dev-time overspend (`docs/audits/model-routing-gaps.md`, gap #1).
+
+If the session model is Opus, follow the recommendation procedure (detect → inform → wait, never
+auto-switch): see ../_shared/expected_model.md. The pinned workers stay Sonnet regardless of the
+session model.
+</expected_model>
+
 You (the main agent) **orchestrate**; each paper's judgment happens in **isolated subagents** (the
 paper text stays in the worker). W2 REUSES W1's classify → load-criteria subroutine, adds a lighter
 RECON reduction (gap + number), and MERGES the result into a living map — it never regenerates it.
