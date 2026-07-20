@@ -259,26 +259,31 @@ async def write_result(
     body: str,
     verdict: str | None = None,
     depends_on: list[str] | None = None,
+    mode: str = "supersede",
 ) -> str:
     """Write a research-harness result artifact into the vault for the Architect's review.
 
     WHEN: a Phase L W1/W2 workflow has produced a result to persist — a W1 claim verdict
-    ([V]/[P]/[U] + verbatim grounding quotes) now; W2 breadth-map rows later. Writes into
-    ``<vault>/Harness/`` with ``status: PENDING_REVIEW`` so the Architect curates it in Obsidian
-    (the harness + Obsidian "two curation paths"). This is NOT a K/T/I/D node and is never
-    auto-promoted.
-    WHAT: writes one markdown artifact keyed by ``(kind, identity)``. Re-running with the SAME
-    identity (claim_hash / arxiv_id) SUPERSEDES the prior artifact — one file, never a duplicate.
-    For a W1 verdict pass ``verdict`` + ``depends_on``: the dependency structure is recorded in
-    frontmatter (Phase K Gate 1 reads it — the verdict is never stored bare). Returns the path.
+    ([V]/[P]/[U] + verbatim grounding quotes), or a W2 breadth map. Writes into ``<vault>/Harness/``
+    with a review ``status`` so the Architect curates it in Obsidian (the harness + Obsidian "two
+    curation paths"). This is NOT a K/T/I/D node and is never auto-promoted.
+    WHAT: writes one markdown artifact keyed by ``(kind, identity)``. ``mode`` sets the re-run
+    semantics:
+    - ``supersede`` (default — W1): a re-run REPLACES the artifact; pass ``verdict`` + ``depends_on``
+      so the dependency structure lands in frontmatter (Phase K Gate 1 reads it — never stored bare).
+    - ``merge`` (W2 breadth map): a re-run UNIONS the map by paper key — ADDS new papers, PRESERVES
+      the Architect's in-Obsidian annotations verbatim. W2 renders each paper as a keyed block
+      ``<!-- w2:paper=<id> -->`` so the merge can key on it. Merge never clobbers.
+    - ``reject`` / ``mark_stale``: status transition on an EXISTING artifact (body untouched).
 
     Args:
-        kind: Artifact kind, e.g. ``w1_verdict``.
-        identity: Stable identity for supersede — a claim_hash or arxiv_id.
+        kind: Artifact kind, e.g. ``w1_verdict`` / ``w2_breadth_map``.
+        identity: Stable identity — a claim_hash / arxiv_id (W1) or a topic / seed-set slug (W2).
         title: Human-readable artifact title.
-        body: Markdown body — the verdict + verbatim grounding quotes.
+        body: Markdown body — verdict + quotes (W1), or keyed paper blocks (W2).
         verdict: For ``w1_verdict`` — the tag ``V`` / ``P`` / ``U``.
         depends_on: The claim / quote ids the verdict rests on (C1 — recorded, not just the verdict).
+        mode: ``supersede`` | ``merge`` | ``reject`` | ``mark_stale``.
     """
     from core.config import get_config
     from result_service import ResultService
@@ -291,7 +296,7 @@ async def write_result(
         metadata["depends_on"] = depends_on
     service = ResultService(config.require_path("vault_root") / "Harness")
     path = service.write_result(
-        kind=kind, identity=identity, title=title, body=body, metadata=metadata or None
+        kind=kind, identity=identity, title=title, body=body, metadata=metadata or None, mode=mode
     )
     return str(path)
 
