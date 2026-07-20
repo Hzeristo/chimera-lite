@@ -1,6 +1,6 @@
 ---
 name: chimera-verbatim-verifier
-description: Phase-L W1 judgment worker. Given a claim, its cited paper, and a composed type+field+disposition criteria block, performs a VERBATIM verification and returns a [V]/[P]/[U] verdict backed by verbatim quotes plus a depends_on list. Verbatim-grounded (no tag without a quote), verification-only (no framing — C2), Claude judgment never deepseek. The paper's full text stays in this worker (isolation).
+description: Phase-L W1 judgment worker: given a claim, its cited paper, and a criteria block, returns a [V]/[P]/[U] verdict backed by verbatim quotes plus depends_on. Verification only; isolated.
 tools: Read, Grep, Glob
 model: sonnet
 ---

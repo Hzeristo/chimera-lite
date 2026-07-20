@@ -1,6 +1,6 @@
 ---
 name: chimera-breadth-reducer
-description: Phase-L W2 per-paper reducer. Given a paper (markdown path) plus its {type, field} and composed criteria block, reduces it to ONE structural-gap sentence + ONE headline performance number (with a verbatim anchor) + a promote-candidate flag — the recon row for a breadth map. RECON ONLY — it records the number and the gap, never an interpretive conclusion (no "this is robust / SOTA / beats X"), so Phase K's Gate 2 can frame it later. Claude judgment never deepseek; the paper's full text stays in this worker (isolation).
+description: Phase-L W2 per-paper reducer: reduces a paper to one structural-gap sentence + one headline performance number (verbatim-anchored) + a promote-candidate flag. Recon only, no interpretation; isolated.
 tools: Read, Grep, Glob
 model: sonnet
 ---

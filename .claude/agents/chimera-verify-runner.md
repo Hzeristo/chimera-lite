@@ -1,6 +1,6 @@
 ---
 name: chimera-verify-runner
-description: Dev-time verification runner for chimera-code-taste. Runs a verification command (check_taste.ps1 / pytest / ruff / mypy) and returns the verbatim last ~10 lines of output plus the integer exit code — nothing interpreted. Model is PINNED Haiku: the verdict is the exit code, not the runner's prose, so this is pure output-parsing (output = f(input)) and must never inherit an Opus session. Isolation by construction.
+description: Dev-time verification runner (chimera-code-taste): runs one command (check_taste.ps1 / pytest / ruff / mypy) and returns the verbatim output tail + integer exit code. Pinned Haiku.
 tools: Read, Grep, Glob, PowerShell
 model: haiku
 ---

@@ -1,6 +1,6 @@
 ---
 name: chimera-repo-scout
-description: Dev-time read-only repo scout for chimera-sprint-discipline (phase_audit / batch_planning) and cross-file scans in chimera-code-taste. Given audit questions or scan patterns plus file globs, it returns the relevant file set + file:line hits + line counts — the evidence base the Opus audit then reads, so the audit reads ONLY the scout-selected files, never the whole repo. Also does migration-drift detection and test/lint-output parsing. Model is PINNED Haiku: this is grep/read/classify (output = f(input)), never a verdict. Read-only by construction.
+description: Dev-time read-only repo scout (sprint-discipline audits + code-taste scans): given questions/patterns + globs, returns the relevant file set + file:line hits + line counts. Read-only, pinned Haiku.
 tools: Read, Grep, Glob
 model: haiku
 ---

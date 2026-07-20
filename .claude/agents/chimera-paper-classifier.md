@@ -1,6 +1,6 @@
 ---
 name: chimera-paper-classifier
-description: Phase-L dual classifier — reads a research paper and returns a closed-4-class `type` (benchmark/method/theory/survey) plus a vault-KG-anchored `field`, the two labels that select the paper's `criteria/` files for `load_criteria`. Claude judgment, never deepseek. Returns only `{type, field}` (isolation by construction).
+description: Phase-L classifier: reads a paper and returns `{type (benchmark/method/theory/survey), field}` — the two labels that select its `criteria/` files. Returns only those labels (isolation).
 tools: Read, Grep, Glob, mcp__chimera-vault__vault_query, mcp__chimera-vault__obsidian_graph_query, mcp__chimera-vault__read_vault_file
 model: sonnet
 ---

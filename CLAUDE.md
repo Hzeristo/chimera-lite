@@ -2,16 +2,14 @@
 
 Personal research OS for a single PhD-student user. Not a framework. Not SaaS.
 
-This is the **Claude-Code-native** successor to Project Chimera. The custom oligo
-agent loop and the astrocyte frontend are retired; Claude Code *is* the agent loop,
-and the surviving domain tools are exposed as MCP servers.
+Claude Code *is* the agent loop; the surviving domain tools are exposed as MCP servers.
 
 ## Product philosophy
 Chimera Lite is **not an agent** — it is an **epistemic instrument**. Claude supplies the
 intelligence; what this repo engineers is the *fidelity of what the researcher comes to believe
 through the tool*. Capability is cheap (Claude-provided); **fidelity is the scarce good**, and it
 is bought by refactoring the foundation, not by adding features — which is why the hard recent
-phases (**L — Locus**, **K — Katalepsis**) grow *backward* from the migration pivot. Corollary
+phases (**L — Locus**, **K — Katalepsis**) grow *backward* from the pivot. Corollary
 (the north star, and it is self-suspicious): **advisory rigor is negative value** — a provenance
 flag / criteria / verifier that only *performs* rigor launders opinion into knowledge, worse than
 nothing. Enforce it or delete it; the permanent adversary is the instrument's own theater. The
@@ -19,56 +17,15 @@ dev-phase codename motif encodes this arc (neural horror → epistemology); full
 [`docs/phases/PHILOSOPHY.md`](docs/phases/PHILOSOPHY.md), the naming grammar in
 [`docs/phases/CODENAMES.md`](docs/phases/CODENAMES.md).
 
-## Migration context
-**This repo is mid-migration.** It is not a greenfield project — it is the operational
-port of `project_chimera` (a bespoke agent + Tauri frontend) onto Claude Code + MCP.
-Read this before assuming anything about how a feature "should" work.
+## Current state
+Active build: **Phase L — Locus: The Research Harness** (`docs/phases/phase-L.md`) — automates the
+manual research harness into two Claude-subagent workflows, W1 (claim verbatim verification) and W2
+(breadth mapping), with paper-type criteria loaded dynamically from the vault. Judgment lives in Task
+subagents; MCP provides the primitives.
 
-> **Fresh session? Read [`docs/MIGRATION_LINEAGE.md`](docs/MIGRATION_LINEAGE.md) first.**
-> It explains the *why* behind the inherited decisions (poll model, single-GPU convert,
-> thin adapters, CUDA torch, BB persona, …) so you don't "fix" what's intentional or
-> re-litigate settled choices. This file is *how*; that file is *why*.
-
-- **Where we came from:** `../project_chimera` — oligo agent loop (`ChimeraAgent`, 1485
-  lines of theater loop + text-DSL tool parsing) and the astrocyte Svelte/Tauri frontend.
-  Both retired, preserved on the `archive/chimera-oligo` branch of that repo.
-- **Why:** feasibility verdict — `../project_chimera/docs/audits/chimera-to-code-feasibility.md`.
-  The tools migrate to MCP and improve; the agent loop is deleted (native loop replaces it).
-- **Active phase:** **Phase L — Locus: The Research Harness** (`docs/phases/phase-L.md`).
-  Automates the manual research harness into two Claude-subagent workflows — W1 (claim
-  verbatim verification) and W2 (breadth mapping) — with paper-type criteria loaded
-  dynamically from the vault (`vault/criteria/{type}.md`). Sprint sequence: L.0 audit →
-  L.1 criteria infra → L.2 W1 → L.3 W2 → L.4 optional HTML panel. Judgment moves to Task
-  subagents; MCP demotes to primitives. Absorbs the retired **Phase R**
-  (`docs/phases/phase-R.md`). The migration itself (Phase M) is SEALED — see "Migration
-  status" below; that section's sprint history stays authoritative as lineage.
-- **Current state:** migration complete and sealed (Phase M, then N.A / O / Q). MCP tool
-  bodies are wired to real domain logic — no NOT-WIRED sentinels remain. The active build
-  is Phase L (the research harness); L.0 (audit) is the current sprint.
-- **Phase M red lines (summary; full list in `phase-M.md`):** no oligo loop code, no
-  astrocyte/Tauri/Svelte, no text-DSL parsing, no SSE protocol, MCP servers stay thin
-  adapters (<200 lines), TaskService stays poll-model, BB persona via skill only.
-
-## Lineage
-- Predecessor: `../project_chimera` (oligo agent + astrocyte frontend).
-- Migration rationale & feasibility verdict: `../project_chimera/docs/audits/chimera-to-code-feasibility.md`.
-- The oligo/astrocyte source is preserved on the `archive/chimera-oligo` branch of
-  the `project_chimera` repo. Nothing was deleted — only retired.
-- Inherited docs under `docs/` (ROADMAP, phases, plans, friction logs, incidents)
-  describe the **old** architecture. They are history, not current spec. Phases that
-  built the agent loop / SSE protocol / astrocyte UI are retired. Do not treat them
-  as a second source for how Chimera Lite works — this file and the MCP servers are.
-
-## What replaces what
-| Old (oligo) | New (Chimera Lite) |
-|---|---|
-| `ChimeraAgent` theater loop (route → tool → wash → synthesize) | Claude Code's native agent loop |
-| Text-DSL tool calls (`<CMD>` / `<tool_call>`) + arg-repair | Native MCP tool-calling |
-| `bb-*` SSE protocol → astrocyte | Claude Code's native streaming (terminal/IDE) |
-| Late-bound persona / prompt composer | `CLAUDE.md` + `.claude/skills/` |
-| `web_search` tool | Claude Code native **WebSearch** |
-| `fork_agent` / `fork_subagent` | Claude Code native **Task** subagents / workflows |
-| Vault tools, PaperMiner, TaskService | MCP servers (see below) — domain logic kept |
+Known deferred issues (not blockers): `status=?` across knowledge nodes (vault frontmatter); and the
+concurrency lock's stale-task liveness gap (`TaskService.has_active_long_task` trusts disk status — a
+crashed task reads as "busy" until cleared).
 
 ## MCP servers
 Registered in `.mcp.json`. Tool **contracts** (names, args, docstrings) live in each
@@ -86,29 +43,12 @@ Registered in `.mcp.json`. Tool **contracts** (names, args, docstrings) live in 
 Web search and subagent delegation are **not** MCP servers — use Claude Code's native
 WebSearch and Task tools.
 
-## Migration status (IMPORTANT)
-**Phase M is SEALED** (full seal, 2026-07-03; sprints M.0.5–M.5). All tool bodies are
-wired to real domain logic; the import layer is flat (`grep src.crucible` / `src.oligo` /
-`astrocyte` → 0); the CUDA MinerU stack runs on the GPU. No NOT-WIRED sentinels remain.
-
-**All five M.5 sealing conditions pass live** (`docs/audits/M.5-e2e-smoke.md`): Test 1
-(vault) ✅, Test 2 (daily pipeline) ✅, Test 3 (BB voice) ✅, Test 4 (independence) ✅.
-Test 2 was confirmed end-to-end on 2026-07-03 after the miner-pipeline incident chain
-closed (final fix: headless-spawn isolation, incident `2026-07-02`) —
-`new_pdfs=3 ingested=3 convert_failed=0 errors=0`, real titles.
-
-**Known follow-ups (deferred, not blockers):** `status=?` across knowledge nodes (vault
-frontmatter; Phase VI), and the concurrency lock's stale-task liveness gap
-(`TaskService.has_active_long_task` trusts disk status — a crashed task reads as "busy"
-until cleared). See `docs/sprints/phase-M/M.2a.md` and the M.5 notes.
-
 ## Start here
 - This file (architecture + rules).
-- `docs/ROADMAP.md` — inherited phase history (old architecture; read as lineage).
+- `docs/ROADMAP.md` — phase history.
 - `README.md` — quickstart.
 
 ## Skills
-Ported from project_chimera; same authority model.
 1. `chimera-core-philosophy` — always active
 2. `chimera-sprint-discipline` — planning / reviewing
 3. `chimera-code-taste` — batch sprint execution (code/UI taste)
@@ -132,13 +72,14 @@ contract `.claude/skills/_shared/falsifiability.md`:
 - `chimera-lens-ontological-map` — surveys / position papers: consolidated ontology (axes + categories + bottlenecks + gaps + edges).
 
 ## Model routing (dev-time)
-Dev sessions default to Sonnet 5; escalate to Opus only for phase_audit / batch_planning / seal / architectural decisions. (Worker pins enforced in `.claude/agents/*.md`, checked by `.claude/skills/chimera-code-taste/scripts/check_model_routing.ps1`; rationale in `docs/audits/model-routing-gaps.md`.)
+Worker model pins live in `.claude/agents/*.md` and are checked by
+`.claude/skills/chimera-code-taste/scripts/check_model_routing.ps1` (rationale: `docs/audits/model-routing-gaps.md`).
+Dev sessions default to Sonnet 5; escalate to Opus only for phase_audit, batch_planning, seal gate, and architectural decisions.
 
 ## Hard rules
 - This repo has ONE user. Do not generalize.
 - Skill rules override generic best practices.
-- Do not invent MCP tools that weren't in the oligo KEEP list without a friction
-  signal — see `chimera-core-philosophy` and `chimera-dependency-veto`.
+- Do not invent MCP tools without a friction signal — see `chimera-core-philosophy` and `chimera-dependency-veto`.
 - Never auto-promote `docs/staging/` candidates to the vault — user-reviewed.
 - Obsidian vault `templates/` are user-synced; edit repo sources, not vault copies.
 
@@ -168,8 +109,7 @@ Dev sessions default to Sonnet 5; escalate to Opus only for phase_audit / batch_
 - Server paths come from environment variables set in `.mcp.json`:
   - `CHIMERA_VAULT_ROOT` — Obsidian vault path (sibling: `D:\MAS\project_chimera_vault`).
   - `CHIMERA_PAPERS_ROOT` — where mined papers land.
-- Legacy `~/.chimera/config.toml` (`SystemConfig`) is still read by the copied domain
-  code until sprint 1 decides whether to keep it or fold everything into env vars.
+- Legacy `~/.chimera/config.toml` (`SystemConfig`) is still read by some domain code alongside the env vars above.
 
 ### Obsidian Vault
 - Path: `D:\MAS\project_chimera_vault` — a SIBLING directory, not inside the repo.
@@ -177,8 +117,9 @@ Dev sessions default to Sonnet 5; escalate to Opus only for phase_audit / batch_
   staging-area operations.
 
 ## Repository layout
-- `.claude/skills/` — the five `chimera-*` skills + `_shared/` (ported).
-- `mcp-servers/chimera-vault/` — vault MCP server (`server.py` + sprint-1 domain modules).
-- `mcp-servers/chimera-papers/` — papers MCP server + copied domain code (ports/, services).
-- `docs/` — inherited history (ROADMAP, phases, plans, audits, friction logs, incidents).
+- `.claude/skills/` — the `chimera-*` skills + `_shared/`.
+- `.claude/agents/` — pinned subagent types (model bound in frontmatter).
+- `mcp-servers/chimera-vault/` — vault MCP server (`server.py` + domain modules).
+- `mcp-servers/chimera-papers/` — papers MCP server + domain code (ports/, services).
+- `docs/` — ROADMAP, phases, plans, audits, friction logs, incidents.
 - `.mcp.json` — MCP server registration for Claude Code.

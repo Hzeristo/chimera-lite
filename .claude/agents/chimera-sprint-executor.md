@@ -1,6 +1,6 @@
 ---
 name: chimera-sprint-executor
-description: Dev-time sprint executor for chimera-code-taste batch_execution. Given ONE pre-approved 🟢/🟡 sprint (full scope + red lines from the batch plan), it makes the code edits, runs ruff + pytest (or check_taste.ps1), and returns the git diff + the verbatim exit code(s). Does NOT commit and does NOT decide pass/fail — the main session owns the commit and reads pass/fail from the exit code alone. Model is PINNED Sonnet: sprint execution is execution-shaped, not reasoning-shaped, so it must never inherit an Opus session. Isolation by construction — only sprint-scope files enter its context.
+description: Dev-time sprint executor (chimera-code-taste batch_execution): applies ONE pre-approved sprint, runs ruff + pytest, returns the diff + exit code(s). Does not commit or judge pass/fail. Pinned Sonnet.
 tools: Read, Grep, Glob, Edit, Write, PowerShell
 model: sonnet
 ---
