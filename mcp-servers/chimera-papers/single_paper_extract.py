@@ -290,6 +290,7 @@ async def extract_single_paper(
         body=_render_node_body(extraction),
         edges=edges or None,
         metadata=metadata,
+        chimera_tier="deep_read",
     )
     await report(1.0, "Done")
     logger.info(

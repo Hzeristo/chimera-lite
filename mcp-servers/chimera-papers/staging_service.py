@@ -65,16 +65,27 @@ class StagingService:
         body: str,
         edges: dict | None = None,
         metadata: dict | None = None,
+        chimera_tier: str | None = None,
     ) -> Path:
         """Write a reviewable K/T/I/D node to the staging area (no live vault write).
 
         ``metadata`` is an optional passthrough of extra staging-node frontmatter
         (e.g. provenance / ``grounded``) merged in after the fixed keys below.
         When ``metadata`` is omitted the output is byte-identical to the fixed-keys-only
-        form (backward-compat)."""
+        form (backward-compat). ``chimera_tier`` is the orthogonal origin/depth axis
+        (L.B.1): it defaults to ``synthesis`` for thought/insight/decision nodes and is
+        supplied explicitly by K writers (never defaulted for ``knowledge``), and is
+        written authoritatively over any ``chimera_tier`` passed via ``metadata``."""
         node_type = type.lower()
         if node_type not in _TYPE_DEST:
             raise ValueError(f"Unknown node type: {type!r}")
+        # chimera_tier (L.B.1): origin/depth axis, orthogonal to `status`. Synthesis
+        # nodes (T/I/D) default to `synthesis`; a `knowledge` node is NEVER defaulted —
+        # its writer MUST declare scout vs deep_read (the C-1 distinction), so an
+        # untiered K node stays untiered rather than being silently mis-tiered.
+        tier = chimera_tier
+        if tier is None and node_type in {"thought", "insight", "decision"}:
+            tier = "synthesis"
         graph_edges = dict(_TYPE_EDGES[node_type])
         if edges:
             for k, v in edges.items():
@@ -94,6 +105,8 @@ class StagingService:
         }
         if metadata:
             fm.update(metadata)
+        if tier is not None:
+            fm["chimera_tier"] = tier
         slug = _SLUG_RE.sub("_", title)[:60].rstrip("_")
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         path = self.staging_dir / f"{stamp}-{slug}.md"

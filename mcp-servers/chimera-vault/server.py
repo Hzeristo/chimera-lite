@@ -67,8 +67,10 @@ async def search_vault_attribute(key: str, value: str, top_k: int = 5) -> str:
     """Search the vault by YAML frontmatter (key must exist; value matched as substring).
 
     Args:
-        key: Frontmatter field name (e.g. ``type``, ``tags``).
-        value: Substring to find within that field's value.
+        key: Frontmatter field name (e.g. ``type``, ``chimera_tier``, ``tags``).
+        value: Substring to find within that field's value. For ``type`` the values are
+            ``knowledge`` / ``thought`` / ``insight`` / ``decision``; for ``chimera_tier``,
+            ``scout`` / ``deep_read`` / ``harness_candidate`` / ``synthesis``.
         top_k: Maximum hits (default 5).
     """
     _ensure_adapter()
@@ -144,6 +146,8 @@ async def vault_query(
     """Ripgrep vault frontmatter for notes matching type, status, or edge target.
 
     Returns title + path + excerpt per match. Requires ripgrep (``rg``) on PATH.
+    Nodes also carry a ``chimera_tier`` origin/depth axis (scout / deep_read /
+    harness_candidate / synthesis) — query it via ``search_vault_attribute``.
 
     Args:
         type: Node type to match (knowledge, thought, insight, decision).
