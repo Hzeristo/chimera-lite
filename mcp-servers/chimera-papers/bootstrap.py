@@ -13,6 +13,7 @@ LLM Client 工厂函数。
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 
 from pydantic import SecretStr
 
@@ -123,6 +124,33 @@ def build_openai_client(settings: ChimeraConfig) -> OpenAICompatibleClient:
         timeout_seconds=settings.default_llm_timeout_seconds,
         provider_name="Working",
     )
+
+
+_ROLE_SLOTS: dict[str, Callable[[ChimeraConfig], LLMModelConfig]] = {
+    "working": lambda s: s.llm.working,
+    "wash": lambda s: s.llm.wash,
+    "haiku": lambda s: s.llm.haiku,
+    "sonnet": lambda s: s.llm.sonnet,
+}
+
+
+def build_client(role: str, settings: ChimeraConfig | None = None) -> OpenAICompatibleClient:
+    """Build a judgment client for a named role slot (Phase L.B.2a).
+
+    Roles: ``haiku`` (bulk triage), ``sonnet`` (synthesis), ``working``/``wash`` (legacy).
+    Reuses the provider-aware slot resolution — an ``anthropic``-provider slot routes to the
+    Anthropic endpoint through the OpenAI-compatible client, so no new dependency is added.
+    """
+    s = settings if settings is not None else get_config()
+    selector = _ROLE_SLOTS.get(role)
+    if selector is None:
+        raise ValueError(f"Unknown client role {role!r}; valid: {sorted(_ROLE_SLOTS)}")
+    client = build_openai_client_from_model_config(s, selector(s), provider_name=role.capitalize())
+    if client is None:
+        raise ValueError(
+            f"Could not build client for role {role!r} (missing api_key/base_url/model)"
+        )
+    return client
 
 
 def build_openai_client_from_params(
