@@ -1,18 +1,23 @@
-"""Phase Q (rebuilt — friction-260710-02): single-paper disciplined extraction — ``extract_paper``.
+"""Phase Q (rebuilt — friction-260710-02), externalized L.B.2: single-paper disciplined
+extraction — the DETERMINISTIC back-half behind the ``get_paper_markdown`` /
+``stage_deep_read_node`` MCP tools (the former single ``extract_paper`` tool, split by L.B.2).
 
-ARA *discipline*, not ARA *format*: reuse the paper's already-converted markdown, distill it into
-ONE reader's Knowledge node — a human-readable synthesis + the single most-relevant critical lens +
-an offensive attack read, with 1-5 ARA-disciplined mechanism claims as the epistemic FLOOR (a
-section, not the whole output). Attach ``derives_from`` edges minted ONLY by citation-resolution
-(grounding). Writes NO Insight/Thought/Decision node (HSC 4), never fabricates an edge (no citation
-resolves → ``grounded: no_prior_match``, edgeless), and only ever writes to the staging area — the
-operator promotes. The new node supersedes the paper's prior node on promotion.
+ARA *discipline*, not ARA *format*: the human-readable synthesis + the single most-relevant
+critical lens + an offensive attack read + 1-5 ARA-disciplined mechanism claims is now judged by
+a pinned-Sonnet subagent (the ``chimera-deep-extract`` skill), never here — the MCP server makes
+NO LLM call (D2). This module keeps only the two deterministic primitives the skill calls:
+``get_paper_markdown`` (read — resolves the paper's already-converted markdown path) and
+``stage_deep_read_node`` (write — given the subagent's ``KNodeExtraction``, grounds its citations
+into ``derives_from`` edges minted ONLY by citation-resolution, detects supersede, renders the
+node body, and stages it). Writes NO Insight/Thought/Decision node (HSC 4), never fabricates an
+edge (no citation resolves → ``grounded: no_prior_match``, edgeless), and only ever writes to the
+staging area at ``chimera_tier="deep_read"`` — the operator promotes (via ``ascend_node``). The
+new node supersedes the paper's prior node on promotion.
 """
 
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import re
 from collections.abc import Awaitable, Callable
@@ -21,7 +26,6 @@ from pathlib import Path
 from core.config import ChimeraConfig, get_config
 from core.schemas import KNodeExtraction, Paper
 from grounding import resolve_citations
-from ports.prompts.jinja_prompt_manager import PromptManager
 from staging_service import StagingService
 
 logger = logging.getLogger(__name__)
@@ -158,41 +162,6 @@ def _render_node_body(node: KNodeExtraction) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _load_lens_catalog(template_path: Path) -> str:
-    """Concatenate the canonical lens definitions (``prompts/lenses/*.md``) — the SINGLE source the
-    extraction LLM reads to apply ONE lens by paper function (friction-260710-03). The same files
-    back the interactive ``chimera-lens-*`` skills; there is no second copy to drift."""
-    lens_dir = template_path / "lenses"
-    if not lens_dir.is_dir():
-        return ""
-    parts = [p.read_text(encoding="utf-8").strip() for p in sorted(lens_dir.glob("*.md"))]
-    return "\n\n---\n\n".join(parts)
-
-
-def _extract_node(
-    paper: Paper, *, llm_client: object, prompt_manager: PromptManager
-) -> KNodeExtraction:
-    """The LLM call: paper markdown → ``KNodeExtraction`` (synthesis + lens + attack + claims).
-    Selects ONE lens by paper FUNCTION from the canonical ``prompts/lenses/*.md`` catalog. Raises on
-    failure — the caller returns an error rather than staging a degraded node."""
-    lenses = _load_lens_catalog(prompt_manager.template_path)
-    system_prompt = prompt_manager.render("chimera_sys/extract_node.j2", lenses=lenses)
-    schema_str = json.dumps(
-        KNodeExtraction.model_json_schema(), ensure_ascii=False, indent=2
-    )
-    user_prompt = prompt_manager.render(
-        "tasks/extract_task.j2", paper=paper, json_schema=schema_str
-    )
-    result = llm_client.generate_structured_data(
-        system_prompt=system_prompt,
-        user_prompt=user_prompt,
-        response_model=KNodeExtraction,
-    )
-    if isinstance(result, KNodeExtraction):
-        return result
-    return KNodeExtraction.model_validate(result)
-
-
 def _resolve_markdown(paper_id: str, settings: ChimeraConfig) -> Path:
     """Reuse the paper's already-converted clean markdown (NO MinerU). Backfill relies on this —
     the Schema-C nodes point ``source_md`` at ``papers/md_papers/<id>.md``."""
@@ -204,33 +173,55 @@ def _resolve_markdown(paper_id: str, settings: ChimeraConfig) -> Path:
     if candidate.is_file():
         return candidate
     raise FileNotFoundError(
-        f"No converted markdown for {paper_id!r} at {candidate}. extract_paper reuses source_md; "
-        f"fetch+MinerU for a genuinely new paper is a later extension."
+        f"No converted markdown for {paper_id!r} at {candidate}. get_paper_markdown reuses "
+        f"source_md; fetch+MinerU for a genuinely new paper is a later extension."
     )
 
 
-async def extract_single_paper(
+def get_paper_markdown(paper_id: str, settings: ChimeraConfig | None = None) -> Path:
+    """Resolve ``paper_id``'s already-converted markdown path (no MinerU) — the READ primitive the
+    ``chimera-deep-extract`` skill calls so its Sonnet subagent can read the paper itself
+    (isolation: the MCP layer never sees paper content). Raises ``FileNotFoundError`` if the paper
+    has not been converted yet. ``settings`` is injectable for testing; resolved from config when
+    omitted."""
+    cfg = settings or get_config()
+    return _resolve_markdown(paper_id, cfg)
+
+
+async def stage_deep_read_node(
     *,
     paper_id: str,
+    extraction: KNodeExtraction | dict,
     settings: ChimeraConfig | None = None,
-    llm_client: object | None = None,
     staging_service: StagingService | None = None,
     paper: Paper | None = None,
     markdown_path: Path | None = None,
     progress: Callable[[float, str], Awaitable[None]] | None = None,
 ) -> Path:
-    """Extract ONE paper into a STAGED Knowledge node: the reader's synthesis + 1-2 lenses + attack +
-    ARA-disciplined claims, plus citation-grounded ``derives_from`` edges (or ``no_prior_match``),
-    superseding the paper's existing node on promotion. Writes NO I/T/D node (HSC 4). Returns the
-    staging path; never touches the live vault.
+    """Stage a subagent-produced ``KNodeExtraction`` into a STAGED Knowledge node — the
+    DETERMINISTIC back-half of Phase Q disciplined extraction (L.B.2 externalized the LLM judgment
+    to the ``chimera-deep-extract`` skill's subagent; this function makes NO LLM call). Grounds the
+    paper's citations into ``derives_from`` edges (or ``no_prior_match``), detects supersede, and
+    renders + writes the node at ``chimera_tier="deep_read"``. Writes NO I/T/D node (HSC 4).
+    Returns the staging path; never touches the live vault.
 
-    Async so the MCP tool can stream stage progress via ``progress`` (``None`` in tests). The blocking
-    work (LLM, grounding walk, file writes) runs in worker threads so the event loop stays free; stage
-    labels ALSO go to stderr (chimera-mcp-taste Rule #4 fallback) so a no-ctx run is never silent.
+    ``extraction`` is the subagent's structured output — accepted as a ``KNodeExtraction`` or a
+    plain dict (validated via ``KNodeExtraction.model_validate``; a JSON payload arriving through
+    the MCP tool boundary is a dict).
 
-    Dependencies (``settings`` / ``llm_client`` / ``staging_service`` / ``paper`` / ``markdown_path``)
-    are injectable for testing; when omitted they are resolved from config lazily.
+    Async so the MCP tool can stream stage progress via ``progress`` (``None`` in tests). The
+    blocking work (grounding walk, file writes) runs in worker threads so the event loop stays
+    free; stage labels ALSO go to stderr (chimera-mcp-taste Rule #4 fallback) so a no-ctx run is
+    never silent.
+
+    Dependencies (``settings`` / ``staging_service`` / ``paper`` / ``markdown_path``) are
+    injectable for testing; when omitted they are resolved from config lazily.
     """
+    node = (
+        extraction
+        if isinstance(extraction, KNodeExtraction)
+        else KNodeExtraction.model_validate(extraction)
+    )
 
     def cfg() -> ChimeraConfig:
         nonlocal settings
@@ -254,12 +245,8 @@ async def extract_single_paper(
 
         md_path = markdown_path or _resolve_markdown(paper_id, cfg())
         paper = await asyncio.to_thread(PaperLoader().load_paper, md_path)
-    if llm_client is None:
-        from bootstrap import build_openai_client
 
-        llm_client = build_openai_client(cfg())
-
-    await report(0.25, "Grounding citations...")
+    await report(0.4, "Grounding citations...")
     # Edges: citation-resolution ONLY (D3/D4). Empty resolution ⇒ no_prior_match, edgeless.
     edge_props = await asyncio.to_thread(
         resolve_citations, _cited_arxiv_ids(paper.raw_text, exclude=paper_id), vault_root
@@ -271,11 +258,6 @@ async def extract_single_paper(
     if superseded:
         edges["supersedes"] = [superseded]
 
-    await report(0.5, "Extracting structure...")
-    extraction = await asyncio.to_thread(
-        _extract_node, paper, llm_client=llm_client, prompt_manager=PromptManager()
-    )
-
     await report(0.85, "Staging node...")
     metadata = {
         "provenance": "ai-suggested",
@@ -286,8 +268,8 @@ async def extract_single_paper(
     path = await asyncio.to_thread(
         staging.create_staging_node,
         type="knowledge",
-        title=extraction.title,
-        body=_render_node_body(extraction),
+        title=node.title,
+        body=_render_node_body(node),
         edges=edges or None,
         metadata=metadata,
         chimera_tier="deep_read",

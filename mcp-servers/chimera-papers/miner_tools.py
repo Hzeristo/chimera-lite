@@ -205,27 +205,51 @@ async def convert_pdf_to_md(
     return f"[✔] Markdown converted (no vault node written): {md_path}"
 
 
-async def extract_paper(
+async def get_paper_markdown(paper_id: str) -> str:
+    """Return the path to ONE already-ingested paper's converted Markdown (no MinerU) — a bare
+    read primitive. The ``chimera-deep-extract`` skill reads this path directly with its own
+    subagent (isolation: this MCP layer never sees paper content, and makes NO LLM call).
+    """
+    pid = (paper_id or "").strip()
+    if not pid:
+        return "[Tool Error]: get_paper_markdown requires a non-empty paper_id."
+
+    # Lazy import: keep the vault/config chain out of module load.
+    from single_paper_extract import get_paper_markdown as _get_paper_markdown
+
+    try:
+        path = _get_paper_markdown(pid)
+    except FileNotFoundError as exc:
+        return f"[Extract Error] {exc}"
+    return str(path)
+
+
+async def stage_deep_read_node(
     paper_id: str,
+    extraction: dict,
     progress: Callable[[float, str], Awaitable[None]] | None = None,
 ) -> str:
-    """Extract ONE already-ingested paper into a STAGED Knowledge node (mechanism claims +
-    citation-grounded edges). Reuses the paper's converted markdown — NO MinerU. Returns the
-    staging path. Staging-only — never auto-promoted. ``progress`` streams stage labels; the domain
+    """Stage a subagent-produced extraction (a ``KNodeExtraction`` dict from the
+    ``chimera-deep-extract`` skill) into a reviewable deep_read Knowledge node: deterministic
+    citation-grounding + supersede-detection + render + write to ``docs/staging/``. All judgment
+    already happened in the skill's subagent — this is the deterministic back-half, making NO LLM
+    call itself. Staging-only — never auto-promoted. ``progress`` streams stage labels; the domain
     function runs its blocking steps in worker threads.
     """
     pid = (paper_id or "").strip()
     if not pid:
-        return "[Tool Error]: extract_paper requires a non-empty paper_id."
+        return "[Tool Error]: stage_deep_read_node requires a non-empty paper_id."
 
-    # Lazy import: keep the LLM / grounding / vault chain out of module load.
-    from single_paper_extract import extract_single_paper
+    # Lazy import: keep the grounding / vault chain out of module load.
+    from single_paper_extract import stage_deep_read_node as _stage_deep_read_node
 
     try:
-        out_path = await extract_single_paper(paper_id=pid, progress=progress)
+        out_path = await _stage_deep_read_node(
+            paper_id=pid, extraction=extraction, progress=progress
+        )
     except FileNotFoundError as exc:
         return f"[Extract Error] {exc}"
-    except Exception as exc:  # markdown / LLM / grounding / staging
+    except Exception as exc:  # validation / grounding / staging
         return f"[Extract Error] {exc}"
     return f"[✔] Staged K node (review before promotion): {out_path}"
 

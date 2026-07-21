@@ -174,23 +174,47 @@ async def convert_pdf_to_md(pdf_path: str | None = None, arxiv_id: str | None = 
 
 
 @mcp.tool()
-async def extract_paper(paper_id: str, ctx: Context) -> str:
-    """Extract ONE already-ingested paper into a STAGED Knowledge node — mechanism-level claims
-    plus citation-grounded ``derives_from`` edges (Phase Q disciplined extraction).
+async def get_paper_markdown(paper_id: str) -> str:
+    """Return the path to ONE already-ingested paper's converted Markdown (no MinerU) — a bare
+    read primitive for a judgment skill to consume.
 
-    WHEN: you want to (re)distill a paper already in the vault into a reviewable Knowledge node with
-    typed edges — e.g. backfilling the graph. Reuses the paper's converted markdown (no MinerU).
-    WHAT: markdown → 1-5 mechanism claims + citation-resolved edges (or ``grounded: no_prior_match``)
-    → a node in ``docs/staging/`` for review. Writes NO Insight/Thought/Decision node and never
-    auto-promotes into the vault. Returns the staging path.
+    WHEN: the ``chimera-deep-extract`` skill needs a paper's text to hand to its Sonnet subagent
+    for deep-read extraction. WHAT: resolves ``paper_id``'s already-converted markdown path and
+    returns it as a string; an error string if the paper has not been converted yet (fetch +
+    convert first). CONTRAST: makes NO judgment call and writes NO node — judgment happens ONLY in
+    the ``chimera-deep-extract`` skill's subagent, never here.
 
     Args:
         paper_id: arXiv identifier of an already-ingested paper (e.g. "2305.16291").
     """
+    return await miner_tools.get_paper_markdown(paper_id)
+
+
+@mcp.tool()
+async def stage_deep_read_node(ctx: Context, paper_id: str, extraction: dict) -> str:
+    """Stage a subagent-produced deep-read extraction into a reviewable Knowledge node — the
+    DETERMINISTIC back-half of Phase Q disciplined extraction (Phase L.B externalized the LLM
+    judgment out of this server).
+
+    WHEN: the ``chimera-deep-extract`` skill's Sonnet subagent has already produced a
+    ``KNodeExtraction`` (synthesis + lens critique + attack vectors + mechanism claims) from a
+    paper's markdown; call this to ground its citations into ``derives_from`` edges, detect
+    supersede, render the node body, and write it to ``docs/staging/`` at
+    ``chimera_tier="deep_read"``. WHAT: takes ``extraction`` as a JSON-serializable dict (the
+    subagent's structured output) and returns the staging path. Writes NO
+    Insight/Thought/Decision node and never auto-promotes — the operator promotes via
+    ``ascend_node``. CONTRAST: makes NO judgment call itself; ``extraction`` is already-judged
+    input and this tool is purely deterministic (grounding, render, write) — never deepseek, never
+    an Anthropic client inside this server.
+
+    Args:
+        paper_id: arXiv identifier of the paper the extraction is about (e.g. "2305.16291").
+        extraction: The subagent's ``KNodeExtraction`` payload as a JSON-serializable dict.
+    """
     async with _start_lock:
         if get_task_service().has_active_long_task():
             return _busy_message()
-    return await miner_tools.extract_paper(paper_id, progress=_reporter(ctx))
+    return await miner_tools.stage_deep_read_node(paper_id, extraction, progress=_reporter(ctx))
 
 
 @mcp.tool()
