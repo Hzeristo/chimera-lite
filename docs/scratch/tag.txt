@@ -1,0 +1,57 @@
+## 1. [V][P][U] 的形式化定义
+
+
+**基础:三个标签形成一个hasse diagram**
+
+```
+Status ∈ {U, P, V}
+偏序: U< P < V  (U 最弱,V 最强)
+数值化: U=0, P=1, V=2  (仅用于 monotonicity 计算)
+```
+
+**[V] — Verified**
+
+```
+V(claim c)↔
+  ∃ source s ∈ Tier1 ∪ Tier2,∃ verbatim quote q extracted from s,
+  such that q ⊢ c (q直接蕴含 c)
+  AND q is explicitly cited in the claim record
+
+通俗:原文里有一句话字面上支持这个声明,引文在那。
+反例:"99.8% = robust" → 数字[V],inference [U] — 两个分开算。
+```
+
+**[P] — Partial**
+
+```
+P(claim c) ↔
+  ∃ source s that partially supports c, but:
+  - s ∈ Tier3 only (author framing, no primary data), OR
+  - evidence is confounded (e.g., delta over weak baseline), OR
+  - quote supports direction but not magnitude
+
+通俗:有支撑,但有已知漏洞 / 只有作者自说自话。
+例:"Table 3 proves tree works" → +0.2 能引到,但 +0.2 是噪声→ [P]。
+```
+
+**[U] — Unverified**
+
+```
+U(claim c) ↔
+  ¬∃ source s in checked sources that satisfies V or P
+  OR: source exists but c is NOT within scope of what s asserts
+
+通俗:找不到原文支撑,或原文说的是别的。
+例:"merge penalty is anti-recurrence" → Eq.2 说anti-degradation → [U]。
+```
+
+**Monotonicity 规则(Gate1 的形式基础)**
+
+```
+对任意 synthesis node n,设其dependency set D = {d₁,...,dₖ}:status(n) ≤ min_{dᵢ ∈ D}(status(dᵢ))
+
+  where: V→2, P→1, U→0
+
+含义:综合结论的 status 不能超过它最弱的依赖。若 n depends on 一个 [U] → n 最多是 [U]。
+  若 n depends on [V] + [P] → n 最多是 [P]。
+```
