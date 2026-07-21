@@ -114,10 +114,10 @@ class StagingService:
         path.write_text(content, encoding="utf-8")
         return path
 
-    def promote_node(self, staging_path: Path) -> Path:
-        text = staging_path.read_text(encoding="utf-8")
-        _, fm_raw, body = text.split("---", 2)
-        fm = yaml.safe_load(fm_raw)
+    def _promote_write(self, fm: dict, body: str, staging_path: Path) -> Path:
+        """Shared write mechanics for promote_node / ascend_node: status→active, write to
+        the node type's committed subfolder (_TYPE_DEST), delete the staging file, and
+        unlink any superseded prior. No tier logic here — callers gate before calling."""
         node_type = fm.get("type", "thought")
         dest_sub = _TYPE_DEST.get(node_type, "Thoughts")
         fm["status"] = "active"
@@ -132,6 +132,34 @@ class StagingService:
         staging_path.unlink()
         self._unlink_superseded(fm, keep=dest_path)
         return dest_path
+
+    def promote_node(self, staging_path: Path) -> Path:
+        text = staging_path.read_text(encoding="utf-8")
+        _, fm_raw, body = text.split("---", 2)
+        fm = yaml.safe_load(fm_raw)
+        if fm.get("chimera_tier") == "deep_read":
+            raise ValueError(
+                "Knowledge/ writes require ascend_node — promote_node refuses deep_read "
+                "nodes so ascend_node stays the sole committed-tier writer (L.B.3)."
+            )
+        return self._promote_write(fm, body, staging_path)
+
+    def ascend_node(self, staging_path: Path) -> Path:
+        """Ascend a reviewed deep_read K node from staging into the committed Knowledge/ tier.
+        The SOLE writer of <vault>/Knowledge/ (promote_node refuses deep_read). Validates
+        chimera_tier == 'deep_read'. Grounding-quote verification is DEFERRED to DEBT-018
+        (human staging-review remains the check); ascend does not substring-verify here."""
+        text = staging_path.read_text(encoding="utf-8")
+        _, fm_raw, body = text.split("---", 2)
+        fm = yaml.safe_load(fm_raw) or {}
+        if fm.get("chimera_tier") != "deep_read":
+            raise ValueError(
+                f"ascend_node requires chimera_tier='deep_read'; got {fm.get('chimera_tier')!r}. "
+                "Scout cards stay in inbox/; only deep_read nodes ascend to Knowledge/."
+            )
+        # Grounding verification deferred to DEBT-018 (docs/TECHNICAL_DEBT.md): human
+        # staging-review is the current check; ascend does not silently pass a grounding claim.
+        return self._promote_write(fm, body, staging_path)
 
     def _unlink_superseded(self, fm: dict, *, keep: Path) -> None:
         """D1 supersede: a promoted node replaces the prior node(s) named in its

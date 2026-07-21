@@ -188,6 +188,27 @@ async def create_node(
 
 
 @mcp.tool()
+async def ascend_node(staging_path: str) -> str:
+    """Ascend a reviewed deep_read Knowledge node from staging into the committed Knowledge/ tier.
+
+    WHEN: the Architect has reviewed a staged deep_read K node (from the deep-extract flow) and
+    commits it as durable knowledge. WHAT: validates ``chimera_tier == 'deep_read'``, sets status
+    active, writes to ``<vault>/Knowledge/`` (the SOLE code path that writes there), and unlinks any
+    superseded prior. CONTRAST: scout-tier inbox cards are NEVER ascended (they stay in ``inbox/``);
+    T/I/D staging nodes use promote, not this. Grounding-quote verification is deferred to DEBT-018.
+
+    Args:
+        staging_path: Path to the reviewed deep_read K node in ``docs/staging/``.
+    """
+    from core.config import get_config
+    from staging_service import StagingService
+
+    config = get_config()
+    service = StagingService(config.system.staging_dir, config.require_path("vault_root"))
+    return str(service.ascend_node(Path(staging_path)))
+
+
+@mcp.tool()
 async def link_nodes(from_node: str, to_node: str, edge_type: str) -> str:
     """Stage a typed-edge link between two vault nodes for review (no live write).
 
