@@ -1,78 +1,49 @@
-"""Paper filtering / triage (formerly PaperFilterEngine)."""
+"""Paper data primitive (Phase L.B.2 externalized — TRIAGE half, commit 2/2).
+
+``FilterService.evaluate_paper`` (the retired structured-output LLM judgment call) is GONE —
+verdict judgment now lives in the ``chimera-triage-paper`` skill's Haiku subagent
+(``chimera-paper-triager``), never in the MCP server (D2). ``analyze_paper_data`` is the
+deterministic data primitive that skill calls first: it resolves + loads an already-converted
+paper's markdown and a small metadata dict for the subagent to read directly (isolation — this
+module never sees the paper's content beyond materializing the ``Paper`` for its own id/title
+fields). Makes NO LLM call of any kind.
+"""
 
 from __future__ import annotations
 
-import json
 import logging
+from typing import Any
 
-from core.schemas import Paper, PaperAnalysisResult, VerdictDecision
-from ports.llm.openai_compatible_client import OpenAICompatibleClient
-from ports.prompts.jinja_prompt_manager import PromptManager
+from core.config import ChimeraConfig, get_config
+from ports.papers.paper_loader import PaperLoader
+from single_paper_extract import get_paper_markdown
 
 logger = logging.getLogger(__name__)
 
 
-class FilterService:
-    """Evaluate a paper and produce typed analysis results."""
+def analyze_paper_data(paper_id: str, settings: ChimeraConfig | None = None) -> dict[str, Any]:
+    """Resolve ONE already-converted paper's markdown path + metadata — a data primitive, NO LLM
+    call (L.B.2 retired ``FilterService.evaluate_paper``'s structured-output judgment call).
 
-    def __init__(
-        self,
-        llm_client: OpenAICompatibleClient,
-        prompt_manager: PromptManager,
-    ) -> None:
-        self.llm_client = llm_client
-        self.prompt_manager = prompt_manager
+    Reuses ``single_paper_extract.get_paper_markdown`` for the exact same md-dir resolution the
+    deep-read path uses (one resolution scheme, not two), then materializes a ``Paper`` via
+    ``PaperLoader`` purely to surface its id/title/authors/year — never to judge it.
 
-    def evaluate_paper(self, paper: Paper) -> PaperAnalysisResult:
-        logger.info("[Service] Evaluating payload: %s", paper.title)
-        try:
-            if len(paper.raw_text.strip()) < 80:
-                raise ValueError(
-                    f"Paper content is too short for stable evaluation. "
-                    f"paper_id={paper.id}, title={paper.title}"
-                )
-
-            system_prompt = self.prompt_manager.render("chimera_sys/reviewer_zero.j2")
-            schema_dict = PaperAnalysisResult.model_json_schema()
-            schema_str = json.dumps(schema_dict, ensure_ascii=False, indent=2)
-
-            user_prompt = self.prompt_manager.render(
-                "tasks/filter_task.j2",
-                paper=paper,
-                json_schema=schema_str,
-            )
-
-            result = self.llm_client.generate_structured_data(
-                system_prompt=system_prompt,
-                user_prompt=user_prompt,
-                response_model=PaperAnalysisResult,
-            )
-
-            if isinstance(result, PaperAnalysisResult):
-                logger.info(
-                    "[Service] Evaluation completed: %s | verdict=%s score=%s",
-                    paper.title,
-                    result.verdict.value,
-                    result.score,
-                )
-                return result
-
-            validated = PaperAnalysisResult.model_validate(result)
-
-            logger.info(
-                "[Service] Evaluation completed: %s | verdict=%s score=%s",
-                paper.title,
-                validated.verdict.value,
-                validated.score,
-            )
-            return validated
-        except Exception as exc:
-            logger.exception("[Service] Evaluation failed for paper: %s", paper.title)
-            return PaperAnalysisResult(
-                verdict=VerdictDecision.REJECT,
-                short_moniker="EvalDegraded",
-                score=0,
-                novelty_delta="N/A: evaluation degraded because analysis failed.",
-                mechanism_summary="Insufficient content or unexpected failure during evaluation.",
-                critical_flaws=[f"{type(exc).__name__}: {exc}"],
-            )
+    Returns ``{"markdown_path": str, "metadata": {"id", "title", "authors", "year",
+    "content_path"}}``. Raises ``FileNotFoundError`` if the paper has not been converted yet
+    (``fetch_paper`` / ``convert_pdf_to_md`` / ``ingest_paper`` first). ``settings`` is injectable
+    for testing; resolved from config when omitted.
+    """
+    cfg = settings or get_config()
+    markdown_path = get_paper_markdown(paper_id, settings=cfg)
+    paper = PaperLoader().load_paper(markdown_path)
+    return {
+        "markdown_path": str(markdown_path),
+        "metadata": {
+            "id": paper.id,
+            "title": paper.title,
+            "authors": paper.authors,
+            "year": paper.year,
+            "content_path": str(paper.content_path),
+        },
+    }

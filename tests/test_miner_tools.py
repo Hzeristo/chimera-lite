@@ -65,7 +65,7 @@ async def test_arxiv_miner_returns_task_id(svc: TaskService, monkeypatch) -> Non
 
 async def test_daily_pipeline_returns_task_id(svc: TaskService, monkeypatch) -> None:
     # Mock the heavy chain (lazy-imported inside _run_daily_with_progress) so this stays a
-    # unit test — the live fetch→ingest→filter→notify run is the M.5 E2E smoke.
+    # unit test — the live fetch→convert→notify run is the M.5 E2E smoke.
     async def _fake_run(task_id, q, n, skip):  # noqa: ANN001
         return "pipeline ok"
 
@@ -75,3 +75,34 @@ async def test_daily_pipeline_returns_task_id(svc: TaskService, monkeypatch) -> 
     assert re.search(r"[0-9a-f]{8}", out), out
     assert svc.has_active_long_task() is True  # daily_pipeline task registered
     await asyncio.sleep(0.05)
+
+
+async def test_write_scout_card_requires_paper_id() -> None:
+    result = await miner_tools.write_scout_card("", {})
+    assert "requires" in result and "paper_id" in result
+
+
+async def test_write_scout_card_delegates_and_reports_path(monkeypatch) -> None:
+    import single_paper_ingest
+
+    def _fake_write_scout_card(paper_id, analysis, settings=None):  # noqa: ANN001
+        assert paper_id == "2604.14004"
+        return "vault/inbox/Skim/2604.14004-DemoNet.md"
+
+    monkeypatch.setattr(single_paper_ingest, "write_scout_card", _fake_write_scout_card)
+
+    out = await miner_tools.write_scout_card("2604.14004", {"verdict": "Skim"})
+    assert "[✔] Scout card written" in out
+    assert "2604.14004-DemoNet.md" in out
+
+
+async def test_write_scout_card_surfaces_not_found(monkeypatch) -> None:
+    import single_paper_ingest
+
+    def _fake_write_scout_card(paper_id, analysis, settings=None):  # noqa: ANN001
+        raise FileNotFoundError("no converted markdown")
+
+    monkeypatch.setattr(single_paper_ingest, "write_scout_card", _fake_write_scout_card)
+
+    out = await miner_tools.write_scout_card("2604.14004", {"verdict": "Skim"})
+    assert "[Triage Error]" in out

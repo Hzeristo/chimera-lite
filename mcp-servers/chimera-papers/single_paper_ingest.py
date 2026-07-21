@@ -1,13 +1,17 @@
-"""Single-paper ingest: one PDF (or arXiv id) → MinerU convert → triage → Knowledge node.
+"""Single-paper ingest: one PDF (or arXiv id) → MinerU convert → Markdown path (Phase L.B.2
+externalized — TRIAGE half, commit 2/2).
 
 Migrates project_chimera's ``run_ingest`` single-paper path, which Phase M did not wire to
-MCP (only the batch daily pipeline was). This is the SAME per-paper logic as
-``batch_filter_workflow`` (load → FilterService.evaluate_paper → write_knowledge_node) run
-for exactly one paper, over the Rule-10-compliant MinerU convert in ``ports.ingest``.
+MCP (only the batch daily pipeline was). ``ingest_single_paper`` is now a fetch+convert
+primitive ONLY — it makes NO LLM call and writes NO Knowledge node. Verdict judgment moved to
+the ``chimera-triage-paper`` skill's Haiku subagent (``chimera-paper-triager``); once triaged,
+that skill calls this module's ``write_scout_card`` to write the scout-tier inbox card (D2 — the
+MCP server is never the judge).
 
 Deliberately does NOT invoke ``OpticsService.irradiate`` (oligo-era deep-read LLM, retired).
-Deep reading is now: ``ingest_paper`` → ``read_vault_file`` → an N.A lens skill → ``create_node``.
-This path stops at convert → triage → K node.
+Deep reading is: ``ingest_paper`` → the ``chimera-triage-paper`` skill → (promoted) →
+``chimera-deep-extract``. This module stops at convert (returning a markdown path) and, once
+triaged elsewhere, at writing the scout card.
 """
 
 from __future__ import annotations
@@ -19,14 +23,14 @@ from pathlib import Path
 
 import requests
 
-from bootstrap import build_openai_client
 from core.config import ChimeraConfig, get_config
-from filter_service import FilterService
+from core.schemas import PaperAnalysisResult
 from ports.arxiv.arxiv_fetch import ArxivFetcher
 from ports.ingest.mineru_pipeline import ingest_to_papers
 from ports.papers.paper_loader import PaperLoader
 from ports.prompts.jinja_prompt_manager import PromptManager
 from ports.vault.vault_note_writer import VaultNoteWriter
+from single_paper_extract import get_paper_markdown
 
 logger = logging.getLogger(__name__)
 
@@ -66,14 +70,16 @@ async def ingest_single_paper(
     settings: ChimeraConfig | None = None,
     progress: Callable[[float, str], Awaitable[None]] | None = None,
 ) -> Path:
-    """Ingest ONE paper into a vault Knowledge node; return the written K-node path.
+    """Fetch + convert ONE paper; return its converted markdown path. Makes NO LLM call and
+    writes NO Knowledge node (L.B.2) — triage is a separate, explicitly invoked step (the
+    ``chimera-triage-paper`` skill, which calls ``write_scout_card`` once judged).
 
-    ``arxiv_id`` → fetch the PDF first; ``pdf_path`` → convert directly. Always writes the
-    K node (explicit ingest — no verdict gate). Never calls OpticsService.irradiate.
+    ``arxiv_id`` → fetch the PDF first; ``pdf_path`` → convert directly. Never calls
+    OpticsService.irradiate.
 
     Async so the MCP tool can stream stage progress via ``progress`` (``None`` in a direct call).
-    The blocking steps (download, MinerU convert, triage LLM, vault write) run in worker threads so
-    the event loop stays free; stage labels ALSO go to stderr (chimera-mcp-taste Rule #4 fallback).
+    The blocking steps (download, MinerU convert) run in worker threads so the event loop stays
+    free; stage labels ALSO go to stderr (chimera-mcp-taste Rule #4 fallback).
     """
     settings = settings or get_config()
 
@@ -92,23 +98,42 @@ async def ingest_single_paper(
 
     # Convert: the Rule-10-compliant MinerU path (creationflags + stdin=DEVNULL + temp-file
     # output) lives in ports.ingest.paper2md.MineruClient.convert, reused via ingest_to_papers.
-    await report(0.15, "Converting PDF (MinerU)...")
+    await report(0.3, "Converting PDF (MinerU)...")
     _staged_pdf, _raw_dir, clean_md = await asyncio.to_thread(
         ingest_to_papers, pdf_path=src_pdf, settings=settings
     )
 
-    # Load → triage (FilterService, NOT OpticsService) → write the Knowledge node.
-    await report(0.7, "Triaging (LLM)...")
-    prompt_manager = PromptManager()
-    paper = await asyncio.to_thread(PaperLoader().load_paper, clean_md)
-    engine = FilterService(
-        llm_client=build_openai_client(settings), prompt_manager=prompt_manager
-    )
-    result = await asyncio.to_thread(engine.evaluate_paper, paper)
-
-    await report(0.9, "Writing node...")
-    writer = VaultNoteWriter(settings=settings, prompt_manager=prompt_manager)
-    out_path = await asyncio.to_thread(writer.write_knowledge_node, paper, result)
     await report(1.0, "Done")
-    logger.info("[Ingest] Knowledge node written: %s", out_path)
+    logger.info("[Ingest] Converted markdown ready (no Knowledge node written): %s", clean_md)
+    return clean_md
+
+
+def write_scout_card(
+    paper_id: str,
+    analysis: PaperAnalysisResult | dict,
+    settings: ChimeraConfig | None = None,
+) -> Path:
+    """Write ONE scout-tier Knowledge card from a subagent's triage verdict — the WRITE
+    primitive the ``chimera-triage-paper`` skill calls last (L.B.2). Makes NO judgment call:
+    ``analysis`` is already-decided (the skill's ``chimera-paper-triager`` subagent's verdict),
+    accepted as a ``PaperAnalysisResult`` or a plain dict (a JSON payload arriving through the
+    MCP tool boundary is a dict; validated via ``PaperAnalysisResult.model_validate``).
+
+    Reuses ``single_paper_extract.get_paper_markdown`` for the same md-dir resolution the
+    deep-read path uses, loads the ``Paper`` via ``PaperLoader``, and writes the card via
+    ``VaultNoteWriter.write_knowledge_node`` — always to ``inbox/<verdict>/`` (``chimera_tier``
+    is set by the ``knowledge_node.j2`` template to ``scout``), NEVER to ``Harness/``. Raises
+    ``FileNotFoundError`` if the paper has not been converted yet.
+    """
+    cfg = settings or get_config()
+    validated = (
+        analysis
+        if isinstance(analysis, PaperAnalysisResult)
+        else PaperAnalysisResult.model_validate(analysis)
+    )
+    markdown_path = get_paper_markdown(paper_id, settings=cfg)
+    paper = PaperLoader().load_paper(markdown_path)
+    writer = VaultNoteWriter(settings=cfg, prompt_manager=PromptManager())
+    out_path = writer.write_knowledge_node(paper, validated)
+    logger.info("[Triage] Scout card written for %s: %s", paper_id, out_path)
     return out_path

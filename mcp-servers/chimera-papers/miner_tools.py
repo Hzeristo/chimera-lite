@@ -64,7 +64,11 @@ async def daily_paper_pipeline(
     arxiv_max_results: int | None = None,
     skip_telegram: bool = False,
 ) -> str:
-    """Start the full daily pipeline (fetch → ingest → filter → notify); return task_id."""
+    """Start the full daily pipeline (fetch → convert → notify); return task_id.
+
+    Makes NO LLM call and writes NO Knowledge node (L.B.2) — triage of the converted papers is a
+    separate, explicitly invoked step: the ``chimera-triage-paper`` skill.
+    """
     n: int | None
     if arxiv_max_results is None:
         n = None
@@ -94,32 +98,59 @@ async def ingest_paper(
     pdf_path: str | None = None,
     progress: Callable[[float, str], Awaitable[None]] | None = None,
 ) -> str:
-    """Ingest ONE paper (arXiv id or local PDF) into a vault Knowledge node.
+    """Fetch + convert ONE paper (arXiv id or local PDF); returns its markdown path.
 
-    Returns the written K-node path. The heavy download / MinerU convert / triage each run in a
-    worker thread inside the domain function so the event loop is not blocked; ``progress`` (from the
-    MCP tool wrapper) streams stage labels to the client.
+    Writes NO Knowledge node and makes NO LLM call (L.B.2) — this is a fetch+convert primitive
+    only. Contrast with the retired ingest→triage→K-node path: triage is now the explicitly
+    invoked ``chimera-triage-paper`` skill, which reads this markdown itself (isolation) and, on
+    a verdict, calls ``write_scout_card`` to write the inbox card. The heavy download / MinerU
+    convert each run in a worker thread inside the domain function so the event loop is not
+    blocked; ``progress`` (from the MCP tool wrapper) streams stage labels to the client.
     """
     has_arxiv = bool(arxiv_id and str(arxiv_id).strip())
     has_pdf = bool(pdf_path and str(pdf_path).strip())
     if not has_arxiv and not has_pdf:
         return "[Tool Error]: ingest_paper requires arxiv_id or pdf_path."
 
-    # Lazy import: keep the heavy MinerU / LLM chain out of module load (matches the
+    # Lazy import: keep the heavy MinerU chain out of module load (matches the
     # daily-pipeline lazy import).
     from single_paper_ingest import ingest_single_paper
 
     try:
-        out_path = await ingest_single_paper(
+        md_path = await ingest_single_paper(
             arxiv_id=(str(arxiv_id).strip() if has_arxiv else None),
             pdf_path=(str(pdf_path).strip() if has_pdf else None),
             progress=progress,
         )
     except FileNotFoundError as exc:
         return f"[Ingest Error] PDF not found: {exc}"
-    except Exception as exc:  # network / MinerU / LLM / vault write
+    except Exception as exc:  # network / MinerU
         return f"[Ingest Error] {exc}"
-    return f"[✔] Knowledge node written: {out_path}"
+    return f"[✔] Markdown converted (no Knowledge node written): {md_path}"
+
+
+async def write_scout_card(paper_id: str, analysis: dict) -> str:
+    """Write ONE scout-tier Knowledge card from an already-decided triage verdict.
+
+    ``analysis`` is a ``PaperAnalysisResult``-shaped dict — the ``chimera-triage-paper`` skill's
+    ``chimera-paper-triager`` subagent's verdict, judged elsewhere. This tool makes NO judgment
+    call of its own; it validates + writes. The card always lands in ``inbox/<verdict>/`` (never
+    ``Harness/``) at ``chimera_tier="scout"``, for the Architect to review before promotion.
+    """
+    pid = (paper_id or "").strip()
+    if not pid:
+        return "[Tool Error]: write_scout_card requires a non-empty paper_id."
+
+    # Lazy import: keep the vault-write chain out of module load.
+    from single_paper_ingest import write_scout_card as _write_scout_card
+
+    try:
+        out_path = await asyncio.to_thread(_write_scout_card, pid, analysis)
+    except FileNotFoundError as exc:
+        return f"[Triage Error] {exc}"
+    except Exception as exc:  # validation / vault write
+        return f"[Triage Error] {exc}"
+    return f"[✔] Scout card written (review before promotion): {out_path}"
 
 
 async def _fetch_pdf(arxiv_id: str, settings: ChimeraConfig) -> Path:

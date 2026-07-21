@@ -1,20 +1,23 @@
-"""Daily Chimera pipeline: fetch → ingest → triage → Telegram."""
+"""Daily Chimera pipeline: fetch → convert → notify (Phase L.B.2 externalized — TRIAGE half,
+commit 2/2).
+
+The LLM triage stage (formerly ``batch_filter_workflow.filter_queue_worker``) is RETIRED — this
+pipeline makes NO LLM call and writes NO Knowledge node. It fetches arXiv PDFs and MinerU-converts
+them to Markdown, then tells the Architect how many landed and points at the explicit
+``chimera-triage-paper`` skill (Haiku subagent → ``write_scout_card``) to turn them into scout-tier
+inbox cards. Judgment lives in Claude Code skills, never here (D2).
+"""
 
 from __future__ import annotations
 
 import asyncio
-import html
 import logging
 from pathlib import Path
-from typing import Any
-from urllib.parse import quote
+from typing import NamedTuple
 
 from core.config import ChimeraConfig, get_config, PaperMinerSettings
-from core.naming import sanitize_filename
-from core.schemas import BatchFilterStats
-from core.schemas import Artifact, ToolOutput
+from core.schemas import ToolOutput
 from ports.notify.telegram_notifier import TelegramNotifier
-from batch_filter_workflow import filter_queue_worker
 from ports.arxiv.arxiv_fetch import ArxivFetcher
 from ports.ingest.mineru_pipeline import convert_queue_worker
 from task_service import TaskService
@@ -25,8 +28,17 @@ logger = logging.getLogger(__name__)
 class DailyPipelineStage:
     ARXIV_FETCH = ("arxiv_fetch", "Fetching from arXiv")
     PDF_INGESTION = ("pdf_ingestion", "Converting PDF → Markdown via MinerU")
-    BATCH_FILTER = ("batch_filter", "Filtering papers via LLM judge")
     TELEGRAM_NOTIFY = ("telegram_notify", "Sending Telegram digest")
+
+
+class PipelineCounts(NamedTuple):
+    """Fetch/convert tallies. L.B.2 dropped the triage verdict tallies (must_read/skim/reject
+    counts, per-item titles) — this pipeline no longer judges papers, so there is nothing beyond
+    fetch/convert left to count."""
+
+    new_pdfs: int
+    ingested: int
+    convert_failures: int
 
 
 def _merge_arxiv_overrides(
@@ -65,74 +77,18 @@ def _update_task_progress(
         task_service.update_progress(task_id, progress, message)
 
 
-def _collect_must_read_lines(stats: BatchFilterStats) -> list[str]:
-    lines = []
-    for item in stats.must_read_items:
-        paper_id = str(item.id).strip()
-        short_moniker = str(item.short_moniker).strip()
-        legacy_title = str(item.title).strip()
-        if short_moniker:
-            title = f"{paper_id} {short_moniker}".strip() if paper_id else short_moniker
-        elif legacy_title:
-            title = legacy_title
-        else:
-            title = paper_id
-        lines.append(f"  {title} [{item.score}/10]")
-    return lines
+async def _drain_md_queue(md_queue: asyncio.Queue[Path | None]) -> None:
+    """Drain ``md_queue`` to its sentinel.
 
-
-def _collect_all_filtered_lines(stats: BatchFilterStats) -> str:
-    sections = []
-    for header, items in (
-        ("Must Read", stats.must_read_items),
-        ("Skim", stats.skim_items),
-        ("Reject", stats.reject_items),
-    ):
-        if not items:
-            continue
-        lines = []
-        for item in items:
-            paper_id = str(item.id).strip()
-            short_moniker = str(item.short_moniker).strip()
-            legacy_title = str(item.title).strip()
-            if short_moniker:
-                title = f"{paper_id} {short_moniker}".strip() if paper_id else short_moniker
-            elif legacy_title:
-                title = legacy_title
-            else:
-                title = paper_id
-            lines.append(f"  {title} [{item.score}/10]")
-        sections.append(f"{header}:\n" + "\n".join(lines))
-    return "\n".join(sections)
-
-
-def _collect_pipeline_artifacts(
-    stats: BatchFilterStats, inbox_folder: Path
-) -> list[Artifact]:
-    artifacts = []
-    for item in stats.must_read_items:
-        moniker = sanitize_filename(item.short_moniker) if item.short_moniker else ""
-        basename = f"{item.id}-{moniker}" if moniker else sanitize_filename(item.id)
-        path = str(inbox_folder / "Must_Read" / f"{basename}.md")
-        artifacts.append(
-            Artifact(
-                kind="vault_note",
-                path=path,
-                metadata={"arxiv_id": item.id, "verdict": "must_read", "score": item.score},
-            )
-        )
-    for item in stats.skim_items:
-        moniker = sanitize_filename(item.short_moniker) if item.short_moniker else ""
-        basename = f"{item.id}-{moniker}" if moniker else sanitize_filename(item.id)
-        path = str(inbox_folder / "Skim" / f"{basename}.md")
-        artifacts.append(
-            Artifact(
-                kind="vault_note",
-                path=path,
-                metadata={"arxiv_id": item.id, "verdict": "skim", "score": item.score},
-            )
-        )
-    return artifacts
+    L.B.2 removed the ``filter_queue_worker`` consumers that used to drain this bounded queue
+    (maxsize=5). Without a drain, ``convert_queue_worker`` would block on ``put()`` once the
+    queue fills, deadlocking any batch of more than 5 PDFs — this coroutine is the queue's only
+    remaining consumer, and does nothing else (no triage, no LLM call).
+    """
+    while True:
+        md_path = await md_queue.get()
+        if md_path is None:
+            break
 
 
 def run_daily_pipeline(
@@ -146,12 +102,13 @@ def run_daily_pipeline(
 ) -> str:
     """Full Chimera daily path with producer-consumer pipelining.
 
-    Three concurrent stages joined by bounded queues:
-      download (semaphore=3) → pdf_queue → convert (single GPU worker) → md_queue → filter (semaphore=3)
+    Two concurrent stages joined by bounded queues:
+      download (semaphore=3) → pdf_queue → convert (single GPU worker) → md_queue → drain
 
-    Returns a short text summary.
+    Writes NO Knowledge node and makes NO LLM call (L.B.2) — triage is a separate, explicitly
+    invoked step (the ``chimera-triage-paper`` skill). Returns a short text summary.
     """
-    summary, _stats = asyncio.run(
+    summary, _counts = asyncio.run(
         _run_pipelined_async(
             settings=settings,
             arxiv_query=arxiv_query,
@@ -176,7 +133,7 @@ async def run_daily_pipeline_with_stage_events(
     """Async path for task bus + SSE consumers. Delegates to the same pipelined core."""
     if settings is None:
         settings = get_config()
-    summary, stats = await _run_pipelined_async(
+    summary, _counts = await _run_pipelined_async(
         settings=settings,
         arxiv_query=arxiv_query,
         arxiv_max_results=arxiv_max_results,
@@ -184,9 +141,10 @@ async def run_daily_pipeline_with_stage_events(
         task_id=task_id,
         task_service=task_service,
     )
-    inbox_folder = settings.require_path("inbox_folder")
-    artifacts = _collect_pipeline_artifacts(stats, inbox_folder)
-    return ToolOutput(text=summary, artifacts=artifacts if artifacts else None).model_dump_json()
+    # L.B.2: no verdict-tagged K nodes come out of this pipeline anymore, so there is nothing to
+    # surface as a side-channel Artifact — the converted papers await the chimera-triage-paper
+    # skill, which writes its own inbox cards later.
+    return ToolOutput(text=summary).model_dump_json()
 
 
 async def _run_pipelined_async(
@@ -197,11 +155,15 @@ async def _run_pipelined_async(
     skip_telegram: bool,
     task_id: str | None,
     task_service: TaskService | None,
-) -> tuple[str, BatchFilterStats]:
-    """Core pipeline: download → convert → filter, three concurrent stages via asyncio.Queue.
+) -> tuple[str, PipelineCounts]:
+    """Core pipeline: download → convert → notify, two concurrent stages via asyncio.Queue.
 
-    Returns (summary_str, stats) so both the sync wrapper and the stage-events wrapper
-    can build their own return value from the same data.
+    L.B.2 dropped the third (filter) stage entirely — nothing judges the converted papers here;
+    the ``chimera-triage-paper`` skill does that afterwards, explicitly invoked, via its own
+    Haiku subagent + ``write_scout_card``.
+
+    Returns ``(summary_str, PipelineCounts)`` so both the sync wrapper and the stage-events
+    wrapper can build their own return value from the same data.
     """
     if settings is None:
         settings = get_config()
@@ -230,8 +192,6 @@ async def _run_pipelined_async(
     pdf_queue: asyncio.Queue[Path | None] = asyncio.Queue(maxsize=5)
     md_queue: asyncio.Queue[Path | None] = asyncio.Queue(maxsize=5)
     download_sem = asyncio.Semaphore(3)
-    stats = BatchFilterStats()
-    stats_lock = asyncio.Lock()
 
     normalized_raw = pm.md_papers_raw_dir.resolve()
     normalized_clean = pm.md_papers_dir.resolve()
@@ -256,53 +216,42 @@ async def _run_pipelined_async(
             overall_progress=0.2,
         )
 
-    filter_workers = [
-        asyncio.create_task(
-            filter_queue_worker(md_queue, stats, stats_lock, settings=settings),
-            name=f"filter-worker-{i}",
-        )
-        for i in range(3)
-    ]
-
+    drain_task = asyncio.create_task(_drain_md_queue(md_queue), name="md-drain")
     convert_task = asyncio.create_task(
         convert_queue_worker(pdf_queue, md_queue, normalized_raw, normalized_clean),
         name="convert-worker",
     )
     download_task = asyncio.create_task(_download_stage(), name="download-stage")
 
-    await asyncio.gather(download_task, convert_task, *filter_workers)
+    await asyncio.gather(download_task, convert_task, drain_task)
 
     ingested_count, convert_failures = convert_task.result()
     new_pdfs_count = new_pdfs_count_holder[0]
 
     logger.info(
-        "[Service] Pipeline stages done. new_pdfs=%s ingested=%s convert_failed=%s filtered=%s",
-        new_pdfs_count, ingested_count, convert_failures, stats.total,
+        "[Service] Pipeline stages done. new_pdfs=%s ingested=%s convert_failed=%s",
+        new_pdfs_count, ingested_count, convert_failures,
     )
 
     # I-5 anti-hollow-success guard: a run that downloaded PDFs but converted NONE is a
     # failure, not a clean completion. Raise so the task is marked FAILED (was: silently
-    # reported ingested=0 errors=0 completed). Partial convert failures are surfaced in the
-    # summary's convert_failed=... field below.
+    # reported ingested=0 errors=0 completed). Preserved verbatim across the L.B.2 rewrite.
     if new_pdfs_count > 0 and ingested_count == 0:
         raise RuntimeError(
             f"MinerU converted 0 of {new_pdfs_count} downloaded PDFs "
             f"({convert_failures} failed) — pipeline aborted. See [Ingest] logs for cause."
         )
 
-    if task_service is not None and task_id is not None:
-        await task_service.start_stage(
-            task_id,
-            stage_id=DailyPipelineStage.BATCH_FILTER[0],
-            stage_label=DailyPipelineStage.BATCH_FILTER[1],
-            overall_progress=0.6,
-        )
     _update_task_progress(
         task_service,
         task_id,
-        0.95,
-        f"Triage done: total={stats.total} must_read={stats.must_read} "
-        f"skim={stats.skim} reject={stats.reject} errors={stats.errors}.",
+        0.7,
+        f"Convert done: ingested={ingested_count} convert_failed={convert_failures}. "
+        f"Awaiting triage.",
+    )
+
+    counts = PipelineCounts(
+        new_pdfs=new_pdfs_count, ingested=ingested_count, convert_failures=convert_failures
     )
 
     if not skip_telegram:
@@ -311,119 +260,45 @@ async def _run_pipelined_async(
                 task_id,
                 stage_id=DailyPipelineStage.TELEGRAM_NOTIFY[0],
                 stage_label=DailyPipelineStage.TELEGRAM_NOTIFY[1],
-                overall_progress=0.95,
+                overall_progress=0.9,
             )
-        report_message, reply_markup = _render_daily_report(stats=stats, new_pdfs_count=new_pdfs_count)
+        report_message = _render_daily_report(counts)
         notifier = TelegramNotifier(settings=settings)
-        await asyncio.to_thread(
-            notifier.send_summary, html_message=report_message, reply_markup=reply_markup
-        )
+        await asyncio.to_thread(notifier.send_summary, html_message=report_message)
         _update_task_progress(task_service, task_id, 0.99, "Telegram sent.")
     else:
         _update_task_progress(task_service, task_id, 0.99, "Telegram skipped.")
 
     summary = (
         f"Daily pipeline completed. new_pdfs={new_pdfs_count} ingested={ingested_count} "
-        f"convert_failed={convert_failures} batch_total={stats.total} must_read={stats.must_read} "
-        f"skim={stats.skim} reject={stats.reject} errors={stats.errors} "
-        f"telegram={'no' if skip_telegram else 'yes'}"
+        f"convert_failed={convert_failures} telegram={'no' if skip_telegram else 'yes'}. "
+        f"{ingested_count} paper(s) converted, awaiting triage — run the chimera-triage-paper skill."
     )
-    filtered_section = _collect_all_filtered_lines(stats)
-    if filtered_section:
-        summary += "\n" + filtered_section
     logger.info("[Service] %s", summary)
-    return summary, stats
+    return summary, counts
 
 
-def _render_daily_report(
-    stats: BatchFilterStats,
-    new_pdfs_count: int,
-) -> tuple[str, dict[str, list[list[dict[str, str]]]] | None]:
-    total = int(stats.total)
-    must_read = int(stats.must_read)
-    skim = int(stats.skim)
-    reject = int(stats.reject)
+def _render_daily_report(counts: PipelineCounts) -> str:
+    """Minimal convert-count Telegram digest.
 
-    items_raw = stats.must_read_items
-    must_read_items: list[dict[str, Any]] = []
-    inline_keyboard: list[list[dict[str, str]]] = []
-    for item in items_raw:
-        score = item.score
-        paper_id = str(item.id).strip()
-        filename = str(item.filename).strip()
-        short_moniker = str(item.short_moniker).strip()
-        legacy_title = str(item.title).strip()
-        if short_moniker:
-            title = f"{paper_id} {short_moniker}".strip() if paper_id else short_moniker
-        elif legacy_title:
-            title = legacy_title
-        else:
-            title = paper_id
-        novelty = item.novelty
-        encoded_id = quote(paper_id, safe="")
-        arxiv_url = f"https://arxiv.org/abs/{encoded_id}" if paper_id else "#"
-        _router_base = get_config().system.vault_router_url or "https://chimeravaultrouter.haydenshui.workers.dev"
-        obsidian_url = (
-            f"{_router_base}/?id={encoded_id}"
-            if paper_id
-            else "#"
-        )
-        short_for_button_paper = f"Paper {encoded_id}"
-        short_for_button_obsidian = (
-            f"Node for {short_moniker}" if short_moniker else f"Node for {encoded_id}"
-        )
-        inline_keyboard.append(
-            [
-                {"text": f"🌐 {short_for_button_paper}", "url": arxiv_url},
-                {"text": f"🧠 {short_for_button_obsidian}", "url": obsidian_url},
-            ]
-        )
-        must_read_items.append(
-            {
-                "score": int(score),
-                "id": paper_id,
-                "filename": filename,
-                "title": html.escape(str(title), quote=False),
-                "novelty": html.escape(str(novelty), quote=False),
-            }
-        )
-
-    if not must_read_items:
-        for title in stats.must_read_titles:
-            must_read_items.append(
-                {
-                    "score": 0,
-                    "id": "",
-                    "filename": "",
-                    "title": html.escape(str(title), quote=False),
-                    "novelty": "N/A",
-                }
-            )
-
+    L.B.2 dropped the verdict digest (must_read/skim links, per-item score lines) — this
+    pipeline no longer judges anything, so notify only reports what converted and points at the
+    explicit ``chimera-triage-paper`` skill for the next step.
+    """
     lines: list[str] = [
         "🚨 <b>[BB Channel] Chimera Morning Broadcast</b> 🚨",
         "━━━━━━━━━━━━━━━━━━━━",
-        '"Good morning, Senpai~ ♡ Here is the academic trash I\'ve digested for you."',
+        '"Good morning, Senpai~ ♡ Here is today\'s freshly-converted haul — awaiting triage."',
         "",
-        f"📥 New PDFs fetched: <b>{int(new_pdfs_count)}</b>",
-        f"📄 Ingested papers: <b>{total}</b>",
-        f"💎 Must Read: <b>{must_read}</b>",
-        f"🪶 Skim: <b>{skim}</b>",
-        f"🗑️ Reject: {reject}",
+        f"📥 New PDFs fetched: <b>{int(counts.new_pdfs)}</b>",
+        f"📄 Converted → Markdown: <b>{int(counts.ingested)}</b>",
+    ]
+    if counts.convert_failures:
+        lines.append(f"⚠️ Convert failures: <b>{int(counts.convert_failures)}</b>")
+    lines += [
         "",
         "━━━━━━━━━━━━━━━━━━━━",
-        "🎯 <b>SURVIVING TARGETS (Please consume)</b>",
-        "",
+        f"🧪 {int(counts.ingested)} paper(s) ready — run the <code>chimera-triage-paper</code> "
+        f"skill to screen them into scout-tier Knowledge cards.",
     ]
-    if must_read_items:
-        for item in must_read_items:
-            lines.append(
-                f"🔹 <b>[{item['score']}/10]</b> <code>{item['title']}</code>"
-            )
-            lines.append(f"   <i>💡 {item['novelty']}</i>")
-    else:
-        lines.append("<i>☕ All targets were garbage today. You can go back to sleep.</i>")
-
-    html_message = "\n".join(lines).strip()
-    reply_markup = {"inline_keyboard": inline_keyboard} if inline_keyboard else None
-    return html_message, reply_markup
+    return "\n".join(lines).strip()
