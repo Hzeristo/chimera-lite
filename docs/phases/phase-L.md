@@ -295,3 +295,16 @@ AND Obsidian (manual edit / prune). Artifacts are **living KG tissue, not frozen
   Routine verification uses a single subagent + `disposition/{role}.md` (prompt-level correction);
   the adversarial pair is reserved for where over-defer is most dangerous — evaluating the
   Architect's own proposals.
+- **L.4 — HTML panel auto-open mechanism (verified 2026-07-19, this machine).** A read-only display
+  panel needs only a **self-contained** HTML file (inline CSS / JS / data), NOT an HTTP server.
+  Auto-open works vanilla here: `webbrowser.open(f"file:///{abspath}")` (or `os.startfile(path)`) →
+  the `WindowsDefault` controller → the shell opens the registered default browser (**Edge**, present
+  in `webbrowser._browsers`). This fires from a Claude Code session **interactive OR background**,
+  because the process runs in the user's logged-in Windows desktop session — `DISPLAY` is an
+  X11/Linux concept, irrelevant on win32 (an earlier assumption that CC "can't auto-open headless"
+  wrongly applied a Linux model to Windows). The **server** (skill-creator's default
+  `generate_review.py` mode: `HTTPServer` + `webbrowser.open`) is warranted ONLY if the page must
+  POST input back; a display-only breadth-map panel skips it. The self-contained file is the portable
+  core (auto-open no-ops only on a true headless / SSH-no-desktop / cowork host); auto-open is a
+  working convenience on this setup, not a dependency. Same self-contained constraint as a Claude
+  `Artifact`, but a `file://` panel stays local (no external publish).
