@@ -194,32 +194,6 @@ def _default_llm_provider_slots() -> dict[str, LLMProviderSlotConfig]:
     }
 
 
-def _default_haiku_slot() -> LLMModelConfig:
-    """Bulk-triage judgment slot (Phase L.B D2). Claude Haiku 4.5 via the OpenAI-compatible
-    Anthropic endpoint (no new dependency). Deterministic (temp 0.0) for classification."""
-    return LLMModelConfig(
-        provider="anthropic",
-        model="claude-haiku-4-5",
-        api_key="",
-        base_url="https://api.anthropic.com/v1",
-        temperature=0.0,
-        timeout_seconds=90,
-    )
-
-
-def _default_sonnet_slot() -> LLMModelConfig:
-    """Synthesis judgment slot (Phase L.B D2). Claude Sonnet 5 via the OpenAI-compatible
-    Anthropic endpoint (no new dependency)."""
-    return LLMModelConfig(
-        provider="anthropic",
-        model="claude-sonnet-5",
-        api_key="",
-        base_url="https://api.anthropic.com/v1",
-        temperature=0.2,
-        timeout_seconds=120,
-    )
-
-
 class LLMConfig(BaseModel):
     """LLM 配置集合：Working / Wash / Router（三槽位）。"""
 
@@ -227,8 +201,6 @@ class LLMConfig(BaseModel):
 
     working: LLMModelConfig = Field(description="主力模型（用于 Final Stream）")
     wash: LLMModelConfig = Field(description="清洗模型（用于 Wash）")
-    haiku: LLMModelConfig = Field(default_factory=_default_haiku_slot, description="Bulk-triage judgment slot (Haiku)")
-    sonnet: LLMModelConfig = Field(default_factory=_default_sonnet_slot, description="Synthesis judgment slot (Sonnet)")
     router: LLMModelConfig | None = Field(
         None,
         description="路由模型（可选，不配置则使用 working）",
