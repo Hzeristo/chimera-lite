@@ -14,7 +14,7 @@ This document is a single unit. The user approves the whole sequence or rejects 
 | # | Decision | Effect on plan |
 |---|---|---|
 | **D1** | **`chimera_tier`, not status alone, is the tier marker.** Status = lifecycle (`unverified`/`PENDING_REVIEW` → `active`); tier = origin/depth (`scout` / `deep_read` / `harness_candidate`). Orthogonal axes. | L.B.1 adds a NEW frontmatter field across every write path + templates; it does not overload `status`. |
-| **D2** | **Haiku for triage, Sonnet for synthesis, subagents for judgment.** deepseek retired as a judgment engine (may remain for cheap data extraction only). | L.B.2 routes `filter_service` → Haiku, `single_paper_extract` → Sonnet. Because both share one config slot today (fact F1), this is a config-slot SPLIT, not a string swap. |
+| **D2** | **Judgment is externalized to Claude Code skills + subagents (Haiku for triage, Sonnet for synthesis); the MCP server makes NO LLM call.** An MCP-internal Anthropic call is the same architectural sin as an MCP-internal deepseek call — judgment lives in the Claude Code world (the W1/W2 pattern), never in the server. | L.B.2 STRIPS the LLM call from `filter_service` / `single_paper_extract` (they become data-return primitives) and adds `chimera-triage-paper` (Haiku) + `chimera-deep-extract` (Sonnet) skills. No config-slot split, no Anthropic client in the server. |
 | **D3** | **`ascend_node` is the single ascension gate.** All promotion into `Knowledge/` goes through one code path; a direct `Knowledge/` write is impossible by code constraint. | L.B.3 builds `ascend_node` on the existing `promote_node` seed; `Knowledge/` is a new committed-tier folder with `ascend_node` as its sole writer. |
 | **D4** | **L.B.6 is verify+rebuild, not test-then-seal.** Reserve in-sprint time to fix any failing path before seal. | L.B.6 scope explicitly includes fix-in-sprint; a silent path failure blocks the seal. |
 | **D5** | **The architecture diagram is a first-class, code-generated artifact.** Regenerated at every phase seal; describes what the code does, never aspiration. | L.B.5 is a generator script + its committed output, not a hand-drawn picture. |
@@ -36,14 +36,14 @@ This document is a single unit. The user approves the whole sequence or rejects 
 ### Planner reconciliation (read before approving)
 
 1. **Audit core claims CONFIRMED against live `phase-L` code** — C-1 (uniform `type: knowledge`, F3), H-1 (deepseek judgment on Paths 1-2, F1/F2), H-2/H-3 (`ingest_paper` over-promises + no single deep-read path, F9), all four entry points exist, no auto-promotion. The batch may build on the audit.
-2. **L.B.2 is bigger than a string swap (F1/F2).** The model is config-resolved and both judgment paths share the ONE `llm.working` slot. Giving `filter_service` Haiku and `single_paper_extract` Sonnet needs (a) two new config slots (or repurpose the stale anthropic slot), (b) per-call-site client construction in `bootstrap.py`, and (c) an Anthropic API base_url/key path (today the client points at deepseek's OpenAI-compatible endpoint). **→ split L.B.2 into L.B.2a (config slots + client path) and L.B.2b (wire call sites + docstring).**
+2. **L.B.2 externalizes judgment out of the MCP server (F1/F2 → CORRECTED APPROACH, 2026-07-21).** The model is config-resolved and both judgment paths share the ONE `llm.working` slot (F1). The original plan split that slot and added an Anthropic client path (former L.B.2a/L.B.2b). **That was wrong:** an MCP-internal Anthropic call keeps judgment inside the server — the same architectural sin as the deepseek call it would replace. The corrected L.B.2 removes the LLM call entirely (`filter_service` / `single_paper_extract` become data-return primitives) and moves judgment to Claude Code skills + subagents (the W1/W2 pattern). The stale anthropic config slot (F2) is left untouched; **no config-slot split, no server-side client.** The former L.B.2a config-slot/`build_client` commit must be reverted (it implements the rejected approach).
 3. **L.B.1 EXTENDS existing status machinery, does not rebuild it (F4).** The staging `PENDING_REVIEW → active` path stays; L.B.1 adds the orthogonal `chimera_tier` axis and closes the inert-*inbox*-status gap. Do not touch the staging transition logic beyond adding the tier field.
 4. **L.B.1's query fix is lighter than the phase-doc phrasing implies (F6).** `vault_query` already returns any `type` — so HSC "vault_query with `type=thought` returns T nodes" holds today *if T nodes exist*. The real deliverables are: (a) the vault-tool contract docstrings must advertise `thought`/`insight` as valid `type` args, and (b) `vault_query` rows must carry `chimera_tier` (this is the L.B.4 return-field work; keep it there, don't duplicate in L.B.1). `search_vault` gaining a type filter is out of scope unless a friction demands it.
-5. **`ascend_node` "impossible by code constraint" is structural, and `Knowledge/` is NEW (F5).** No writer targets `Knowledge/` today, so making `ascend_node` its sole writer is enforceable: L.B.3 introduces `Knowledge/` and a test asserts no other code path writes it. The Cross-Sprint red line "scout tier (`inbox/`) stays as-is, NOT auto-promoted" means `ingest_paper`/`daily_pipeline` KEEP writing scout cards to `inbox/` — `ascend_node` governs only the `inbox|staging → Knowledge/` gate.
+5. **`ascend_node`'s sole-writer guarantee is structural via a `promote_node` guard — NOT because `Knowledge/` is unwritten (F5 CORRECTED, 2026-07-21).** F5 claimed no writer targets `Knowledge/`, but `promote_node` DOES (`_TYPE_DEST['knowledge']='Knowledge'`, exercised by `test_extract_paper.py:247`). So "only `ascend_node` writes `Knowledge/`" is enforced by the L.B.3 guard: `promote_node` refuses `chimera_tier=='deep_read'` (see L.B.3 Design points / Task 4), leaving `ascend_node` the sole entry that writes a `deep_read` node to `Knowledge/`. The Cross-Sprint red line "scout tier (`inbox/`) stays as-is, NOT auto-promoted" means `ingest_paper`/`daily_pipeline` KEEP writing scout cards to `inbox/` — `ascend_node` governs only the `inbox|staging → Knowledge/` gate.
 6. **`ascend_node` is the structural backstop DEBT-018 lacks.** DEBT-018 (grounding-by-quote unverified; human staging-review is the ONLY check) is exactly the "advisory rigor" risk; `ascend_node`'s validation makes "human commits truth" a code constraint. L.B.3's validation SHOULD substring-verify grounding (or explicitly defer to DEBT-018's fix) rather than pass blindly.
 7. **L.B.5's diagram is the first canonical four-path statement (F8).** Since the model is nowhere asserted canonically, the generated diagram becomes ground truth. Consider (sprint-internal) whether a pointer belongs in `CLAUDE.md`/`THEORETICAL_FRAMEWORK.md` — but the diagram is generated, not the prose.
 8. **Thin-adapter watch (O.seal.1).** `chimera-vault/server.py` was 225 lines at O.seal.1 and has grown (tool inventory now spans to `:255`). `ascend_node` (L.B.3) grows it further — new tool body stays a lazy-import dispatcher; ascension logic lives in a domain module (`result_service.py`/`staging_service.py` or a new `ascend_service.py`). Consider the O.seal.1 follow-up (move write tools to `write_tools.py`) if it bloats.
-9. **No reopening Phase Q judgment beyond what L.B.2 states.** L.B.2 migrates the `filter`/`extract` judgment models — this DOES touch `single_paper_extract.py`, which Phase Q sealed. That is in-scope for L.B by explicit phase intent (H-1). Grounding-verification (DEBT-018) and `_resolve_markdown`/backfill (DEBT-016/017, F9) are NOT reopened here unless L.B.6 surfaces them as a path failure.
+9. **No reopening Phase Q judgment beyond what L.B.2 states.** L.B.2 STRIPS the LLM judgment call from `filter_service` / `single_paper_extract` (externalizing it to Claude Code skills) — this DOES touch `single_paper_extract.py`, which Phase Q sealed. That is in-scope for L.B by explicit phase intent (H-1). Grounding-verification (DEBT-018) and `_resolve_markdown`/backfill (DEBT-016/017, F9) are NOT reopened here unless L.B.6 surfaces them as a path failure.
 
 ---
 
@@ -57,9 +57,9 @@ L.B.1  chimera_tier + status vocabulary  🔴  ◄── LOAD-BEARING — must s
    │
    ├─────────────────────────────┬───────────────────────────────┐
    ▼                             ▼                                 │
-L.B.2a config slots + client   L.B.3  ascend_node + unified     (parallel-eligible
-L.B.2b wire filter→Haiku,             write path            🔴    after L.B.1)
-       extract→Sonnet + docstring 🟡
+L.B.2  externalize judgment    L.B.3  ascend_node + unified     (parallel-eligible
+       (strip MCP LLM calls;          write path            🔴    after L.B.1)
+       triage/extract skills) 🔴
    │                             │
    └─────────────┬───────────────┘
                  ▼
@@ -72,8 +72,8 @@ L.B.6  Verify + Rebuild (test-fix-confirm) 🔴
 seal (chimera-sprint-discipline phase_review + regenerate the L.B.5 diagram)
 ```
 
-- **L.B.1 precedes all.** L.B.2 (a/b) and L.B.3 are **parallel-eligible after L.B.1** (different files: L.B.2 = config/bootstrap/filter/extract; L.B.3 = vault write surface). L.B.4 needs L.B.1 (tier field) + L.B.3 (`ascend_node` for the e2e). **L.B.5 runs concurrently with L.B.4.** **L.B.6 requires L.B.1-L.B.4 complete.**
-- **Split analysis (process step 3):** phase-doc **L.B.2** → **L.B.2a** (config slots + Anthropic client path) + **L.B.2b** (wire the two call sites + fix `ingest_paper` docstring) — the config split is the design-bearing half; wiring is mechanical. All other phase-doc sprints map 1:1. No expansion beyond the phase manifest.
+- **L.B.1 precedes all.** L.B.2 and L.B.3 are **parallel-eligible after L.B.1** (different surfaces: L.B.2 = filter/extract primitives + new judgment skills; L.B.3 = vault write surface). L.B.4 needs L.B.1 (tier field) + L.B.3 (`ascend_node` for the e2e). **L.B.5 runs concurrently with L.B.4.** **L.B.6 requires L.B.1-L.B.4 complete.**
+- **No split (redesign 2026-07-21):** the phase-doc **L.B.2** ("model migration") was briefly split into L.B.2a (config slots + Anthropic client) + L.B.2b (wire call sites); that split was DELETED when the Anthropic-client-in-MCP approach was rejected. L.B.2 is now ONE 🔴 sprint that externalizes judgment out of the server. All other phase-doc sprints map 1:1.
 
 ---
 
@@ -123,78 +123,61 @@ Add an orthogonal `chimera_tier` frontmatter field ∈ `{scout, deep_read, harne
 
 ---
 
-## Sprint L.B.2a: Model config slots + Anthropic client path 🟡
+## Sprint L.B.2: Externalize judgment — MCP primitives + judgment skills 🔴
 
-**Friction reference:** H-1 (deepseek judgment where ST specifies Claude).
+**Friction reference:** H-1 (deepseek judgment inside the MCP server, where ST specifies Claude subagents); H-3 (`ingest_paper` over-promise).
 
-**Predecessor assumptions:** L.B.1 sealed. Independent of L.B.3.
+**Predecessor assumptions:** L.B.1 sealed. Parallel-eligible with L.B.3 (different surfaces).
 
-**Risk level:** 🟡 MED (config surface + one client path; design-bearing because it splits the single working slot).
+**Risk level:** 🔴 HIGH (moves judgment OUT of the MCP server; a new Claude Code skill per judgment path; touches Phase-Q-sealed `single_paper_extract.py`).
 
-### Objective
-Add distinct Haiku and Sonnet judgment slots to the config and a client-construction path that can target the Anthropic API — so downstream call sites can select different models per role instead of sharing the one `llm.working` slot.
-
-### Design points (audit-derived)
-- Today one slot feeds both judgment calls (F1): `build_openai_client(settings)` → `default_llm_model` = `llm.working.model` (`bootstrap.py:108-125`, `config.py:472-474`).
-- A stale anthropic slot exists (`config.py:190` = `claude-3-5-sonnet-20241022`, F2) — repurpose or add fresh `haiku`/`sonnet` slots. **Use current-generation ids per the `claude-api` skill (Haiku 4.5 / Sonnet 5), not the stale `claude-3-5-*` string.**
-- Anthropic uses a different base_url/key than deepseek's OpenAI-compatible endpoint — the client path must route Claude models to the Anthropic endpoint (or an OpenAI-compatible gateway if one is configured).
-- No hardcoded model strings in judgment code — models stay config-resolved (the F1 pattern is preserved, just multi-slot).
-
-### Task scope
-1. `config.py:174-190` — add/curate `haiku` + `sonnet` judgment slots with current model ids (consult `claude-api` skill) + base_url/key (~15 lines).
-2. `bootstrap.py:108-125` — a role-parameterized client builder (`build_client(role)` selecting the slot) alongside the existing `build_openai_client` (~15 lines); add the Anthropic endpoint path.
-
-### Acceptance
-- The config exposes resolvable `haiku` and `sonnet` slots with current ids; `bootstrap` can build a client for each.
-- No behavior change at call sites yet (that is L.B.2b) — this sprint is the substrate.
-
-### Red lines
-- ❌ Models stay config-resolved — no hardcoded model string in judgment code (phase-wide)
-- ❌ No new dependency; reuse the existing client stack / Anthropic SDK already available (phase-wide)
-- ❌ Thin adapter — slot logic in config/bootstrap, not in tool bodies
-- ❌ No opportunistic refactoring
-
-### Output location
-- Code: `mcp-servers/chimera-papers/core/config.py`, `mcp-servers/chimera-papers/.../bootstrap.py`
-- Tests: `tests/test_model_slots.py` (haiku/sonnet slots resolve)
-
----
-
-## Sprint L.B.2b: Wire filter→Haiku, extract→Sonnet + fix `ingest_paper` docstring 🟡
-
-**Friction reference:** H-1 (deepseek retired as judge); H-3 (`ingest_paper` over-promise).
-
-**Predecessor assumptions:** L.B.2a slots exist with the planned `build_client(role)` signature — re-plan trigger if it differs.
-
-**Risk level:** 🟡 MED (two call-site swaps + a docstring; mechanical once L.B.2a exists).
+### Redesign note (2026-07-21)
+Replaces the former L.B.2a (config slots + Anthropic client) + L.B.2b (wire call sites). Routing the MCP-internal LLM call from deepseek to an Anthropic client was WRONG: it keeps judgment inside the MCP server — the same architectural sin as the deepseek call. The server must make NO LLM call for any judgment path; judgment lives in Claude Code skills → subagents (the W1/W2 pattern). **The former L.B.2a commit (config slots + `build_client` + Anthropic endpoint path) must be reverted.**
 
 ### Objective
-Route `filter_service` (bulk triage classification/verdict) to Haiku and `single_paper_extract` (synthesis) to Sonnet, and correct the `ingest_paper` docstring so it stops claiming "Knowledge base"/"deep read" — it produces a scout-tier triage card.
+Remove ALL LLM judgment calls from the MCP server:
+- `filter_service` becomes a data-extraction primitive (no judgment).
+- `extract_paper` (`single_paper_extract`) becomes a markdown-return primitive (no judgment).
 
-### Design points (audit-derived)
-- `filter_service.py:45` = classification/verdict → Haiku (cheap bulk). `single_paper_extract.py:186,257-260` = synthesis → Sonnet.
-- deepseek MAY remain for cheap data extraction (e.g. citation parsing) but NOT for verdict/synthesis/classification — verify by grep after the swap.
-- `ingest_paper` docstring (`server.py:106,110,111,117`) — replace "into my Knowledge base" / deep-read framing with "scout-tier triage card"; keep the separate-deep-read-step pointer honest (F9).
+New Claude Code skills handle judgment via subagents:
+- `chimera-triage-paper` skill → Haiku subagent → triage verdict + scout K node.
+- `chimera-deep-extract` skill → Sonnet subagent → `KNodeExtraction` → staging.
+
+### Design points
+- `filter_service` → `analyze_paper_data(paper_id) → {markdown, metadata}`: no LLM call; returns the raw paper content for a skill to judge.
+- `extract_paper` → `get_paper_markdown(paper_id) → str`: no LLM call; returns markdown for a skill to synthesize.
+- `chimera-triage-paper` (new skill): call `analyze_paper_data` → spawn a Haiku subagent with criteria + paper data → subagent produces `PaperAnalysisResult` → `write_result` to `Harness/` (same pattern as W1: skill + subagent + write_result).
+- `chimera-deep-extract` (new skill, or extends existing): call `get_paper_markdown` → spawn a Sonnet subagent with lens + paper markdown → subagent produces `KNodeExtraction` → `create_staging_node` to `docs/staging/` (deep_read tier).
+- **These are Claude Code SKILLS (`.claude/skills/`), NOT MCP tools.** They follow the W1/W2 skill pattern exactly. The MCP server stays thin; judgment never enters it.
+- Grounding (`resolve_citations`), edge-minting, and `_render_node_body` currently live in `single_paper_extract`. L.B.2 decides which remain server-side DATA primitives the skill calls vs move into the subagent's instructions — the invariant is only that **no LLM call remains in the server**.
+- Docstring fix (carried from the former L.B.2b): rewrite `ingest_paper` (`chimera-papers/server.py:106-117`) to "scout-tier triage card via `chimera-triage-paper` skill; does NOT deep-read; requires a separate extract step." No "Knowledge base"/"deep read" claim.
 
 ### Task scope
-1. `filter_service.py:45` (+ its client construction via `batch_filter_workflow.py:120-122,189-190` / `daily_chimera_service.py:261`) — use the Haiku slot.
-2. `single_paper_extract.py:186,257-260` — use the Sonnet slot.
-3. `mcp-servers/chimera-papers/server.py:106-117` — rewrite the `ingest_paper` docstring (scout-tier triage card; no "Knowledge base"/"deep read").
+1. `filter_service.py` — strip the `generate_structured_data` / LLM call; return `{markdown, metadata}` (a data primitive). Update callers (`batch_filter_workflow.py` / `daily_chimera_service.py`) to the new contract.
+2. `single_paper_extract.py` — strip the LLM call (`_extract_node` / `generate_structured_data`); expose `get_paper_markdown(paper_id) → str`. Keep the staging-write path (edges/tier/supersede) callable for the skill's subagent output.
+3. `.claude/skills/chimera-triage-paper/` — NEW skill (W1/W2 pattern): `analyze_paper_data` → Haiku subagent → `PaperAnalysisResult` → `write_result`.
+4. `.claude/skills/chimera-deep-extract/` — NEW skill: `get_paper_markdown` → Sonnet subagent → `KNodeExtraction` → `create_staging_node` (deep_read tier).
+5. `chimera-papers/server.py:106-117` — rewrite the `ingest_paper` docstring (scout-tier triage card; no "Knowledge base"/"deep read").
+6. Revert the former L.B.2a commit (config slots + `build_client` + Anthropic endpoint path) — that code implements the rejected approach and must not remain.
 
 ### Acceptance
-- **HSC #2:** `grep` shows no deepseek in the `filter`/`extract` JUDGMENT paths; `filter_service` uses Haiku, `single_paper_extract` uses Sonnet.
+- **HSC #2 (restated):** `grep` shows zero `generate_structured_data` / LLM API calls in `filter_service.py` and `single_paper_extract.py`; no MCP-internal LLM call in ANY judgment path (verified over both server files).
+- `chimera-triage-paper` exists and produces a scout verdict via a Haiku subagent.
+- `chimera-deep-extract` exists and produces a staged `deep_read` node via a Sonnet subagent.
 - `ingest_paper`'s docstring makes no "Knowledge base"/"deep read" claim.
-- Existing filter/extract tests still pass with the new models (or are updated to assert the slot).
 
 ### Red lines
-- ❌ deepseek retired as a JUDGMENT model (verdict/synthesis/classification); cheap data-extraction use only, if any (phase-wide)
+- ❌ No LLM call of any kind inside `filter_service.py` or `single_paper_extract.py` (sprint-specific)
+- ❌ No Anthropic API client in the MCP server — judgment stays in the Claude Code world (phase-wide)
+- ❌ New skills follow the W1/W2 pattern: skill → subagent → MCP primitive write (sprint-specific)
 - ❌ `ingest_paper` docstring: scout-tier triage card, never "Knowledge base"/"deep read" (phase-wide)
-- ❌ No hardcoded model strings — use L.B.2a slots (phase-wide)
 - ❌ No opportunistic refactoring
 
 ### Output location
-- Code: `mcp-servers/chimera-papers/filter_service.py`, `.../single_paper_extract.py`, `.../server.py` (docstring), wiring in `batch_filter_workflow.py`/`daily_chimera_service.py`
-- Tests: extend `tests/test_model_slots.py` / existing filter+extract tests
+- Code: `mcp-servers/chimera-papers/filter_service.py`, `.../single_paper_extract.py`, `.../server.py` (docstring), callers in `batch_filter_workflow.py`/`daily_chimera_service.py`
+- Skills: `.claude/skills/chimera-triage-paper/`, `.claude/skills/chimera-deep-extract/`
+- Tests: filter/extract primitive tests (no-LLM-call assertions); skill smoke where feasible
+- Revert: the former L.B.2a commit (`f747de4`)
 
 ---
 
@@ -211,6 +194,7 @@ Add an `ascend_node` MCP tool (+ backing service) as the SOLE path into a new co
 
 ### Design points (audit-derived)
 - Build on the existing `promote_node` seed (`staging_service.py:104-121`: staging → vault, `status:=active`) — `ascend_node` generalizes it with tier validation for the `Knowledge/` destination.
+- STRUCTURAL GUARD: `promote_node` in `staging_service.py` currently has `_TYPE_DEST['knowledge']='Knowledge/'` which would let a direct `promote_node` call bypass `ascend_node`'s tier validation. Add a guard in `promote_node`: if `chimera_tier == 'deep_read'`, raise `ValueError('Knowledge/ writes require ascend_node')`. `ascend_node` calls `promote_node`'s write mechanics AFTER its own validation. This makes the sole-writer guarantee structural (code-enforced, not just by convention) without modifying `_TYPE_DEST` or breaking T/I/D paths.
 - `Knowledge/` is NEW (F5 — no writer targets it today), so "only `ascend_node` writes `Knowledge/`" is enforceable and testable from a clean baseline.
 - Scout tier stays put (Cross-Sprint red line): `ingest_paper`/`daily_pipeline` keep writing `scout` cards to `inbox/<verdict>/` (`vault_note_writer.py:40`); `ascend_node` governs only `inbox|staging → Knowledge/`.
 - Validation is the DEBT-018 backstop (reconciliation #6): substring-verify grounding quotes against source before ascension, or explicitly defer to DEBT-018 with a cited reason — do not pass blindly.
@@ -220,16 +204,19 @@ Add an `ascend_node` MCP tool (+ backing service) as the SOLE path into a new co
 1. An ascension service `ascend_node(identity|path)` — validate `chimera_tier=deep_read` + status + grounding, write to `Knowledge/`, record provenance/`supersedes` (~40 lines; reuse `promote_node`/`_unlink_superseded`).
 2. Thin `ascend_node` `@mcp.tool` in `chimera-vault/server.py` (~15 lines) with a WHEN/WHAT/CONTRAST docstring.
 3. A guard test asserting NO code path other than `ascend_node` writes under `Knowledge/`.
+4. `promote_node` guard: add tier-check in `staging_service.py:promote_node` — refuse if `chimera_tier=='deep_read'` with explicit 'use ascend_node' message (~5 lines). `ascend_node` delegates to `promote_node`'s write logic after passing validation.
 
 ### Acceptance
 - **HSC #3:** `ascend_node` promotes a `deep_read` node into `Knowledge/`; a non-deep_read tier is refused; a direct write to `Knowledge/` without `ascend_node` is impossible (test-asserted — no other writer targets it).
 - Scout cards still land in `inbox/` and are NOT auto-promoted.
+- A direct call to `promote_node` on a `deep_read` node raises rather than writing to `Knowledge/` — verified by test.
 
 ### Red lines
 - ❌ `ascend_node` is the ONLY writer of `Knowledge/` — code-enforced, not convention (sprint-specific: D3, HSC #3)
 - ❌ Only `chimera_tier=deep_read` ascends; scout stays in `inbox/`, never auto-promoted (phase-wide)
 - ❌ Reuse the Phase Q supersede/promote path — no new supersede logic (phase-wide)
 - ❌ Thin adapter — ascension logic in a domain module, not `server.py` (phase-wide)
+- ❌ `promote_node` MUST refuse `deep_read` nodes — the guard is what makes `ascend_node`'s sole-writer guarantee structural, not advisory (sprint-specific)
 - ❌ No opportunistic refactoring
 
 ### Output location
@@ -254,11 +241,11 @@ Close the deep-read arc: `extract_paper` surfaces a W1 offer on completion, and 
 - `vault_query.py:70-71` returns rows post-filter — add `chimera_tier` to the emitted dict (reconciliation #4; this is where the query-tier work belongs, not L.B.1).
 
 ### Task scope
-1. `single_paper_extract.py` — on completion, include a `w1_offer` hint (claim candidates) in the result (~10 lines).
+1. `chimera-deep-extract` skill — after `create_staging_node` completes, surface a `w1_offer` hint from `KNodeExtraction.claims` in the skill's completion return value (~5 lines in the skill's completion step). `extract_paper` (now `get_paper_markdown`) is a dumb primitive with no claim awareness; the offer belongs in the skill that produced the claims.
 2. `vault_query.py` — include `chimera_tier` in each result row (~5 lines).
 
 ### Acceptance
-- `extract_paper`'s result surfaces a W1 offer (a hint, not an auto-run).
+- `chimera-deep-extract` skill's completion surfaces a W1 offer (a hint, not an auto-run) drawn from `KNodeExtraction.claims`.
 - `vault_query` rows carry `chimera_tier`; a caller can filter deep_read vs scout.
 
 ### Red lines
@@ -350,7 +337,7 @@ Run the full four-path model end-to-end on real papers in one session; if any pa
 Violation in any sprint halts the batch:
 
 - ❌ **Nothing enters `Knowledge/` without `chimera_tier=deep_read` + `ascend_node`.** No exceptions. The scout tier (`inbox/`) stays as-is — NOT auto-promoted.
-- ❌ **deepseek is retired as a JUDGMENT model** (verdict/synthesis/classification). It may remain for cheap data extraction only.
+- ❌ **No LLM judgment call of any kind inside the MCP server.** deepseek is retired; an Anthropic API call from within MCP is equally forbidden. All judgment goes through Claude Code skills → subagents.
 - ❌ **`ingest_paper`'s docstring produces a "scout-tier triage card"** — never "Knowledge base" or "deep read".
 - ❌ **L.B.6 does not seal if ANY of the four paths fails silently.** Silent wrong behavior is worse than an error.
 - ❌ **The architecture diagram is code-generated, describing actual code** — not hand-drawn, not aspirational.
@@ -366,7 +353,7 @@ Violation in any sprint halts the batch:
 MUST Pass at phase_review:
 
 1. **(L.B.1)** A scout-tier K node and a deep_read-tier K node are machine-distinguishable: `chimera_tier` exists, status transitions are defined, and `vault_query` with `type=thought` returns T nodes.
-2. **(L.B.2)** `filter_service` uses Haiku; `single_paper_extract` uses Sonnet. No deepseek call in either judgment path — verified by grep.
+2. **(L.B.2)** No LLM call in MCP judgment paths. `grep` confirms zero `generate_structured_data` / LLM API calls in `filter_service.py` and `single_paper_extract.py`. Judgment lives in Claude Code subagents (`chimera-triage-paper` → Haiku; `chimera-deep-extract` → Sonnet). This matches the architecture principle: MCP = thin primitives, judgment = Claude Code.
 3. **(L.B.3)** `ascend_node` is the only path into `Knowledge/`. A direct file write to `Knowledge/` without `ascend_node` is impossible by code constraint.
 4. **(L.B.5)** The architecture diagram exists, is generated from code, shows model boundaries (Haiku/Sonnet/subagent), and matches code reality on all drift-audit-flagged items. Generated at seal time, committed.
 5. **(L.B.6 — the VISION gate)** Full end-to-end: `daily_pipeline` → scout K node; `extract_paper` → deep_read K node in staging; W1 on a real claim → harness verdict; W2 on 3 seeds → breadth map; `ascend_node` → deep_read node promoted to `Knowledge/`. All five in one session. No silent failures.
@@ -380,7 +367,7 @@ The user approves the whole sequence or rejects the whole sequence.
 Upon approval, hand off to `chimera-code-taste`:
 > "Execute batch for Phase L.B per `docs/plans/Phase-L.B-batch.md`."
 
-Gate notes: **L.B.1 must seal before L.B.2/L.B.3 begin** (load-bearing). **L.B.1 / L.B.3 / L.B.6 are 🔴** — gate their execution explicitly even after batch approval. L.B.2 (a/b) and L.B.3 are parallel-eligible after L.B.1; L.B.5 runs concurrently with L.B.4; L.B.6 requires L.B.1-L.B.4 complete.
+Gate notes: **L.B.1 must seal before L.B.2/L.B.3 begin** (load-bearing). **L.B.1 / L.B.2 / L.B.3 / L.B.6 are 🔴** — gate their execution explicitly even after batch approval. L.B.2 and L.B.3 are parallel-eligible after L.B.1; L.B.5 runs concurrently with L.B.4; L.B.6 requires L.B.1-L.B.4 complete.
 
 ---
 
