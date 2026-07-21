@@ -39,3 +39,17 @@ Every finding must satisfy the mandatory triple:
    doing real work (e.g. "swap the equation for its plain-language equivalent and check whether
    reported results change"). If the paper gives no way to test this and no ablation exists,
    treat the load-bearing claim as unverified and price it accordingly.
+
+## W1 epistemic translation
+
+When this lens runs inside W1/W2 verification, its signals become `[V]/[P]/[U]` tags per the canonical
+table in `docs/ARCHITECTURE/TAG_SYSTEM.md` §8 (Doubt-signal → tag) — reference it, do not restate a
+mapping:
+
+- signal `decorative-math` (the equation survives the deletion test; no ablation shows it matters)
+  → in W1 context, a **[U]** signal (the "formalism drives behavior" claim is unverified).
+- signal `mechanism-from-name` (a mechanism's function asserted from its name, the equation unread)
+  → in W1 context, a **[U]** signal (Tier-1/2 unread → direction unverifiable).
+
+A lens signal never sets a tag directly: it names the doubt; W1 assigns the tag via TAG_SYSTEM §8 +
+the §3–5 definitions.

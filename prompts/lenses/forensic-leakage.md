@@ -42,3 +42,19 @@ Every finding must satisfy the mandatory triple:
    the headline claim (e.g. "re-run under streaming evaluation with a held-out, third-party
    judge"). If no such test is stated or implied by the paper, the claim is unfalsifiable —
    report it as decoration, not as a validated result, and price it accordingly.
+
+## W1 epistemic translation
+
+When this lens runs inside W1/W2 verification, its analytical signals become `[V]/[P]/[U]` tags. The
+mapping is CANONICAL in `docs/ARCHITECTURE/TAG_SYSTEM.md` §8 (Doubt-signal → tag) — reference it; the
+two below are the load-bearing cases, not a private redefinition:
+
+- signal `experiment-design-leak` (asymmetric prompting / contamination / cherry-picked seeds)
+  → in W1 context, a **[P]** signal (partial, caveats required — the number stands, the "gain is
+  earned" inference is confounded).
+- signal `self-evaluation-only` (the judge model is the same family as the judged model)
+  → in W1 context, a **[U]** signal (unverifiable with available evidence — a self-graded score is a
+  mirror, not a measurement).
+
+A lens signal never sets a tag directly: it names the doubt; W1 assigns the tag via TAG_SYSTEM §8 +
+the §3–5 definitions.
