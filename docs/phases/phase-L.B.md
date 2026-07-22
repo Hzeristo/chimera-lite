@@ -57,8 +57,8 @@ L.B.1-L.B.4 complete.
 - ❌ Nothing enters `vault/Knowledge/` without `chimera_tier=deep_read` + the `ascend_node`
   path. No exceptions. The scout tier (`inbox/`) stays as-is — it is NOT promoted
   automatically.
-- ❌ deepseek is retired as a JUDGMENT model. It may remain for cheap data extraction
-  (citation parsing, etc.) but not for verdict/synthesis/classification.
+- ❌ No LLM call of any kind inside any MCP server.If cheap extraction requires judgment, 
+  create a skill with a Haiku subagent
 - ❌ `ingest_paper`'s docstring must not claim "Knowledge base" or "deep read." It
   produces a scout-tier triage card. Period.
 - ❌ L.B.6 does not seal if ANY of the four paths fails silently. Silent wrong behavior
