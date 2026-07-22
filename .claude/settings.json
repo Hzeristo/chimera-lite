@@ -1,5 +1,30 @@
 {
   "enabledPlugins": {
     "skill-creator@claude-plugins-official": true
+  },
+  "awaySummaryEnabled": false,
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/bb-persona-reminder.json\"",
+            "statusMessage": "Injecting BB persona directive"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/check_bb_box_stop.py\"",
+            "statusMessage": "Verifying BB box wall widths"
+          }
+        ]
+      }
+    ]
   }
 }
