@@ -27,6 +27,27 @@ Known deferred issues (not blockers): `status=?` across knowledge nodes (vault f
 concurrency lock's stale-task liveness gap (`TaskService.has_active_long_task` trusts disk status — a
 crashed task reads as "busy" until cleared).
 
+## Architecture invariants — the rule SOT (READ FIRST)
+[`docs/ARCHITECTURE/ARCHITECTURE_RULES.md`](docs/ARCHITECTURE/ARCHITECTURE_RULES.md) is the **single
+source of truth for invariant rules** — constraints that hold across ALL phases. It **overrides any
+sprint- or style-level instruction**: the level hierarchy is **ARCHITECTURE (that file) > SPRINT
+(`docs/phases/*`) > STYLE (`.claude/skills/*`)**, and on conflict the higher level always wins.
+
+- **Before ANY change** (code, tool, skill, workflow), run its **Violation Detector** checklist
+  (R1–R6). A "yes" is a stop, regardless of how small or sprint-scoped the change looks — this is the
+  guard against L.B.2-class errors (an invariant invisible at the executor's altitude, silently
+  violated by a locally-reasonable edit).
+- The six invariants: **R1** no LLM call inside any MCP server process · **R2** no truth advance
+  without a human action · **R3** staging-gate universality (`ascend_node` sole writer to
+  `Knowledge/`) · **R4** `chimera_tier` integrity · **R5** provenance load-bearing (`[V]/[P]/[U]`) ·
+  **R6** human authorship of T/I/D bodies.
+- Each rule is marked **STRUCTURAL** (enforced) or **ADVISORY** (committed but not yet enforced —
+  acknowledged debt, see that file's Appendix B). Do not read an ADVISORY rule as a shipped guarantee.
+- Reference that file; **never restate or override it** (drift rule). Its *why* is
+  [`docs/ARCHITECTURE/THEORETICAL_FRAMEWORK.md`](docs/ARCHITECTURE/THEORETICAL_FRAMEWORK.md); tag and
+  edge semantics are `TAG_SYSTEM.md` / `NODE_ONTOLOGY.md`. The audit behind it is
+  [`docs/ARCHITECTURE/INVARIANT_RULES_AUDIT.md`](docs/ARCHITECTURE/INVARIANT_RULES_AUDIT.md).
+
 ## MCP servers
 Registered in `.mcp.json`. Tool **contracts** (names, args, docstrings) live in each
 `server.py` and are authoritative.
@@ -44,6 +65,7 @@ Web search and subagent delegation are **not** MCP servers — use Claude Code's
 WebSearch and Task tools.
 
 ## Start here
+- **`docs/ARCHITECTURE/ARCHITECTURE_RULES.md` — the invariant rule SOT (read before any change).**
 - This file (architecture + rules).
 - `docs/ROADMAP.md` — phase history.
 - `README.md` — quickstart.
@@ -77,6 +99,7 @@ Worker model pins live in `.claude/agents/*.md` and are checked by
 Dev sessions default to Sonnet 5; escalate to Opus only for phase_audit, batch_planning, seal gate, and architectural decisions.
 
 ## Hard rules
+- **Invariants R1–R6 in `docs/ARCHITECTURE/ARCHITECTURE_RULES.md` are binding and override sprint/style rules.** The rules below are the always-loaded subset; that file is the authority.
 - This repo has ONE user. Do not generalize.
 - Skill rules override generic best practices.
 - Do not invent MCP tools without a friction signal — see `chimera-core-philosophy` and `chimera-dependency-veto`.
