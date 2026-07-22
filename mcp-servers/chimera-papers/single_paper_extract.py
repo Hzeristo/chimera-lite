@@ -23,6 +23,8 @@ import re
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
+import yaml
+
 from core.config import ChimeraConfig, get_config
 from core.schemas import KNodeExtraction, Paper
 from grounding import resolve_citations
@@ -31,7 +33,6 @@ from staging_service import StagingService
 logger = logging.getLogger(__name__)
 
 _ARXIV_ID_RE = re.compile(r"\d{4}\.\d{4,5}")
-_NONVAULT_DIRS = {".obsidian", ".migration_backup", "templates"}
 # Strip an LLM-supplied leading enumerator ("1.", "2)", "3:") so the renderer doesn't double it.
 _STEP_ENUM_RE = re.compile(r"^\s*\d+[.):]\s*")
 # Strip LLM-supplied leading 💥 markers (+ variation selectors) so the renderer doesn't double them.
@@ -57,19 +58,37 @@ def _cited_arxiv_ids(text: str, *, exclude: str) -> list[str]:
 
 
 def _find_superseded_stem(paper_id: str, vault_root: Path) -> str | None:
-    """Stem of an existing K node for this paper — the node the new one supersedes — or None.
-    Excludes ``.obsidian`` / ``.migration_backup`` / ``templates`` (same guard as grounding)."""
+    """Stem of the prior COMMITTED Knowledge node for this paper — the node a re-extraction
+    supersedes — or None.
+
+    Scans ONLY the committed ``Knowledge/`` tier (ascend_node's sole write target) and matches
+    on the frontmatter ``arxiv_id`` + ``type: knowledge``, never a filename-substring. Committed
+    K nodes are named by title slug (``_promote_write``), so the arxiv id is NOT in their stem —
+    while Harness/ verdicts and inbox/ scout cards DO carry it in their stems but are not supersede
+    targets. A bare ``self_id in path.stem`` match therefore both missed real prior nodes (theater)
+    and hit Harness/inbox artifacts, which ``_unlink_superseded`` would then delete on ascend."""
     self_id = _arxiv_id(paper_id)
-    if not vault_root.is_dir():
+    knowledge_dir = vault_root / "Knowledge"
+    if not knowledge_dir.is_dir():
         return None
-    for path in sorted(vault_root.rglob("*.md")):
+    for path in sorted(knowledge_dir.rglob("*.md")):
         try:
-            rel = path.relative_to(vault_root)
-        except ValueError:
+            raw = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError, LookupError):
             continue
-        if _NONVAULT_DIRS & set(rel.parts):
+        norm = raw.replace("\r\n", "\n").replace("\r", "\n")
+        m = re.match(r"^---\n(.*?)\n---", norm, re.DOTALL)
+        if not m:
             continue
-        if self_id in path.stem:
+        try:
+            fm = yaml.safe_load(m.group(1))
+        except yaml.YAMLError:
+            continue
+        if not isinstance(fm, dict):
+            continue
+        if str(fm.get("type", "")).strip().lower() != "knowledge":
+            continue
+        if str(fm.get("arxiv_id", "")).strip() == self_id:
             return path.stem
     return None
 

@@ -87,10 +87,11 @@ def _extraction(n: int = 1) -> KNodeExtraction:
     )
 
 
-def _k_node(path: Path, node_type: str = "knowledge") -> None:
+def _k_node(path: Path, node_type: str = "knowledge", arxiv_id: str | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    aid = f'arxiv_id: "{arxiv_id}"\n' if arxiv_id else ""
     path.write_text(
-        f'---\ntype: {node_type}\ntitle: "{path.stem}"\n---\n\n# {path.stem}\n',
+        f'---\ntype: {node_type}\n{aid}title: "{path.stem}"\n---\n\n# {path.stem}\n',
         encoding="utf-8",
     )
 
@@ -243,8 +244,12 @@ async def test_stage_deep_read_node_excludes_migration_backup(tmp_path: Path) ->
 
 
 async def test_supersede_edge_when_existing_node(tmp_path: Path) -> None:
+    # A re-extraction supersedes the PRIOR COMMITTED Knowledge/ node for the same paper,
+    # matched by frontmatter arxiv_id — committed nodes are named by title slug (_promote_write),
+    # so the id is NOT in the stem. The filename here is deliberately not the arxiv id, proving
+    # the match is on frontmatter, not the stem.
     vault = _make_vault(tmp_path)
-    _k_node(vault / "inbox" / "Skim" / "2305.16291-VOYAGER.md")
+    _k_node(vault / "Knowledge" / "ResNet_Residual_Learning.md", arxiv_id="2305.16291")
     staging = StagingService(tmp_path / "staging", vault)
     path = await stage_deep_read_node(
         paper_id="2305.16291",
@@ -253,7 +258,30 @@ async def test_supersede_edge_when_existing_node(tmp_path: Path) -> None:
         staging_service=staging,
     )
     fm, _ = _read_staged(path)
-    assert fm["graph_edges"]["supersedes"] == ["[[2305.16291-VOYAGER]]"]
+    assert fm["graph_edges"]["supersedes"] == ["[[ResNet_Residual_Learning]]"]
+
+
+async def test_supersede_ignores_non_knowledge_artifacts(tmp_path: Path) -> None:
+    # Regression (L.B.6 five-path e2e): a Harness/ W1 verdict and an inbox/ scout card BOTH carry
+    # the arxiv id in their filename stem, but neither is a committed Knowledge/ node — the scout
+    # card stays in inbox/ (ascend_node contract) and the Harness verdict is a result, not a prior
+    # extraction. The old bare `self_id in path.stem` match hit them; on ascend `_unlink_superseded`
+    # would then DELETE the W1 verdict. supersedes must stay empty when no committed node exists.
+    vault = _make_vault(tmp_path)
+    (vault / "Harness").mkdir(parents=True, exist_ok=True)
+    (vault / "Harness" / "w1_verdict__2305.16291-best-model.md").write_text(
+        "---\nkind: w1_verdict\n---\n\n# verdict\n", encoding="utf-8"
+    )
+    _k_node(vault / "inbox" / "Must_Read" / "2305.16291-STALE.md", arxiv_id="2305.16291")
+    staging = StagingService(tmp_path / "staging", vault)
+    path = await stage_deep_read_node(
+        paper_id="2305.16291",
+        extraction=_extraction(),
+        paper=_paper("2305.16291"),
+        staging_service=staging,
+    )
+    fm, _ = _read_staged(path)
+    assert fm["graph_edges"]["supersedes"] == []
 
 
 async def test_stage_deep_read_node_reports_progress(tmp_path: Path) -> None:
