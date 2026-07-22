@@ -75,7 +75,10 @@ async def vault_query(
             continue
 
         title = fm.get("title") or fm.get("short_moniker") or fm.get("arxiv_id") or path.stem
-        excerpt = f"type={fm.get('type', '?')}  status={fm.get('status', '?')}"
+        excerpt = (
+            f"type={fm.get('type', '?')}  tier={fm.get('chimera_tier', '?')}  "
+            f"status={fm.get('status', '?')}"
+        )
         results.append(f"- {title}\n  {path}\n  {excerpt}")
 
     if not results:

@@ -59,6 +59,14 @@ a deterministic grounding + render + write primitive; the server is never the ju
    staging-only — the Architect reviews and promotes via `ascend_node` (Phase L.B.3); this skill
    never auto-promotes.
 
+7. **Surface a W1 offer (hint only — L.B.4).** From the subagent's `KNodeExtraction.claims`,
+   surface a `w1_offer` in the completion report: the 1-3 mechanism claims most worth verbatim
+   verification (verbatim-checkable, load-bearing, contestable), each paired with its cited
+   source, phrased as *"Candidate for W1 verification: <claim> — run `chimera-w1-verify` if you
+   want it checked."* This is an OFFER the Architect may act on, never an auto-run — W1 stays
+   explicitly invoked. If `claims` is empty, say so and offer nothing. The offer draws ONLY on
+   claims the subagent already produced; do not mint new claims here.
+
 ## Red lines
 
 - ❌ The extraction judgment happens in the `chimera-deep-extractor` subagent — NEVER in the main
@@ -70,5 +78,6 @@ a deterministic grounding + render + write primitive; the server is never the ju
   inline criteria in this skill or the subagent prompt.
 - ❌ Edges are minted ONLY by `stage_deep_read_node`'s deterministic citation-resolution — the
   `chimera-deep-extractor` subagent proposes none; never accept an `edges` field from it.
-- ❌ No `w1_offer` step here — surfacing a W1 candidate-claim hint on completion is Phase L.B.4,
-  explicitly out of scope for this skill.
+- ❌ The `w1_offer` (step 7, L.B.4) is a HINT the Architect may act on — never an auto-run of W1,
+  and never a new claim: it draws only on claims the subagent already produced. W1 stays
+  explicitly invoked.
