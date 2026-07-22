@@ -36,7 +36,7 @@ it) *before* Gate 1 hardens monotonicity over a mis-defined input.
 
 Two load-bearing dependencies of this definition are **undefined anywhere else in the repo**:
 the **source-tier taxonomy** (`Tier1/2/3`) and the **split-scoring rule** ("99.8% = robust →
-number `[V]`, inference `[U]` — 两个分开算", tag.txt:22).
+number `[V]`, inference `[U]` — the two are scored separately", tag.txt:22).
 
 ---
 
@@ -191,7 +191,7 @@ from "drift" to "designed-not-yet-built" — and, crucially, makes the canonical
 - **Gate 1 (K.1)** = the monotonicity rule as a *structural refusal*: "artifact status ≤ weakest
   dependency … a [U]-dependent synthesis is structurally blocked" (`phase-K.md:52-55, :76`, HSC 1
   `:112-116`) — the code form of `tag.txt:51-55`. So `tag.txt` is effectively Phase K's Gate-1 formal
-  design (`tag.txt:48` names monotonicity "Gate1 的形式基础").
+  design (`tag.txt:48` names monotonicity "the formal basis of Gate 1").
 - The K.1 red line "**a gate is a structural refusal … schema rejects, status propagates**"
   (`phase-K.md:90-93`) is the *intended* fix for HIGH-3 (unvalidated `verdict: str`).
 - **Positive / forward-compat:** Phase L's `write_result` already records `depends_on` in frontmatter

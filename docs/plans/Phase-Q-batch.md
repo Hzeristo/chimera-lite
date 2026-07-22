@@ -76,32 +76,32 @@ seal (chimera-sprint-discipline phase_review)
 
 **Risk level:** 🟡 MED (code < 30 lines, schema-validated; design-bearing — the model IS the discipline).
 
-### 目标
+### Objective
 Define `KClaimExtraction` in `core/schemas.py` so a paper's claims are captured as 1–5 mechanism-level
 statements (no numbers), each with provenance and proposed citation-grounded edges — mirroring ARA's
 claim discipline, never its file format.
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - Reuse the existing pattern: `class KClaimExtraction(BaseModel)` + `model_config = ConfigDict(extra="forbid")` — audit ref: `schemas.py:69-72`.
 - Fields per claim (from `ara-repo-structure.md` Q1, minus reproduction): `statement` (mechanism, no run-numbers), `falsification`, `sources` (grounding-by-quote: `value ← «verbatim line»`), `status`, `tags`; plus lens `flags` from Decision 3 (`[no_ablation, math_decoration, result_ungrounded, …]`).
 - Top-level: `claims: list[…]` (1–5), `proposed_edges: list[{target_stem, edge_type, source_citation}]`, `provenance` default `ai-suggested`. NO I/T/D fields — audit ref: `phase-Q.md` HSC 4.
 
-### 任务范围
+### Task scope
 1. Add `KClaimExtraction` (+ any nested claim model) to `core/schemas.py` (~35 lines) — audit ref: Q1.1/Q1.2.
 2. `Field(description=…)` on every field (fed to the LLM via `model_json_schema()`) — audit ref: `filter_service.py:36`.
 
-### 验收
+### Acceptance
 - `KClaimExtraction.model_json_schema()` renders; `extra="forbid"` rejects unknown keys — verify via a unit test.
 - Name-deletion check in the test: a fixture claim whose `statement` names a recipe FAILS a lint assertion; a mechanism statement passes.
 - No field admits an I/T/D node.
 
-### 红线
+### Red lines
 - ❌ No numbers in `statement` (numbers live in `sources`/evidence) (phase-wide)
 - ❌ No new dependency; model lives in `schemas.py` only (sprint-specific)
 - ❌ No I/T/D fields (phase-wide)
-- ❌ 不进行机会主义重构
+- ❌ No opportunistic refactoring
 
-### 输出位置
+### Output locations
 - Code: `mcp-servers/chimera-papers/core/schemas.py`
 - Tests: `tests/test_kclaim_schema.py`
 - Docs: deferred to seal.
@@ -116,28 +116,28 @@ claim discipline, never its file format.
 
 **Risk level:** 🟡 MED (< 20 lines, must stay backward-compatible; has tests).
 
-### 目标
+### Objective
 Extend `create_staging_node` with an optional `metadata: dict | None` passthrough so a staged K node can
 carry provenance tags and a `grounded: no_prior_match` field — without breaking existing callers.
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - Current frontmatter is a fixed dict (`type/status/title/created_at/tags/graph_edges`) — audit ref: `staging_service.py:80-92`. Add `if metadata: fm.update(metadata)` after the fixed keys.
 - Signature: `create_staging_node(type, title, body, edges=None, metadata=None)`. Existing `create_node`/`link_nodes` callers pass nothing → unchanged — audit ref: `mcp-architecture-review.md` Q3.
 
-### 任务范围
+### Task scope
 1. Add `metadata` param + merge in `create_staging_node` (`staging_service.py:61-93`, ~8 lines).
 2. Optionally thread it through the `create_node` MCP tool (chimera-vault) IF Q.2b routes through it; else Q.2b calls `StagingService` directly (precedent: `scripts/seed_hsc3.py:84`) — decide in Q.2b.
 
-### 验收
+### Acceptance
 - `create_staging_node(..., metadata={"provenance":"ai-suggested","grounded":"no_prior_match"})` emits those frontmatter keys; `model` unchanged when `metadata=None` (byte-identical to today) — unit test.
 
-### 红线
+### Red lines
 - ❌ Must not change output for existing `metadata=None` callers (phase-wide: backward-compat)
 - ❌ No new frontmatter key when metadata absent (sprint-specific)
 - ❌ Still staging-only — no live-vault write (phase-wide)
-- ❌ 不进行机会主义重构
+- ❌ No opportunistic refactoring
 
-### 输出位置
+### Output locations
 - Code: `mcp-servers/chimera-papers/staging_service.py`
 - Tests: `tests/test_staging_metadata.py`
 
@@ -151,30 +151,30 @@ carry provenance tags and a `grounded: no_prior_match` field — without breakin
 
 **Risk level:** 🟡 MED (~40 lines; independently testable; the fabrication guard lives here).
 
-### 目标
+### Objective
 Given a paper's references/`related_work`, resolve each to an existing vault K node (arxiv-id / title) and
 return proposed `derives_from`/`contradicts` edges — matches only, never topic-guesses.
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - Seed via `VaultReadAdapter` / ripgrep over vault K nodes; **exclude `.migration_backup` + `templates`** (fix the reaudit Q2.2 gap — `query_graph` excludes only `.obsidian`, `vault_read_adapter.py:496`).
 - Resolution key = arxiv-id first, then title stem (Schema-A titles ARE the arxiv id, Scout-2). Return `{target_stem, edge_type: derives_from, source_citation}` per match; empty list ⇒ caller stages `no_prior_match`.
 - No LLM "similarity" — a match is a resolved citation, full stop (D3). Fabrication guard: `[[vault-graph-edges-empty]]`.
 
-### 任务范围
+### Task scope
 1. New `grounding.py` (`resolve_citations(references, vault_root) -> list[EdgeProposal]`, ~40 lines) — audit ref: Q2.2.
 2. Its own dir-exclusion set (`.obsidian`, `.migration_backup`, `templates`).
 
-### 验收
+### Acceptance
 - Given a references list containing an arxiv id present in the vault → returns a `derives_from` proposal to that stem; an id NOT in the vault → no proposal — unit test with fixtures.
 - Never returns a proposal for a `.migration_backup`/`templates` file.
 
-### 红线
+### Red lines
 - ❌ No topic/keyword "similarity" edges — resolved citations only (phase-wide: no fabrication)
 - ❌ Must exclude `.migration_backup` + `templates` (sprint-specific)
 - ❌ Read-only over the vault (phase-wide)
-- ❌ 不进行机会主义重构
+- ❌ No opportunistic refactoring
 
-### 输出位置
+### Output locations
 - Code: `mcp-servers/chimera-papers/grounding.py`
 - Tests: `tests/test_grounding.py`
 
@@ -189,37 +189,37 @@ return proposed `derives_from`/`contradicts` edges — matches only, never topic
 
 **Risk level:** 🔴 HIGH (> 50 lines, multiple files, stages a superseding node).
 
-### 目标
+### Objective
 Implement `extract_paper(paper_id)` end-to-end: reuse `source_md` (or MinerU for a new paper) → extract
 `KClaimExtraction` → ground edges via citation-resolution → stage ONE new Schema-C K node (provenance +
 edges or `no_prior_match`) that supersedes the paper's prior node on promotion.
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - Mirror `ingest_paper` wiring: thin `@mcp.tool` (`server.py`, gated by `_start_lock`/`has_active_long_task`) → `miner_tools.py` delegate → new `single_paper_extract.py` — audit ref: `Q.0.md` Q0.2, `single_paper_ingest.py:60-94`.
 - Markdown: if the paper's node has a valid `source_md`, READ it (no MinerU); else fetch+`ingest_to_papers` (reaudit Planner #2).
 - Extract: `generate_structured_data(system_prompt, user_prompt, response_model=KClaimExtraction)` (temp 0.01, 3-retry) — audit ref: `openai_compatible_client.py:163`. New `.j2` templates (system = a mechanism-claim/name-deletion persona; user injects `model_json_schema()` + paper text).
 - Stage: `create_staging_node(type="knowledge", …, edges=<grounded>, metadata={provenance, grounded})`; empty grounding ⇒ `metadata={"grounded":"no_prior_match"}`, edgeless. **Supersede (D1):** carry the paper identity; note `promote_node` same-identity-replace guard (`staging_service.py:95-111`).
 - Returns a **summary string** (isolation by construction; the caller never sees the markdown) — audit ref: `mcp-architecture-review.md` Q4.
 
-### 任务范围
+### Task scope
 1. `single_paper_extract.py` orchestration (~70 lines) — reuse source_md, extract, ground, stage.
 2. `extract_paper` delegate in `miner_tools.py` (~15 lines); thin `@mcp.tool` in `chimera-papers/server.py` (~12 lines).
 3. Two `.j2` templates under `prompts/` (system + task).
 4. `promote_node` same-identity-replace guard if absent (~10 lines) — records `supersedes`.
 
-### 验收
+### Acceptance
 - `extract_paper("2305.16291")` on a Schema-C node → stages ONE K node in `docs/staging/` with mechanism claims, ≥0 grounded edges (or `grounded: no_prior_match`), `provenance: ai-suggested`, and NO I/T/D file created.
 - The tool return is a summary string; `docs/staging/` shows the node; the live vault is untouched until promotion.
 - `server.py` stays a thin dispatcher (< 200-line spirit).
 
-### 红线
+### Red lines
 - ❌ No I/T/D node ever written (phase-wide HSC 4)
 - ❌ No fabricated edge — Q.2a proposals only; no match ⇒ `no_prior_match` edgeless (phase-wide)
 - ❌ Staging-only; never auto-promote into the vault (phase-wide)
 - ❌ No new MCP server / dependency; `.mcp.json` stays 2 (phase-wide)
-- ❌ 不进行机会主义重构
+- ❌ No opportunistic refactoring
 
-### 输出位置
+### Output locations
 - Code: `mcp-servers/chimera-papers/{single_paper_extract.py, miner_tools.py, server.py, staging_service.py}`, `prompts/…`
 - Tests: `tests/test_extract_paper.py`
 
@@ -233,26 +233,26 @@ edges or `no_prior_match`) that supersedes the paper's prior node on promotion.
 
 **Risk level:** 🟢 LOW (test-only).
 
-### 目标
+### Objective
 Prove the discipline holds on real inputs: mechanism-level claims, grounding-only edges, provenance
 present, zero I/T/D — across all three vault K-node schemas.
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - Fixtures MUST cover Schema **A** (`score:"9/10"` string, no `arxiv_id`, no edges), **B** (`arxiv_id`+stale `source_md`), **C** (full + empty scaffold), and a duplicate-migration pair (`Memp` C vs `v2` A) — audit ref: reaudit Q3.1 (Scout-2).
 - Assert name-deletion on emitted `statement`s; assert every edge traces to a Q.2a citation proposal; assert no `Insight/Thought/Decision` file written.
 
-### 任务范围
+### Task scope
 1. `tests/test_extract_discipline.py`: 5 K-node fixtures (A×2, B×1, C×2) — run `extract_paper`, assert claims mechanism-level, edges grounding-only, provenance set, no I/T/D.
 
-### 验收
+### Acceptance
 - All 5 fixtures pass the four assertions; a deliberately recipe-named `statement` fixture FAILS (guard works).
 
-### 红线
+### Red lines
 - ❌ No production code changes in this sprint (test-only) (phase-wide)
 - ❌ Fixtures must include all three schemas (sprint-specific)
-- ❌ 不进行机会主义重构
+- ❌ No opportunistic refactoring
 
-### 输出位置
+### Output locations
 - Tests: `tests/test_extract_discipline.py`
 
 ---
@@ -265,27 +265,27 @@ present, zero I/T/D — across all three vault K-node schemas.
 
 **Risk level:** 🟡 MED (runs LLM extraction on 13 real papers; writes to `docs/staging/` only, review-gated).
 
-### 目标
+### Objective
 Run `extract_paper` on the 13 named Schema-C nodes (reusing `source_md`, no MinerU) and stage a superseding
 K node for each, so every one carries ≥1 grounded edge OR an explicit `no_prior_match`.
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - The 13 nodes are enumerated in `Q.0-reaudit.md` / Scout-2 (VOYAGER, AWM, Memp, Skill-Pro, LiveEvo, MemTransfer, DIA, WORLDEVOLVER, AutoMem, ReContext, IterativeVibecoding, FLOORPLANVLM, MapTrace).
 - Batch via the async twin + `asyncio.gather` if serial is slow — audit ref: `optics_service.py:168`. No GPU (source_md reuse).
 - Do NOT touch the ~379 Schema-A/B nodes (D2 scope) — their migration is a later effort.
 
-### 验收
+### Acceptance
 - 13 staged K nodes appear in `docs/staging/`; each has ≥1 `derives_from`/`contradicts` edge to a real prior vault K node OR `grounded: no_prior_match`; zero fabricated (each edge traces to a citation).
 - Zero I/T/D nodes created; the live vault untouched (all in staging, awaiting the Architect's review).
 
-### 红线
+### Red lines
 - ❌ Only the 13 Schema-C nodes — do NOT process Schema-A/B (sprint-specific: D2 scope)
 - ❌ No MinerU re-conversion (reuse `source_md`) (sprint-specific)
 - ❌ No fabricated edges; `no_prior_match` when citations don't resolve (phase-wide)
 - ❌ Staging-only; the Architect promotes (phase-wide)
-- ❌ 不进行机会主义重构
+- ❌ No opportunistic refactoring
 
-### 输出位置
+### Output locations
 - Artifacts: `docs/staging/*.md` (13 nodes, awaiting review)
 - Verify log: seal notes
 

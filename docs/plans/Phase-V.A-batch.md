@@ -71,12 +71,12 @@ core makes it possible. This phase builds the consumption layer"). Scope is now
 - Read-only verification + doc authoring only. NO vault writes — user deploys `Tpl_*.md`
   by hand.
 
-### 目标
+### Objective
 Confirm `VaultNoteWriter` renders the spec-aligned `.j2` templates to valid frontmatter,
 and document the authoritative K/T/I/D schema + edge names as the canonical reference.
 Vault `templates/` deployment is **user-performed manually** outside this sprint.
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - Spec edge names (`derives_from`, `supersedes`, `contradicts`, `dead_ends`,
   `synthesizes`, `depends_on`) are authoritative — migration already enforced them;
   the legacy Tpl_ names (`derived_from`, `promoted_to_insight`, …) are superseded —
@@ -90,7 +90,7 @@ Vault `templates/` deployment is **user-performed manually** outside this sprint
   the already-staged `.j2` templates produce valid YAML frontmatter at the writer level.
 - Decision template is greenfield (D folder empty, no `Tpl_decision` legacy) — audit Q10.
 
-### 任务范围
+### Task scope
 1. Render smoke: verify `write_knowledge_node` + `write_deep_read_node` produce frontmatter
    with spec edge names against the staged `.j2` templates — no source change expected,
    grep/render-check only (`vault_note_writer.py:31-45,47-74`) — audit Q5/Q6.
@@ -98,22 +98,22 @@ Vault `templates/` deployment is **user-performed manually** outside this sprint
    authoritative edge-name table, immutability/append-only contract, note on manual
    vault `templates/` deployment procedure — `phase-V.A.md:85-112`.
 
-### 验收
+### Acceptance
 - `write_knowledge_node` render smoke produces frontmatter whose edge keys match spec set;
   `Select-String` for legacy names returns 0 hits in rendered output.
 - `NODE_ONTOLOGY.md` exists with authoritative edge-name table; no spec divergence remains.
 - *(Out of sprint scope — user action)* Vault `templates/` populated with new `Tpl_*.md`
   before V.A.6 E2E smoke.
 
-### 红线
+### Red lines
 - ❌ NO agent writes to vault `templates/` — deployment is manual (user clarification 2026-06-15).
 - ❌ NO new edge-name set — spec names decided by migration; do not re-litigate.
 - ❌ NO Obsidian plugin dependency — Templater templates are plain `.md` (phase-wide).
-- ❌ 不进行机会主义重构 — do not refactor `VaultNoteWriter`.
+- ❌ No opportunistic refactoring — do not refactor `VaultNoteWriter`.
 
-### 输出位置
-- 代码: none (render smoke is read-only verification)
-- 文档: `docs/ARCHITECTURE/NODE_ONTOLOGY.md` (new)
+### Output locations
+- Code: none (render smoke is read-only verification)
+- Docs: `docs/ARCHITECTURE/NODE_ONTOLOGY.md` (new)
 
 ## Sprint V.A.2a: Pipeline result enrichment — real paper data in task result text
 
@@ -126,11 +126,11 @@ synthesizes Final from terse summary string, not real per-paper data. ACTIVE.
 **Risk level:** 🟡 MED
 - Single-file change, ~15 lines, has a clear before/after assertion target.
 
-### 目标
+### Objective
 Enrich the daily-pipeline task-completion text so the agent's Final synthesis lists
 real paper titles + scores, replacing the aggregate-counts-only summary string.
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - Per-paper data already exists in-memory at pipeline end: `stats.must_read_items`
   with `.score / .id / .filename / .short_moniker / .title / .novelty` — confirmed
   `daily_chimera_service.py:267,270-308` (today consumed ONLY by `_render_daily_report`
@@ -173,11 +173,11 @@ synthesizes Final from terse summary string, not real per-paper data. ACTIVE.
 **Risk level:** 🟡 MED
 - Single-file change, ~15 lines, has a clear before/after assertion target.
 
-### 目标
+### Objective
 Enrich the daily-pipeline task-completion text so the agent's Final synthesis lists
 real paper titles + scores, replacing the aggregate-counts-only summary string.
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - Per-paper data already exists in-memory at pipeline end: `stats.must_read_items`
   with `.score / .id / .filename / .short_moniker / .title / .novelty` — confirmed
   `daily_chimera_service.py:267,270-308` (today consumed ONLY by `_render_daily_report`
@@ -189,7 +189,7 @@ real paper titles + scores, replacing the aggregate-counts-only summary string.
 - `_render_daily_report`'s title-building logic (`:276-281`: `short_moniker` → `paper_id+moniker`
   → `legacy_title` → `paper_id`) is the canonical title derivation — reuse it, do not re-
 
-### 任务范围
+### Task scope
 1. Extract a shared `_collect_must_read_lines(stats) -> list[str]` (or equivalent) that
    reuses the existing title-derivation, so both Telegram render and task summary draw from
    one source (`daily_chimera_service.py`, ~10 lines) — audit Q11, Cross-finding §3.
@@ -197,23 +197,23 @@ real paper titles + scores, replacing the aggregate-counts-only summary string.
    `run_daily_pipeline_with_stage_events` (and, for parity, sync `run_daily_pipeline`)
    (`daily_chimera_service.py:249-255,152-158`, ~5 lines) — audit Q11.
 
-### 验收
+### Acceptance
 - A completed pipeline with ≥1 must_read paper produces a task result string containing
   the actual paper titles, not just `must_read={n}` — verifiable via unit test asserting
   title substring in the returned summary.
 - `_render_daily_report` Telegram output byte-identical to before (shared helper must not
   alter the Telegram path) — verifiable via existing Telegram render test / snapshot.
 
-### 红线
+### Red lines
 - ❌ NO modification of existing vault notes (phase-wide).
 - ❌ NO change to TaskService schema in this sprint (deferred consideration → V.A.2b).
 - ❌ NO change to Telegram HTML output — shared helper is render-neutral.
-- ❌ 不进行机会主义重构 — do not refactor the pipeline staging/progress logic.
+- ❌ No opportunistic refactoring — do not refactor the pipeline staging/progress logic.
 
-### 输出位置
-- 代码: `crucible_core/src/crucible/services/daily_chimera_service.py`
-- 测试: `tests/crucible/services/test_daily_chimera_service.py` (summary-content assertion)
-- 文档: 推迟至 V.A.6 统一更新
+### Output locations
+- Code: `crucible_core/src/crucible/services/daily_chimera_service.py`
+- Tests: `tests/crucible/services/test_daily_chimera_service.py` (summary-content assertion)
+- Docs: deferred to V.A.6, updated together
 
 ---
 
@@ -232,11 +232,11 @@ lack file paths; frontend can't link to vault/MD notes from BB replies. ACTIVE.
   `ToolOutput` round-trip through a `str`-typed task bus. No existing test harness for the
   completed-task artifact path. **Requires explicit per-sprint approval before execution.**
 
-### 目标
+### Objective
 Make a completed daily pipeline surface a `ToolOutput` with one `Artifact` per must_read
 paper through `check_task_status`, so BB replies carry vault/MD-file chips (FC.2 chip pat
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - **Structural blocker confirmed (NOT in audit — found during planning):** `TaskService`
   has NO artifact channel. `Task.result: str | None` (`task_service.py:44`); `run_task`
   accepts `Awaitable[str]` (`task_service.py:353`); `TaskEvent` carries no artifacts. The
@@ -258,7 +258,7 @@ mpleted result as `ToolOutput`; on success returns the `ToolOutput`
   for the launch call is immutable and predates completion. Artifacts must ride the
   status-poll/await-completion result, not the launch return — audit Q13, Cross-ref.
 
-### 任务范围
+### Task scope
 1. Build `ToolOutput` at pipeline end: `_collect_pipeline_artifacts(stats) -> list[Artifact]`
    constructs one `Artifact` per must_read item using the vault note path written by
    `write_knowledge_node` (path resolved as `inbox_folder / verdict / {fancy_basename}.md`
@@ -273,7 +273,7 @@ mpleted result as `ToolOutput`; on success returns the `ToolOutput`
    → return `ToolOutput`; `ValidationError`/JSON error → return `[Task Completed] {body}`
    string as today (`miner_tools.py:143-145`, ~10 lines) — audit Q13.
 
-### 验收
+### Acceptance
 - Completed pipeline → `check_task_status` returns a `ToolOutput` whose `artifacts` list
   one entry per must_read paper, each with a resolvable MD `path` + `{arxiv_id, verdict,
   score}` metadata — verifiable via unit test on a stubbed completed task.
@@ -281,18 +281,18 @@ mpleted result as `ToolOutput`; on success returns the `ToolOutput`
   legacy `[Task Completed] …` string (no regression) — verifiable via unit test.
 - Phase sealing #2: BB reply after pipeline lists real titles — verifiable at V.A.6 E2E.
 
-### 红线
+### Red lines
 - ❌ NO widening of `Task` / `TaskEvent` schema — serialization path only (sprint-specific).
 - ❌ NO artifact path that re-parses the human display string — build from `stats`, not text
    (audit Cross-finding §3 explicitly warns against string re-parse).
 - ❌ NO modification of existing vault notes (phase-wide).
-- ❌ 不进行机会主义重构 — do not refactor TaskService or the IV.A await path.
+- ❌ No opportunistic refactoring — do not refactor TaskService or the IV.A await path.
 
-### 输出位置
-- 代码: `crucible_core/src/crucible/services/daily_chimera_service.py`,
+### Output locations
+- Code: `crucible_core/src/crucible/services/daily_chimera_service.py`,
   `crucible_core/src/oligo/tools/miner_tools.py`
-- 测试: `tests/oligo/tools/test_miner_tools.py` (ToolOutput parse + legacy fallback)
-- 文档: 推迟至 V.A.6 统一更新
+- Tests: `tests/oligo/tools/test_miner_tools.py` (ToolOutput parse + legacy fallback)
+- Docs: deferred to V.A.6, updated together
 
 ---
 
@@ -310,11 +310,11 @@ mechanism (L2 philosophy) that the consumption layer requires before V.A.4 can w
 - Greenfield service + lifecycle, >3 files / >30 lines, no prior convention to anchor.
   **Requires explicit per-sprint approval before execution.**
 
-### 目标
+### Objective
 Build the `docs/staging/` PENDING_REVIEW → PROMOTED / REJECTED protocol and a Python
 `StagingService` (create / promote / reject) operating on candidate `.md` node files.
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - Fully greenfield: `docs/staging/` does not exist; no PENDING_REVIEW lifecycle, no promo
   reject mechanism, no candidate format anywhere in repo — audit Q14, Cross-ref (`grep
   PENDING_REVIEW|staging → 0 hits`).
@@ -331,7 +331,7 @@ Build the `docs/staging/` PENDING_REVIEW → PROMOTED / REJECTED protocol and a 
 - Astrocyte exposure is V.A.4; this sprint is backend protocol + service + tests only,
   callable headless.
 
-### 任务范围
+### Task scope
 1. Author staging protocol doc: directory layout, candidate frontmatter contract, lifecycle
    state machine, promote-destination-by-type mapping (`docs/staging/README.md` or
    `docs/ARCHITECTURE/STAGING_PROTOCOL.md`, new) — audit Q14.
@@ -342,24 +342,24 @@ Build the `docs/staging/` PENDING_REVIEW → PROMOTED / REJECTED protocol and a 
    flips status, writes to vault, removes staging file; `reject_node(staging_path)` — deletes
    candidate (~30 lines) — `phase-V.A.md:73-74`.
 
-### 验收
+### Acceptance
 - `create_staging_node(type="thought", …)` produces a `docs/staging/*.md` with
   `status: PENDING_REVIEW` and spec edge fields — verifiable via unit test reading frontmatter.
 - `promote_node(path)` writes the node under the correct vault subfolder with active status
   and removes the staging file; `reject_node(path)` removes the staging file — verifiable
 
-### 红线
+### Red lines
 - ❌ NO automatic promotion — create lands at PENDING_REVIEW only; promote is explicit
   (phase-wide, `phase-V.A.md:46`).
 - ❌ NO modification of existing vault notes — promote writes NEW files only (phase-wide).
 - ❌ NO staging in the vault — candidates live in repo `docs/staging/`, not in vault_root
   (sprint-specific).
-- ❌ 不进行机会主义重构.
+- ❌ No opportunistic refactoring.
 
-### 输出位置
-- 代码: `crucible_core/src/crucible/services/staging_service.py` (new)
-- 测试: `tests/crucible/services/test_staging_service.py`
-- 文档: `docs/ARCHITECTURE/STAGING_PROTOCOL.md` (this sprint — protocol must exist to anchor)
+### Output locations
+- Code: `crucible_core/src/crucible/services/staging_service.py` (new)
+- Tests: `tests/crucible/services/test_staging_service.py`
+- Docs: `docs/ARCHITECTURE/STAGING_PROTOCOL.md` (this sprint — protocol must exist to anchor)
 
 ---
 
@@ -377,7 +377,7 @@ payoff. ACTIVE (mechanism-level).
 - Cross-stack: Python HTTP endpoints + Rust Tauri commands + Svelte panel, >3 files.
   **Requires explicit per-sprint approval before execution.**
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - Only one vault-facing Tauri command exists today: `open_vault_note` (`lib.rs:1149-1188`),
   which validates via `vault_contains_path` (`lib.rs:1117-1147`, traversal + canonicalize
   guard) then opens an `obsidian://` URI. No `create_note`/`write_note`/`staging` commands —
@@ -390,11 +390,11 @@ payoff. ACTIVE (mechanism-level).
 - "Create candidate Thought Node from hovered BB message" → `create_staging_node`; staging
   panel lists PENDING_REVIEW candidates with promote/reject — `phase-V.A.md:32`.
 
-### 目标
+### Objective
 Wire hover-BB-message → create candidate Thought node in staging, and a staging panel wit
 promote/reject, via three new Tauri commands backed by V.A.3's StagingService.
 
-### 任务范围
+### Task scope
 1. Backend HTTP endpoints wrapping `StagingService` create/promote/reject (FastAPI route
    module in `crucible_core`, ~30 lines) — audit Q13.
 2. Three Tauri commands `create_staging_node` / `promote_node` / `reject_node` alongside
@@ -403,7 +403,7 @@ promote/reject, via three new Tauri commands backed by V.A.3's StagingService.
 3. Svelte staging panel: hover-message → create action; PENDING_REVIEW list with
    promote/reject buttons (`astrocyte/src/…`, component + invoke wiring) — `phase-V.A.md:32`.
 
-### 验收
+### Acceptance
 - Hovering a BB message and triggering "create node" yields a PENDING_REVIEW candidate in
   `docs/staging/` — verifiable via manual flow (sealing #3).
 - Staging panel lists candidates; Promote moves to vault + removes from panel; Reject deletes
@@ -411,17 +411,17 @@ promote/reject, via three new Tauri commands backed by V.A.3's StagingService.
 - Path arguments crossing the Tauri boundary pass `vault_contains_path` (no traversal) —
   verifiable via Rust unit test on the guard with `..` input.
 
-### 红线
+### Red lines
 - ❌ NO Tauri-side file write that bypasses the backend StagingService (sprint-specific).
 - ❌ NO automatic promotion — UI promote is an explicit user click (phase-wide).
 - ❌ NO modification of existing vault notes (phase-wide).
-- ❌ 不进行机会主义重构 — no refactor of `open_vault_note` or `AstrocyteState`.
+- ❌ No opportunistic refactoring — no refactor of `open_vault_note` or `AstrocyteState`.
 
-### 输出位置
-- 代码: `crucible_core/src/…` (HTTP routes), `astrocyte/src-tauri/src/lib.rs`,
+### Output locations
+- Code: `crucible_core/src/…` (HTTP routes), `astrocyte/src-tauri/src/lib.rs`,
   `astrocyte/src/…` (Svelte panel)
-- 测试: Rust guard unit test; manual flow checklist for the cross-stack path (deferred to V.A.6)
-- 文档: 推迟至 V.A.6 统一更新
+- Tests: Rust guard unit test; manual flow checklist for the cross-stack path (deferred to V.A.6)
+- Docs: deferred to V.A.6, updated together
 
 ---
 
@@ -441,11 +441,11 @@ frontmatter query the substrate for daily research retrieval — "grep, not sear
 - New tool + ripgrep subprocess + frontmatter parse + ToolRegistry registration, >30 lines.
   **Requires explicit per-sprint approval before execution.**
 
-### 目标
+### Objective
 Add a `vault_query(type?, status?, linked_to?)` tool that ripgreps vault frontmatter and
 returns matching notes' title + path + frontmatter excerpt in <2s on ~1000 notes.
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - Dumb-but-fast by mandate: ripgrep over frontmatter YAML, no DB, no index file, no daemo
   no ranking, no embedding — `phase-V.A.md:50-51,127-132`.
 - Query SPEC edge names — migration made these authoritative; audit Q3 confirms 0 legacy
@@ -459,14 +459,14 @@ returns matching notes' title + path + frontmatter excerpt in <2s on ~1000 notes
   inbox triage dumps; they will never match `type=*` queries. vault_query is correct to
   ignore them; the plan must NOT scope inbox migration (`phase-V.A.md` out-of-scope).
 
-### 任务范围
+### Task scope
 1. `vault_query` tool fn: build ripgrep args from `type/status/linked_to`, run subprocess
    over vault_root, parse matched files' frontmatter, return title+path+excerpt (new tool
    module under `crucible_core/src/oligo/tools/`, ~40 lines) — audit Q3, `phase-V.A.md:33`.
 2. Register in `ToolRegistry` with `ToolSpec` (concurrency_safe=True, long_running=False,
    args_schema, examples) (`oligo/tools/registry.py`, ~15 lines) — Cross-ref.
 
-### 验收
+### Acceptance
 - `vault_query(type="knowledge")` returns the deep-read/knowledge notes with title + path +
   frontmatter excerpt — verifiable via live query against the real vault.
 - `vault_query(type="thought", status="dead_end")` filters correctly on the migrated spec
@@ -474,17 +474,17 @@ returns matching notes' title + path + frontmatter excerpt in <2s on ~1000 notes
 - Latency <2s on current vault (400 notes; target spec is 1000) — verifiable via timed run
   (sealing #4).
 
-### 红线
+### Red lines
 - ❌ NO SQLite / index file / daemon / embedding / vector search (phase-wide,
   `phase-V.A.md:44,50-51`).
 - ❌ NO ranking or relevance scoring — raw matches only (sprint-specific).
 - ❌ NO migration of inbox notes to make them queryable (out-of-scope, Cross-finding §4).
-- ❌ 不进行机会主义重构 — do not touch `search_vault` / `search_vault_attribute`.
+- ❌ No opportunistic refactoring — do not touch `search_vault` / `search_vault_attribute`.
 
-### 输出位置
-- 代码: `crucible_core/src/oligo/tools/vault_query.py` (new), `oligo/tools/registry.py`
-- 测试: `tests/oligo/tools/test_vault_query.py` (filter construction + parse + latency smoke)
-- 文档: 推迟至 V.A.6 统一更新
+### Output locations
+- Code: `crucible_core/src/oligo/tools/vault_query.py` (new), `oligo/tools/registry.py`
+- Tests: `tests/oligo/tools/test_vault_query.py` (filter construction + parse + latency smoke)
+- Docs: deferred to V.A.6, updated together
 
 ---
 
@@ -501,11 +501,11 @@ verify Hard Sealing Conditions and produce the phase contract.
 - Doc + manual E2E + state-file updates; no new production code. (State-file writes to
   ROADMAP/ACCEPTED_PARTIALS/TECHNICAL_DEBT happen under phase_review `<state_write_author
 
-### 目标
+### Objective
 Produce the V.A FINAL_CONTRACT doc, run the E2E smoke verifying all five Hard Sealing
 Conditions, and run phase_review to seal Phase V.A.
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - Five Hard Sealing Conditions carried from `phase-V.A.md:61-81` (templates, structured
   output, staging flow, vault_query latency, node-ratio — ratio verified at review, not
   sprint level).
@@ -514,26 +514,26 @@ Conditions, and run phase_review to seal Phase V.A.
 - Sealing #2 (BB reply lists real titles) exercises V.A.2a+V.A.2b end-to-end; #3 exercises
   V.A.3+V.A.4; #4 exercises V.A.5.
 
-### 任务范围
+### Task scope
 1. Author `docs/FINAL_CONTRACT/V.A-final-contract.md` (or phase-conventional location):
    what each sprint delivered, accepted partials, sealing-condition verification results.
 2. Author + execute `docs/audits/V.A.6-e2e-smoke.md` manual checklist covering sealing #1–#4.
 3. Run phase_review: propose ROADMAP / ACCEPTED_PARTIALS / TECHNICAL_DEBT diffs; seal on
 
-### 验收
+### Acceptance
 - All five sealing conditions recorded PASS (or documented accepted-partial) in the contract.
 - E2E smoke checklist executed with results logged.
 - ROADMAP V.A row moves to Sealed with commit refs (under phase_review authority).
 
-### 红线
+### Red lines
 - ❌ NO new production code in the seal sprint (sprint-specific).
 - ❌ NO automated E2E harness (chimera-dependency-veto; ACCEPTED_PARTIALS FC.6.1 precedent).
 - ❌ NO modification of existing vault notes (phase-wide).
-- ❌ 不进行机会主义重构.
+- ❌ No opportunistic refactoring.
 
-### 输出位置
-- 文档: `docs/FINAL_CONTRACT/V.A-final-contract.md`, `docs/audits/V.A.6-e2e-smoke.md`
-- 状态: ROADMAP.md / ACCEPTED_PARTIALS.md / TECHNICAL_DEBT.md (phase_review auto-apply)
+### Output locations
+- Docs: `docs/FINAL_CONTRACT/V.A-final-contract.md`, `docs/audits/V.A.6-e2e-smoke.md`
+- Status: ROADMAP.md / ACCEPTED_PARTIALS.md / TECHNICAL_DEBT.md (phase_review auto-apply)
 
 ---
 
@@ -556,7 +556,7 @@ V.A.md:46`.
   `phase-V.A.md:58-59`.
 - ❌ Do NOT generalize for multiple users; do NOT add SaaS-shaped abstractions
   (chimera-core-philosophy, CLAUDE.md hard rule).
-- ❌ 不进行机会主义重构 in any sprint.
+- ❌ No opportunistic refactoring in any sprint.
 
 ---
 

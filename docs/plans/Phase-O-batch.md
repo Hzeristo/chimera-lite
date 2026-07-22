@@ -104,11 +104,11 @@ Obsidian templates don't render.
 **Risk level:** 🟡 MED (doc-only, but **decision-bearing**) — the canonical vocab defines what the
 user's vault renders; it needs user sign-off before any code emits it. No code risk.
 
-### 目标
+### Objective
 Reconcile the two divergent K/T/I/D typed-edge vocabularies into one authored authority doc
 `docs/ARCHITECTURE/NODE_ONTOLOGY.md`, resolving every per-key divergence with a stated rule.
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - **Reconcile two families, do not silently pick one.** Code family (`staging_service.py:12-16` +
   `obsidian_tpl/*.j2`, internally consistent) vs user-synced vault `Tpl_*.md`. Known divergences
   (audit Q4): decision → code `depends_on` vs Tpl `derives_from`+`drives_decision`; thought → code
@@ -122,26 +122,26 @@ Reconcile the two divergent K/T/I/D typed-edge vocabularies into one authored au
   `NODE_ONTOLOGY.md` never migrated). This becomes the single source O.1b's `_TYPE_EDGES` mirrors.
   Audit ref: `O.0.md` files-read (`docs/ARCHITECTURE/**` empty), Q8; `V.A-final-contract.md:14`.
 
-### 任务范围
+### Task scope
 1. `docs/ARCHITECTURE/NODE_ONTOLOGY.md` (~new doc) — the 4 node types (K/T/I/D), each with its single
    canonical `graph_edges` key set + a resolution note per divergent key. Audit ref: Q2, Q4.
 
-### 验收
+### Acceptance
 - Doc defines all **4** types (K/T/I/D) with an explicit, single canonical `graph_edges` key set each.
 - Every edge key is cross-checked against **both** `staging_service.py:12-16` **and** the vault
   `Tpl_*.md`; each divergence carries a stated resolution rule + reason.
 - K has ≥1 canonical typed-edge key defined (closing the N.B.0 root cause).
 - User ratifies the vocabulary before O.1b executes (recorded in the sprint summary).
 
-### 红线
+### Red lines
 - ❌ Do NOT edit the vault `templates/` — user-synced; the authority lives repo-side only (phase-wide).
 - ❌ Do NOT silently adopt one family — every divergence is explicitly resolved with a reason.
 - ❌ No `.py` / no MCP changes in this sprint — doc-only.
-- ❌ 不进行机会主义重构。
+- ❌ No opportunistic refactoring.
 
-### 输出位置
-- 文档: `docs/ARCHITECTURE/NODE_ONTOLOGY.md`
-- CLAUDE.md / ROADMAP sprint status: 推迟至 seal 统一更新。
+### Output locations
+- Docs: `docs/ARCHITECTURE/NODE_ONTOLOGY.md`
+- CLAUDE.md / ROADMAP sprint status: deferred to seal, updated together.
 
 ---
 
@@ -158,11 +158,11 @@ Reconcile the two divergent K/T/I/D typed-edge vocabularies into one authored au
 writes only to `docs/staging/`, never the live vault. Requires per-sprint approval; the risk is
 correctness of the schema, not vault safety.
 
-### 目标
+### Objective
 Expose `StagingService.create_staging_node` as MCP tool `create_node(type, title, body, edges)` on
 chimera-vault, add K-type support, and open the edge merge to the O.1a canonical vocabulary.
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - **Wire, don't rebuild.** `create_staging_node(type, title, body, edges=None) -> Path` is already
   O.1's signature: typed-edge frontmatter → `docs/staging/`, returns a staging path. Audit ref:
   `O.0.md` Q2 (`staging_service.py:26-54`), cross-finding #1.
@@ -180,7 +180,7 @@ chimera-vault, add K-type support, and open the edge merge to the O.1a canonical
 - **Minimal-dict frontmatter** (reconciliation #5) — reuse `StagingService`'s existing Python-dict
   frontmatter; do not wire the rich `.j2` templates (deferred).
 
-### 任务范围
+### Task scope
 1. `mcp-servers/chimera-papers/staging_service.py` (~15 lines) — add `knowledge` to `_TYPE_DEST` +
    `_TYPE_EDGES`; open the edge merge to the O.1a key set. Audit ref: Q2.
 2. `mcp-servers/chimera-vault/server.py` (~12 lines) — register `create_node` thin dispatcher →
@@ -188,24 +188,24 @@ chimera-vault, add K-type support, and open the edge merge to the O.1a canonical
 3. `tests/` (~15 lines) — `create_node` writes K/T/I/D to `docs/staging/` with typed edges, returns
    the path, promotes nothing.
 
-### 验收
+### Acceptance
 - `create_node(type=knowledge|thought|insight|decision, …)` writes a staging file with typed
   `graph_edges` for **all 4** types — verify by reading a created staging file.
 - A valid edge key from O.1a is preserved (not silently dropped); an invalid key is rejected loudly.
 - Returns the `docs/staging/` path; nothing lands in the vault — verify the vault is unchanged.
 - `create_node` is visible as a chimera-vault MCP tool.
 
-### 红线
+### Red lines
 - ❌ **Never auto-promote** — `create_node` writes ONLY to `docs/staging/` (phase-wide).
 - ❌ `server.py` stays a **thin adapter** (<200 lines; the tool body is a dispatcher, logic in the domain module).
 - ❌ Do NOT touch the poll-model `TaskService` or the miner/daily-pipeline (out of scope).
 - ❌ Emit only O.1a `NODE_ONTOLOGY.md` edge keys — no ad-hoc vocabulary.
-- ❌ 不进行机会主义重构。
+- ❌ No opportunistic refactoring.
 
-### 输出位置
-- 代码: `mcp-servers/chimera-papers/staging_service.py`, `mcp-servers/chimera-vault/server.py`
-- 测试: `tests/`
-- 文档: 推迟至 O.3 / seal 统一更新。
+### Output locations
+- Code: `mcp-servers/chimera-papers/staging_service.py`, `mcp-servers/chimera-vault/server.py`
+- Tests: `tests/`
+- Docs: deferred to O.3 / seal, updated together.
 
 ---
 
@@ -221,11 +221,11 @@ edges N.B's deep_recall would traverse.
 **Risk level:** 🟡 MED (~30 lines, tests) — writes only a patch to `docs/staging/`; the target vault
 node is untouched in this sprint.
 
-### 目标
+### Objective
 Add MCP tool `link_nodes(from, to, edge_type)` that resolves both endpoints, validates the edge type,
 and writes a **staging patch file** describing the edge addition — no live vault write (Decision 3, stage half).
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - **Reuse the endpoint resolvers.** `vault_read_adapter.py` `stem_to_paths` / `first_path_for_stem`
   (`:472-479`) + `find_authenticated_paper` (by arxiv_id, `:338-395`) resolve `from` / `to` by note
   stem or arxiv_id. Do not reimplement resolution. Audit ref: `O.0.md` Q6.
@@ -235,29 +235,29 @@ and writes a **staging patch file** describing the edge addition — no live vau
   + resolved target) to `docs/staging/`. Honors the "all vault writes go through review" red line.
   Audit ref: `O.0.md` Q5, cross-finding #3; Decision 3.
 
-### 任务范围
+### Task scope
 1. `mcp-servers/chimera-papers/staging_service.py` (~18 lines) — `link_nodes` logic: resolve endpoints,
    validate edge_type, write patch to `docs/staging/`. Reuses `VaultReadAdapter` resolvers. Audit ref: Q5, Q6.
 2. `mcp-servers/chimera-vault/server.py` (~12 lines) — register `link_nodes` thin dispatcher.
 3. `tests/` (~12 lines) — `link_nodes` writes a patch (target node UNCHANGED); rejects unknown
    `edge_type` and unresolvable endpoints.
 
-### 验收
+### Acceptance
 - `link_nodes(from, to, edge_type)` produces a patch file in `docs/staging/`; the target vault node is
   **byte-for-byte unchanged** — verify by re-reading the node.
 - `edge_type` is validated against the from-node type's canonical edges (O.1a); an invalid edge is rejected.
 - Endpoints resolve by note stem and by arxiv_id.
 
-### 红线
+### Red lines
 - ❌ **No live vault write in this sprint** — patch to `docs/staging/` only (phase-wide staging red line).
 - ❌ Reuse `vault_read_adapter` resolvers — do not reimplement endpoint resolution.
 - ❌ `edge_type` restricted to the O.1a vocabulary.
-- ❌ 不进行机会主义重构。
+- ❌ No opportunistic refactoring.
 
-### 输出位置
-- 代码: `mcp-servers/chimera-papers/staging_service.py`, `mcp-servers/chimera-vault/server.py`
-- 测试: `tests/`
-- 文档: 推迟至 O.3 / seal。
+### Output locations
+- Code: `mcp-servers/chimera-papers/staging_service.py`, `mcp-servers/chimera-vault/server.py`
+- Tests: `tests/`
+- Docs: deferred to O.3 / seal.
 
 ---
 
@@ -272,11 +272,11 @@ and writes a **staging patch file** describing the edge addition — no live vau
 **Risk level:** 🔴 HIGH — **the only sprint that mutates a live vault node in place.** Requires
 explicit per-sprint approval before execution. Blast radius = one content node's frontmatter.
 
-### 目标
+### Objective
 Add MCP tool `apply_link_patch(patch_path)` that, after user review of the O.2a patch, performs the
 in-place frontmatter YAML merge appending the edge into the target vault node (Decision 3, apply half).
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - **Reuse the `promote_node` parse/dump pattern.** `split("---", 2)` → `yaml.safe_load` → mutate →
   `yaml.dump`, exactly as promotion rewrites frontmatter (`staging_service.py:56-72`). The in-place
   merge is the one genuinely net-new capability (audit Q5) — no existing method edits a live node in place.
@@ -287,28 +287,28 @@ in-place frontmatter YAML merge appending the edge into the target vault node (D
 - **Review-gated.** Applies ONLY a patch that already exists in `docs/staging/` — never a direct
   arbitrary vault edit. This is the "promote"-analog for edges (the reviewed terminal staging op).
 
-### 任务范围
+### Task scope
 1. `mcp-servers/chimera-papers/staging_service.py` (~30 lines) — `apply_link_patch`: read patch, load
    target node frontmatter, append edge idempotently, write back. Reuses promote parse/dump (`:56-72`). Audit ref: Q5.
 2. `mcp-servers/chimera-vault/server.py` (~10 lines) — register `apply_link_patch` thin dispatcher.
 3. `tests/` (~15 lines) — merge appends the edge to the target's `graph_edges`; re-apply is a no-op;
    body + other frontmatter untouched.
 
-### 验收
+### Acceptance
 - After `apply_link_patch`, the target node's `graph_edges` contains the new edge — verify by re-reading the node.
 - Re-applying the same patch is a **no-op** (idempotent, no duplicate edge).
 - Note body and all non-edge frontmatter keys are **unchanged** — verify by diff.
 
-### 红线
+### Red lines
 - ❌ **Content nodes only** — NEVER edit vault `templates/` (user-synced) (phase-wide).
 - ❌ Applies only a patch present in `docs/staging/` — no direct/arbitrary vault edits (review-gated).
 - ❌ Preserve all non-edge frontmatter + body verbatim — no reformatting.
-- ❌ 不进行机会主义重构。
+- ❌ No opportunistic refactoring.
 
-### 输出位置
-- 代码: `mcp-servers/chimera-papers/staging_service.py`, `mcp-servers/chimera-vault/server.py`
-- 测试: `tests/`
-- 文档: 推迟至 O.3 / seal。
+### Output locations
+- Code: `mcp-servers/chimera-papers/staging_service.py`, `mcp-servers/chimera-vault/server.py`
+- Tests: `tests/`
+- Docs: deferred to O.3 / seal.
 
 ---
 
@@ -322,11 +322,11 @@ in-place frontmatter YAML merge appending the edge into the target vault node (D
 
 **Risk level:** 🟢 LOW (doc + verify; no new code). The seal probe is verification.
 
-### 目标
+### Objective
 Record the Obsidian-MCP dependency-veto (Option C — no market MCP adopted; the thin wrapper is O.1b+O.2),
 then run the HSC-3 seal seed and vault probe.
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - **Confirm the veto — no new dependency.** DR audit `obsidian-mcp-necessity.md` (`d50cf81`): 12
   candidates, 0/3 pass Layer 2 (app-dependent or thick foreign runtime; none writes K/T/I/D).
   `.mcp.json` stays 2 servers. Audit ref: `O.0.md` Q7, cross-finding #4; Decision 4.
@@ -340,27 +340,27 @@ then run the HSC-3 seal seed and vault probe.
   targets. Live baseline is **12** (3 thoughts + the ~9 papers they point at); **5 real new thoughts +
   their targets reach ≥ 20 with ZERO fabricated K→K edges.** Real paper→paper edges are a bonus only.
 
-### 任务范围
+### Task scope
 1. `docs/audits/obsidian-mcp-necessity.md` + `docs/phases/phase-O.md` O.3 note — record Option C / veto
    (no new dependency). (doc)
 2. Seal seed — via `create_node` (+ optional real `link_nodes`/`apply_link_patch`), create 5 real
    Thought nodes each `derives_from` real papers, so thoughts + their targets reach ≥ 20 participants. (verify)
 3. Run the participation probe (`scripts/seed_hsc3.py probe`) → confirm ≥ 20 participating nodes.
 
-### 验收
+### Acceptance
 - Veto recorded: `.mcp.json` unchanged (still 2 servers); no `obsidian` dependency added — verify by grep.
 - Participation probe reports **≥ 20 participating nodes** (source ∪ target; HSC 3 / N.B unblock threshold).
 - The 5 seed T Nodes + their edges are user-reviewed staging → promoted (never auto-promoted).
 
-### 红线
+### Red lines
 - ❌ **No new dependency, no new MCP server** — `.mcp.json` stays 2 servers (phase-wide; Decision 4).
 - ❌ Seed nodes go through `docs/staging/` → user review before promotion — no auto-promote.
 - ❌ Do NOT fabricate K→K edges to inflate the count — only real relationships; NOT the out-of-scope 250-node backfill.
-- ❌ 不进行机会主义重构。
+- ❌ No opportunistic refactoring.
 
-### 输出位置
-- 文档: `docs/audits/obsidian-mcp-necessity.md`, `docs/phases/phase-O.md`, ROADMAP sprint status.
-- 验证: vault typed-edge probe output recorded in the phase_review.
+### Output locations
+- Docs: `docs/audits/obsidian-mcp-necessity.md`, `docs/phases/phase-O.md`, ROADMAP sprint status.
+- Verification: vault typed-edge probe output recorded in the phase_review.
 
 ---
 
@@ -377,7 +377,7 @@ Apply across ALL sprints. Violation in any sprint halts the batch:
 - ❌ **Never edit the vault `templates/`** (user-synced) — the schema authority is repo-side (`NODE_ONTOLOGY.md`).
 - ❌ **Emit only `NODE_ONTOLOGY.md` (O.1a) edge keys** — no ad-hoc typed-edge vocabulary anywhere.
 - ❌ **Do not touch** the poll-model `TaskService`, the miner/daily-pipeline, or any retired oligo/astrocyte surface.
-- ❌ 不进行机会主义重构 across the batch.
+- ❌ No opportunistic refactoring across the batch.
 
 ---
 
