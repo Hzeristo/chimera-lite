@@ -1,14 +1,17 @@
-"""Phase Q (rebuilt): extract_paper orchestration (staging-only) + promote-time supersede.
+"""Phase Q (rebuilt) + L.B.2 externalized: ``get_paper_markdown`` (read primitive) and
+``stage_deep_read_node`` (the deterministic staging back-half) + promote-time supersede.
 
-All deps injected (stub LLM client, tmp staging + vault) — no real LLM / MinerU / config. The stub
-returns a full ``KNodeExtraction`` (synthesis + lens + attack + claims); the extraction prompt is
-still rendered (it reads the canonical lens catalog), so this also proves the prompt loads.
+L.B.2 stripped the LLM call out of this module — judgment now happens in the
+``chimera-deep-extract`` skill's Sonnet subagent, which hands ``stage_deep_read_node`` an
+already-produced ``KNodeExtraction``. All deps injected (a stub settings object, tmp staging +
+vault) — no real LLM / MinerU / config.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 import yaml
 
 from core.schemas import (
@@ -25,9 +28,29 @@ from core.schemas import (
 from single_paper_extract import (
     _cited_arxiv_ids,
     _render_node_body,
-    extract_single_paper,
+    get_paper_markdown,
+    stage_deep_read_node,
 )
 from staging_service import StagingService
+
+
+class _StubPaperMiner:
+    def __init__(self, md_papers_dir: Path) -> None:
+        self.md_papers_dir = md_papers_dir
+
+
+class _StubSettings:
+    """Minimal duck-typed stand-in for ``ChimeraConfig`` — only the attributes
+    ``_resolve_markdown`` actually reads (``paper_miner_or_default.md_papers_dir`` +
+    ``project_root``, the latter unused here since the tmp dir is already absolute)."""
+
+    def __init__(self, md_papers_dir: Path) -> None:
+        self.project_root = md_papers_dir
+        self._pm = _StubPaperMiner(md_papers_dir)
+
+    @property
+    def paper_miner_or_default(self) -> _StubPaperMiner:
+        return self._pm
 
 
 def _extraction(n: int = 1) -> KNodeExtraction:
@@ -64,20 +87,11 @@ def _extraction(n: int = 1) -> KNodeExtraction:
     )
 
 
-class _StubClient:
-    def __init__(self, extraction: KNodeExtraction) -> None:
-        self._extraction = extraction
-
-    def generate_structured_data(
-        self, *, system_prompt: str, user_prompt: str, response_model: object
-    ) -> KNodeExtraction:
-        return self._extraction
-
-
-def _k_node(path: Path, node_type: str = "knowledge") -> None:
+def _k_node(path: Path, node_type: str = "knowledge", arxiv_id: str | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    aid = f'arxiv_id: "{arxiv_id}"\n' if arxiv_id else ""
     path.write_text(
-        f'---\ntype: {node_type}\ntitle: "{path.stem}"\n---\n\n# {path.stem}\n',
+        f'---\ntype: {node_type}\n{aid}title: "{path.stem}"\n---\n\n# {path.stem}\n',
         encoding="utf-8",
     )
 
@@ -149,17 +163,33 @@ def test_render_two_lenses_both_appear() -> None:
     assert "## Lens Critique — State Collision Stress Test" in body
 
 
-async def test_extract_grounded_edge(tmp_path: Path) -> None:
+def test_get_paper_markdown_returns_existing_path(tmp_path: Path) -> None:
+    md_dir = tmp_path / "md_papers"
+    md_dir.mkdir()
+    (md_dir / "2305.16291.md").write_text("# VOYAGER\n", encoding="utf-8")
+    path = get_paper_markdown("2305.16291", settings=_StubSettings(md_dir))
+    assert path == md_dir / "2305.16291.md"
+
+
+def test_get_paper_markdown_missing_raises(tmp_path: Path) -> None:
+    md_dir = tmp_path / "md_papers"
+    md_dir.mkdir()
+    with pytest.raises(FileNotFoundError):
+        get_paper_markdown("2305.16291", settings=_StubSettings(md_dir))
+
+
+async def test_stage_deep_read_node_grounded_edge(tmp_path: Path) -> None:
     vault = _make_vault(tmp_path)
     staging = StagingService(tmp_path / "staging", vault)
-    path = await extract_single_paper(
+    path = await stage_deep_read_node(
         paper_id="2305.16291",
+        extraction=_extraction(),
         paper=_paper("2305.16291", cites="builds on 2409.07429"),
-        llm_client=_StubClient(_extraction()),
         staging_service=staging,
     )
     fm, body = _read_staged(path)
     assert fm["type"] == "knowledge"
+    assert fm["chimera_tier"] == "deep_read"
     assert fm["graph_edges"]["derives_from"] == ["[[2409.07429-AWM]]"]
     assert fm["provenance"] == "ai-suggested"
     assert fm["grounded"] == "citation_resolved"
@@ -170,13 +200,29 @@ async def test_extract_grounded_edge(tmp_path: Path) -> None:
     assert len(list((tmp_path / "staging").glob("*.md"))) == 1
 
 
-async def test_extract_no_prior_match(tmp_path: Path) -> None:
+async def test_stage_deep_read_node_accepts_dict_extraction(tmp_path: Path) -> None:
+    # The subagent's structured output arrives as JSON -> a plain dict through the MCP tool
+    # boundary; stage_deep_read_node must validate it into a KNodeExtraction itself.
     vault = _make_vault(tmp_path)
     staging = StagingService(tmp_path / "staging", vault)
-    path = await extract_single_paper(
+    path = await stage_deep_read_node(
         paper_id="2305.16291",
+        extraction=_extraction().model_dump(mode="json"),
+        paper=_paper("2305.16291"),
+        staging_service=staging,
+    )
+    fm, _ = _read_staged(path)
+    assert fm["chimera_tier"] == "deep_read"
+    assert fm["title"] == "ResNet: Residual Learning for Deep Networks"
+
+
+async def test_stage_deep_read_node_no_prior_match(tmp_path: Path) -> None:
+    vault = _make_vault(tmp_path)
+    staging = StagingService(tmp_path / "staging", vault)
+    path = await stage_deep_read_node(
+        paper_id="2305.16291",
+        extraction=_extraction(),
         paper=_paper("2305.16291", cites="no citations here"),
-        llm_client=_StubClient(_extraction()),
         staging_service=staging,
     )
     fm, _ = _read_staged(path)
@@ -184,13 +230,13 @@ async def test_extract_no_prior_match(tmp_path: Path) -> None:
     assert fm["graph_edges"]["derives_from"] == []
 
 
-async def test_extract_excludes_migration_backup(tmp_path: Path) -> None:
+async def test_stage_deep_read_node_excludes_migration_backup(tmp_path: Path) -> None:
     vault = _make_vault(tmp_path)
     staging = StagingService(tmp_path / "staging", vault)
-    path = await extract_single_paper(
+    path = await stage_deep_read_node(
         paper_id="2305.16291",
+        extraction=_extraction(),
         paper=_paper("2305.16291", cites="cite 2508.06433"),  # present only in .migration_backup
-        llm_client=_StubClient(_extraction()),
         staging_service=staging,
     )
     fm, _ = _read_staged(path)
@@ -198,20 +244,47 @@ async def test_extract_excludes_migration_backup(tmp_path: Path) -> None:
 
 
 async def test_supersede_edge_when_existing_node(tmp_path: Path) -> None:
+    # A re-extraction supersedes the PRIOR COMMITTED Knowledge/ node for the same paper,
+    # matched by frontmatter arxiv_id — committed nodes are named by title slug (_promote_write),
+    # so the id is NOT in the stem. The filename here is deliberately not the arxiv id, proving
+    # the match is on frontmatter, not the stem.
     vault = _make_vault(tmp_path)
-    _k_node(vault / "inbox" / "Skim" / "2305.16291-VOYAGER.md")
+    _k_node(vault / "Knowledge" / "ResNet_Residual_Learning.md", arxiv_id="2305.16291")
     staging = StagingService(tmp_path / "staging", vault)
-    path = await extract_single_paper(
+    path = await stage_deep_read_node(
         paper_id="2305.16291",
+        extraction=_extraction(),
         paper=_paper("2305.16291"),
-        llm_client=_StubClient(_extraction()),
         staging_service=staging,
     )
     fm, _ = _read_staged(path)
-    assert fm["graph_edges"]["supersedes"] == ["[[2305.16291-VOYAGER]]"]
+    assert fm["graph_edges"]["supersedes"] == ["[[ResNet_Residual_Learning]]"]
 
 
-async def test_extract_reports_progress(tmp_path: Path) -> None:
+async def test_supersede_ignores_non_knowledge_artifacts(tmp_path: Path) -> None:
+    # Regression (L.B.6 five-path e2e): a Harness/ W1 verdict and an inbox/ scout card BOTH carry
+    # the arxiv id in their filename stem, but neither is a committed Knowledge/ node — the scout
+    # card stays in inbox/ (ascend_node contract) and the Harness verdict is a result, not a prior
+    # extraction. The old bare `self_id in path.stem` match hit them; on ascend `_unlink_superseded`
+    # would then DELETE the W1 verdict. supersedes must stay empty when no committed node exists.
+    vault = _make_vault(tmp_path)
+    (vault / "Harness").mkdir(parents=True, exist_ok=True)
+    (vault / "Harness" / "w1_verdict__2305.16291-best-model.md").write_text(
+        "---\nkind: w1_verdict\n---\n\n# verdict\n", encoding="utf-8"
+    )
+    _k_node(vault / "inbox" / "Must_Read" / "2305.16291-STALE.md", arxiv_id="2305.16291")
+    staging = StagingService(tmp_path / "staging", vault)
+    path = await stage_deep_read_node(
+        paper_id="2305.16291",
+        extraction=_extraction(),
+        paper=_paper("2305.16291"),
+        staging_service=staging,
+    )
+    fm, _ = _read_staged(path)
+    assert fm["graph_edges"]["supersedes"] == []
+
+
+async def test_stage_deep_read_node_reports_progress(tmp_path: Path) -> None:
     # Incident 2026-07-13: silent blocking tool. The domain function emits stage progress at the
     # documented boundaries; the other tests exercise the progress=None (no-ctx) path.
     vault = _make_vault(tmp_path)
@@ -221,15 +294,15 @@ async def test_extract_reports_progress(tmp_path: Path) -> None:
     async def _progress(frac: float, msg: str) -> None:
         seen.append((frac, msg))
 
-    await extract_single_paper(
+    await stage_deep_read_node(
         paper_id="2305.16291",
+        extraction=_extraction(),
         paper=_paper("2305.16291"),
-        llm_client=_StubClient(_extraction()),
         staging_service=staging,
         progress=_progress,
     )
-    assert [f for f, _ in seen] == [0.0, 0.25, 0.5, 0.85, 1.0]
-    assert any("Extracting" in m for _, m in seen)
+    assert [f for f, _ in seen] == [0.0, 0.4, 0.85, 1.0]
+    assert any("Grounding" in m for _, m in seen)
 
 
 def test_promote_unlinks_superseded(tmp_path: Path) -> None:

@@ -67,8 +67,10 @@ async def search_vault_attribute(key: str, value: str, top_k: int = 5) -> str:
     """Search the vault by YAML frontmatter (key must exist; value matched as substring).
 
     Args:
-        key: Frontmatter field name (e.g. ``type``, ``tags``).
-        value: Substring to find within that field's value.
+        key: Frontmatter field name (e.g. ``type``, ``chimera_tier``, ``tags``).
+        value: Substring to find within that field's value. For ``type`` the values are
+            ``knowledge`` / ``thought`` / ``insight`` / ``decision``; for ``chimera_tier``,
+            ``scout`` / ``deep_read`` / ``harness_candidate`` / ``synthesis``.
         top_k: Maximum hits (default 5).
     """
     _ensure_adapter()
@@ -144,6 +146,8 @@ async def vault_query(
     """Ripgrep vault frontmatter for notes matching type, status, or edge target.
 
     Returns title + path + excerpt per match. Requires ripgrep (``rg``) on PATH.
+    Nodes also carry a ``chimera_tier`` origin/depth axis (scout / deep_read /
+    harness_candidate / synthesis) — query it via ``search_vault_attribute``.
 
     Args:
         type: Node type to match (knowledge, thought, insight, decision).
@@ -181,6 +185,27 @@ async def create_node(
     service = StagingService(config.system.staging_dir, config.require_path("vault_root"))
     path = service.create_staging_node(type=type, title=title, body=body, edges=edges)
     return str(path)
+
+
+@mcp.tool()
+async def ascend_node(staging_path: str) -> str:
+    """Ascend a reviewed deep_read Knowledge node from staging into the committed Knowledge/ tier.
+
+    WHEN: the Architect has reviewed a staged deep_read K node (from the deep-extract flow) and
+    commits it as durable knowledge. WHAT: validates ``chimera_tier == 'deep_read'``, sets status
+    active, writes to ``<vault>/Knowledge/`` (the SOLE code path that writes there), and unlinks any
+    superseded prior. CONTRAST: scout-tier inbox cards are NEVER ascended (they stay in ``inbox/``);
+    T/I/D staging nodes use promote, not this. Grounding-quote verification is deferred to DEBT-018.
+
+    Args:
+        staging_path: Path to the reviewed deep_read K node in ``docs/staging/``.
+    """
+    from core.config import get_config
+    from staging_service import StagingService
+
+    config = get_config()
+    service = StagingService(config.system.staging_dir, config.require_path("vault_root"))
+    return str(service.ascend_node(Path(staging_path)))
 
 
 @mcp.tool()

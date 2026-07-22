@@ -1,6 +1,7 @@
 ---
 type: knowledge
 status: unverified
+chimera_tier: scout
 arxiv_id: "{{ paper.id | replace('"', '\\"') }}"
 title: "{{ paper.title | replace('"', '\\"') }}"
 authors: "{{ paper.authors | default('Unknown', true) | replace('"', '\\"') }}"

@@ -125,4 +125,48 @@ The repo authority is this file; Obsidian renders whatever frontmatter a note ca
 
 ---
 
+## 7. `chimera_tier` + `status` — the two lifecycle axes (Phase L.B, 2026-07-21)
+
+Two ORTHOGONAL frontmatter axes govern a node's place in the pipeline. They are never
+folded into each other (Phase L.B red line: tier is not carried by `status`).
+
+### 7.1 `chimera_tier` — origin/depth (which writer made this node, and how deep)
+
+The C-1 defect (`docs/audits/workflow-drift-audit.md`): every K writer emitted
+`type: knowledge`, so a shallow triage card and a full deep-read node were
+indistinguishable. `chimera_tier` is the net-new field that separates them.
+
+| tier | Meaning | Writer (active code path) |
+|---|---|---|
+| `scout` | Shallow LLM triage of a fetched paper — an inbox card, not yet read in depth. | `VaultNoteWriter.write_knowledge_node` (`knowledge_node.j2`) — `daily_pipeline` / `ingest_paper`. |
+| `deep_read` | Full-paper extraction (synthesis + lens + attack + ARA claims, or the survey atlas). | `single_paper_extract` (via `create_staging_node`, staging) + `VaultNoteWriter.write_deep_read_node` (`deep_read{,_survey}_node.j2`, optics). |
+| `harness_candidate` | A W1/W2 research-harness artifact awaiting Architect curation. | `ResultService.write_result` → `Harness/` (already `kind`-keyed with a review status; the tier is this documented mapping — harness artifacts are not K/T/I/D nodes). |
+| `synthesis` | A user-authored T/I/D node — reasoning, not ingestion. | `create_staging_node` (dict) — defaulted by node type for `thought`/`insight`/`decision`. |
+
+**Why `knowledge` is never defaulted.** `create_staging_node` defaults ONLY T/I/D to
+`synthesis`; a `knowledge` node created with no tier stays untiered so its writer is
+FORCED to declare `scout` vs `deep_read`. A silent K default would re-open C-1.
+
+### 7.2 `status` — lifecycle (committed vs uncommitted)
+
+`status` is orthogonal to tier: it tracks whether a node is committed, independent of how
+deep it is. The live vocabulary (EXTENDED, not rebuilt — Phase L.B fact F4):
+
+| status | Stage | Set by |
+|---|---|---|
+| `unverified` | Inbox scout card — landed, not yet human-reviewed. | `knowledge_node.j2` |
+| `PENDING_REVIEW` | Staged K/T/I/D candidate awaiting review. | `create_staging_node` |
+| `active` | Committed into the vault. | `promote_node` (staging → vault); `ascend_node` (inbox\|staging → `Knowledge/`, Phase L.B.3) |
+| `cross_verified` | Insight confirmed across sources (I nodes). | `insight_node.j2` |
+
+**The "inert inbox status" gap (C-1) is resolved by the tier axis + `ascend_node`, not by
+an auto-transition.** A scout card's `unverified` is intentionally terminal-until-human:
+scout tier stays in `inbox/` and is NEVER auto-promoted (phase red line). The transition
+`unverified → active` fires only when the Architect ascends the node via `ascend_node`
+(Phase L.B.3). The status is human-gated, not dead.
+
+*(Anomaly, NOT fixed here — no opportunistic refactoring: `deep_read_survey_node.j2` uses
+`chimera_status: survey_deep_read` instead of `status:`. It carries `chimera_tier: deep_read`
+like the other deep-read template; reconciling its status key is deferred.)*
+
 *Sprint O.1a — RATIFIED 2026-07-07. O.1b mirrors §4 into `_TYPE_EDGES`.*
