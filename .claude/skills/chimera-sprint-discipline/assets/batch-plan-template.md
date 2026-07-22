@@ -38,32 +38,32 @@ Dependencies stated in each sprint's "Predecessor assumptions" block.
 - 🟡 MED: code change <30 lines, has tests — agent self-executes per-sprint, halts batch on red line
 - 🔴 HIGH: code change >30 lines OR touches >3 files OR no tests — requires explicit per-sprint approval before execution
 
-### 目标
+### Objective
 {single_sentence_objective_verb_led}
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - {architectural_decision_1} — audit ref: `{file}:{line}`
 - {architectural_decision_2} — audit ref: `{file}:{line}`
 
-### 任务范围
+### Task scope
 1. {task_1} (`{file_path}`, ~{n} lines) — audit ref: Q{N}
 2. {task_2} (`{file_path}`, ~{n} lines)
 3. {task_3} (`{file_path}`, ~{n} lines)
 
-### 验收
+### Acceptance
 - {measurable_criterion_1} — verifiable via `{command_or_check}`
 - {measurable_criterion_2}
 
-### 红线
+### Red lines
 - ❌ {forbidden_change_1} (phase-wide)
 - ❌ {forbidden_change_2} (sprint-specific)
 - ❌ {forbidden_change_3}
-- ❌ 不进行机会主义重构
+- ❌ No opportunistic refactoring
 
-### 输出位置
-- 代码: `{primary_path}` 等
-- 测试: `tests/{test_path}`
-- 文档: 推迟至 sprint {seal_sprint} 统一更新
+### Output locations
+- Code: `{primary_path}` etc.
+- Tests: `tests/{test_path}`
+- Docs: deferred to sprint {seal_sprint}, updated together
 
 ---
 

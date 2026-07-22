@@ -46,9 +46,9 @@ selected mode, follow the recommendation procedure BEFORE any other work
 
 | User input pattern | Mode | Process | Template |
 |---|---|---|---|
-| "audit phase {X}", "前置审计 {phase}" | phase_audit | references/phase-audit-process.md | assets/phase-audit-template.md |
+| "audit phase {X}", "prerequisite audit {phase}" | phase_audit | references/phase-audit-process.md | assets/phase-audit-template.md |
 | "plan sprints for phase {X}", "batch plan {phase}" | batch_planning | references/batch-planning-process.md | assets/batch-plan-template.md |
-| "review phase {X}", "seal phase {X}", "终审" | phase_review | references/phase-review-process.md | assets/phase-review-verdict-template.md |
+| "review phase {X}", "seal phase {X}", "final review {phase}" | phase_review | references/phase-review-process.md | assets/phase-review-verdict-template.md |
 
 </invocation_modes>
 
