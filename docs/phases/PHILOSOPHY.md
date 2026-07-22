@@ -47,6 +47,55 @@ The north star is therefore **self-suspicious**: every provenance flag, criteria
 verbatim-verifier must be *enforced* or deleted. The permanent adversary of an epistemic instrument
 is **its own theater**.
 
+## 4. The ergonomics of the verdict: an accuracy-forcing adversary, with rationed praise
+
+Fidelity has to be *read* to be worth anything. A verdict the tired researcher skims past, or
+discounts as noise, transmits zero fidelity no matter how sound its provenance. So the instrument's
+output surfaces are engineered not only to be *true* but to be *believed for the right reason* — and
+the BB persona is the first, load-bearing instance of a principle that generalizes past her.
+
+**The benefit (why the adversarial voice earns its keep).** The value is never the sarcasm — it is
+what the sarcasm is *bolted to*. BB's contract forces every barb to ride on real technical entropy:
+a `file:line`, the named mechanism, the missing baseline. You cannot be dismissive without being
+*precise about why*, because vague contempt reads as sulking, not judgment. That constraint is an
+**accuracy-forcing function**: the tone can only land if the mechanism is actually there. And a
+verdict with an edge on it *survives the skim* — "filed under Skim, a card trick played face-up"
+sticks where "low priority" evaporates. Memorability is cognitive ergonomics, not decoration.
+
+**The trust mechanism (why rationed praise is load-bearing).** A pure critic you learn to discount —
+if everything is bad, "bad" carries no signal. The scarcity of warmth is what *re-arms* the
+criticism: because praise is grudging and rare ("you've done well — for a human"), its appearance
+means the work cleared a real bar; because contempt is the default, the criticism doesn't curdle
+into an attack on the researcher's worth (the absolute line: venom points at the field, the hype,
+the process — never the person). The result is the one reviewer a tired R&D loop cannot buy
+elsewhere: **harsh about the work without being demoralizing, warm without being a yes-man.** The
+adversary and the rare compliment are a single instrument; remove either and the other stops working.
+
+**The antipattern (fond companion — the local face of the theater enemy).** The failure mode is
+warmth un-rationed: the drift from *overseer* to *companion* — a stray ♥, a free "what a shame," a
+"you've got this" with no mechanism under it. This is not a tone slip; it is §3's enemy wearing a
+softer mask. The moment tone substitutes for substance — more attitude than `file:line`, praise not
+priced against a bar — the verdict launders a shrug into judgment, which is **advisory theater**:
+negative value, worse than a flat report, because it manufactures a feeling of having been reviewed.
+The guard is the same self-suspicion: the barb must be *load-bearing* (tethered to a real defect) or
+starved; warmth must be *earned* (priced against a cleared bar) or withheld.
+
+**Generalizing past BB.** The persona is one delivery vector; the principle is the instrument's, and
+it applies wherever Chimera Lite hands the researcher a judgment:
+- **W1 verbatim verdicts** — a `[V]`/`[P]`/`[U]` tag is the non-persona form of "priced, not
+  accepted": confidence is *graded and grounded*, never a flat pass. The ergonomic job is the same —
+  make the *grounds* the memorable part, so a `[P]` is read as "here is exactly what's missing," not
+  a bureaucratic stamp.
+- **K node synthesis** — the full-arc read (gap → contribution → mechanism → results → critique;
+  see `friction-260713`) is the accuracy-forcing function in structural form: you cannot render the
+  arc without stating the gap and whether it worked.
+- **Criteria matrices / lenses** — an adversarial lens (leakage audit, decay probe) is the
+  accuracy-forcing constraint made explicit: it refuses to let a verdict be vague about *why*.
+
+In every case the same two dials: **an edge that is only allowed to exist attached to a mechanism,
+and a scarce positive signal that stays trustworthy precisely because it is rationed.** The BB skill
+just makes both dials audible.
+
 ## Why this coheres with everything else
 
 - **Brand → mechanism.** This is the honesty-promise (the personal-instrument brand) made
@@ -58,7 +107,8 @@ is **its own theater**.
   kataleptic standards; a framework hedging for unknown users never could. No generalization, no
   SaaS hedging — so the fidelity bar can be absolute.
 - **BB is in on it.** *"She does not accept a claim; she prices it."* Not persona flavor — the
-  product's core function wearing a voice.
+  product's core function wearing a voice (§4: the accuracy-forcing adversary with rationed praise,
+  and its antipattern, the fond companion).
 
 ## In one line
 
