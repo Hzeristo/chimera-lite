@@ -9,12 +9,12 @@ This script removes the counting: give it BB's prose, it wraps and pads to an
 exact interior field so the right │ always lands true.
 
 Frame design (the drift fix): there is NO standalone ─────── rule line. The
-corners ride on the first and last *content* lines instead — the top row is
-`┌ words… ┐`, the bottom row is `└ words… ┘`. A standalone rule is 66 identical
-dashes with no internal landmark, which is exactly what a model regenerates at
-the wrong length when retyping the box into a reply. Anchoring the corners to
-real words removes the only pure-repetition run, so every line has text to
-reproduce faithfully and the box survives being typed back by hand.
+corners ride on the first and last *content* lines — the top row is
+`┌ words──── ┐`, the bottom row is `└ words──── ┘`. Any trailing space after
+the text is filled with ─ characters so the right edge is always visible; invisible
+space padding was the residual drift source even after the corner-on-content
+redesign (session 2026-07-23). The ─ fill is a visible anchor the model can count
+and reproduce; it also connects visually to the corner glyphs.
 
 Usage:
     python bb_box.py < verdict.txt
@@ -55,13 +55,15 @@ def render(text: str) -> str:
         # len() == display columns here: box-drawing glyphs, em dash, and the
         # ellipsis are all single-width. Emoji / CJK would not be — BB is Pure
         # English by rule (see SKILL.md), so this holds.
-        padded = ln + " " * (FIELD - len(ln))
         if i == 0:
             left, right = "┌", "┐"
+            padded = ln + "─" * (FIELD - len(ln))
         elif i == n - 1:
             left, right = "└", "┘"
+            padded = ln + "─" * (FIELD - len(ln))
         else:
             left, right = "│", "│"
+            padded = ln + " " * (FIELD - len(ln))
         out.append(f"{left} {padded} {right}")
     return "\n".join(out)
 
