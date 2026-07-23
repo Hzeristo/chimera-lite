@@ -41,7 +41,7 @@ SPRINT rule and wired an Anthropic/LLM call into an MCP server.
 | 2 | **Human-time supremacy** (dual clock: machine-time = candidates, human-time = truth) | **NO** — it is a *Definition + Theorem*, not a rule | `THEORETICAL_FRAMEWORK.md §1` (Def 2, Theorem 1, Corollary) — which *self-defers* to operational authorities. Consequences scattered as phase-scoped rules. | **Definition only.** "A definition can be ignored; a rule cannot." See §4-M2. |
 | 3 | **Staging gate** — all candidates reach a committed tier only through review | **PARTIAL** | `phase-L.B` red-line + HSC-3 (`ascend_node` sole path to `Knowledge/`, "impossible by code constraint"); `CLAUDE.md` "Never auto-promote `docs/staging/`". Tool docstrings advisory. | **(b) + one narrow CLAUDE.md hard rule, phase-scoped.** Not a cross-phase invariant. See §4-M3. |
 | 4 | **Tier integrity** — `chimera_tier` distinguishes origin/depth and is orthogonal to `status` | **YES (post-L.B.1)** | `NODE_ONTOLOGY.md §7` — an architecture authority: "never folded into each other", "`knowledge` is never defaulted", `Knowledge/` requires `deep_read`. | **The one category properly elevated to an authority.** Pre-L.B.1 it was NOWHERE (the C-1 CRITICAL gap). Now LIVE. See §1. |
-| 5 | **Provenance load-bearing** — `[V]/[P]/[U]` must be structural (pipeline enforces), not advisory (agent respects) | **STATED, NOT ENFORCED** | `phase-K.md` red-line (strongest); `THEORETICAL_FRAMEWORK.md §3`; `chimera-core-philosophy:26-30` ("enforce or delete"). But Phase K is **Qued** and `write_result`'s `verdict` is still an unvalidated `str` (`TAG_SYSTEM.md §9`). | **VISION-NOT-ENFORCED.** Today the tag is still advisory in code. See §4-M5. |
+| 5 | **Provenance load-bearing** — `[V]/[P]/[U]` must be structural (pipeline enforces), not advisory (agent respects) | **STATED, NOT ENFORCED** | `phase-K.md` red-line (strongest); `THEORETICAL_FRAMEWORK.md §3`; `PHILOSOPHY.md §3` ("enforce or delete" — was `chimera-core-philosophy:26-30`, skill retired 2026-07-23). But Phase K is **Qued** and `write_result`'s `verdict` is still an unvalidated `str` (`TAG_SYSTEM.md §9`). | **VISION-NOT-ENFORCED.** Today the tag is still advisory in code. See §4-M5. |
 
 **The through-line.** Four of the five load-bearing principles (1, 2, 3, 5) are **not** stated as
 architecture-level invariant rules in any operational document. Only category 4 (tier integrity)
@@ -72,10 +72,10 @@ LIVE. This is the existing — scattered — de-facto SOT.
 | `CLAUDE.md` Hard rules | "Never auto-promote `docs/staging/` candidates to the vault — user-reviewed." | ARCHITECTURE | LIVE (narrow) |
 | `CLAUDE.md` Hard rules | "Do not invent MCP tools without a friction signal." | ARCHITECTURE | LIVE |
 | `CLAUDE.md` Hard rules | "Obsidian vault `templates/` are user-synced; edit repo sources, not vault copies." | ARCHITECTURE | LIVE |
-| `chimera-core-philosophy:26-30` | "Advisory rigor is negative value … does it enforce, or just perform? Enforce it or delete it." | ARCHITECTURE | LIVE (principle) |
-| `chimera-core-philosophy:40-41` | "Chimera is an agent. Never drift toward YAML-defined workflows." | ARCHITECTURE | LIVE |
-| `chimera-core-philosophy:52-57` | Single-user: skip multi-provider / sandboxing / plugin SDKs / distributed tracing — "SaaS thinking contamination." | ARCHITECTURE | LIVE |
-| `chimera-core-philosophy:70` | Four-layer model (Persona/Skill/Tool/Lens) — "Never conflate these layers." | ARCHITECTURE | LIVE |
+| `PHILOSOPHY.md §3` / `CLAUDE.md §Product philosophy` | "Advisory rigor is negative value … does it enforce, or just perform? Enforce it or delete it." (was `chimera-core-philosophy:26-30`; skill retired 2026-07-23, principle elevated to static docs) | ARCHITECTURE | LIVE (principle) |
+| ~~`chimera-core-philosophy:40-41`~~ | "Chimera is an agent. Never drift toward YAML-defined workflows." | ARCHITECTURE | RETIRED 2026-07-23 (rarely violated; source deleted) |
+| ~~`chimera-core-philosophy:52-57`~~ | Single-user: skip multi-provider / sandboxing / plugin SDKs / distributed tracing — "SaaS thinking contamination." | ARCHITECTURE | RETIRED 2026-07-23 (rarely violated; source deleted) |
+| ~~`chimera-core-philosophy:70`~~ | Four-layer model (Persona/Skill/Tool/Lens) — "Never conflate these layers." | ARCHITECTURE | RETIRED 2026-07-23 (arch-volatile; source deleted) |
 | `chimera-dependency-veto:13-29` | Permanent dependency vetoes (agent frameworks, structured-gen libs, observability, queues, vector DBs, auth/sandbox libs). | ARCHITECTURE | LIVE |
 | `chimera-dependency-veto:43` | "**Never** add native `anthropic` / `google-generativeai` / `cohere` SDKs." | ARCHITECTURE | LIVE (but see §3-C1) |
 | `chimera-mcp-taste/mcp_rules.md:177-178` | "Business logic never lives in `server.py` … thin adapter (<200 lines) … the concurrency guard is the one sanctioned exception (Phase M red line)." | ARCHITECTURE | LIVE |
@@ -193,7 +193,7 @@ principle, where it appears *implicitly*, and a proposed canonical statement.
 
 ### M5 — 🟡 "`[V]/[P]/[U]` propagation is structural (schema-enforced), never advisory."
 - Category 5. Stated forcefully (`phase-K.md:90-93`, `THEORETICAL_FRAMEWORK.md §3:129-130`,
-  `chimera-core-philosophy:26-30`) but **VISION-NOT-ENFORCED**: Phase K is Qued and `write_result`'s
+  `PHILOSOPHY.md §3`) but **VISION-NOT-ENFORCED**: Phase K is Qued and `write_result`'s
   `verdict` is still an unvalidated `str` (`TAG_SYSTEM.md §9:216`). Today the tag *is* advisory.
 - **Status caveat:** this is not "missing" so much as "stated as a rule the code does not yet keep."
   A canonical SOT should list it as a **committed-but-pending** invariant, with the enforcement debt
@@ -205,8 +205,7 @@ principle, where it appears *implicitly*, and a proposed canonical statement.
   is code, `[V]/[P]/[U]` is advisory and — by the project's own north star — negative value."*
 
 ### M6 — 🟢 "Every fidelity mechanism must enforce or be deleted (the anti-theater rule)."
-- This *is* stated (`chimera-core-philosophy:26-30`) — but as a *principle in a philosophy skill*,
-  not as an operational gate any phase must pass. It is the meta-rule under M1/M4/M5.
+- This *is* stated (`PHILOSOPHY.md §3`, `CLAUDE.md §Product philosophy`) — elevated to static docs; the STYLE-tier skill that originally held it was retired 2026-07-23. It is the meta-rule under M1/M4/M5.
 - **Proposed canonical statement (elevate, don't invent):** *"No advisory rigor. Before any
   provenance flag, criteria file, tier field, or verifier ships, state its enforcement mechanism
   (what schema/gate/code path makes it load-bearing). If there is none, it is theater — delete it or
@@ -303,7 +302,7 @@ mechanism, status).** Every entry must name *how* it is enforced, or be marked
   and 6 `_shared/*.md` (chimera-sprint-discipline + refs, chimera-code-taste + refs,
   chimera-dependency-veto, chimera-commit-style, chimera-academic-observe, chimera-bb-persona,
   chimera-w1-verify, chimera-w2-map, chimera-deep-extract, chimera-triage-paper, six lens skills,
-  chimera-core-philosophy).
+  chimera-core-philosophy [deleted 2026-07-23]).
 - **`CLAUDE.md`** rules cited from the always-loaded project context.
 - **Not inspected:** running code (out of scope — rules audit only), `docs/audits/*`, `docs/plans/*`,
   `docs/incidents/*`, phase docs other than K/L/L.B. Where those are referenced by a rule they are

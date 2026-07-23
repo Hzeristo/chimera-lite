@@ -1,8 +1,7 @@
 # Product Philosophy — The *Why* Beneath the Motif
 
 > Companion to [`CODENAMES.md`](CODENAMES.md). That file is the *what* (the dev motif and
-> its naming grammar); this file is the *why* the motif is sitting on top of. Reinforced
-> operationally by the always-active `chimera-core-philosophy` skill.
+> its naming grammar); this file is the *why* the motif is sitting on top of.
 
 The phase codenames are not decoration. They are a confession of what Chimera Lite actually
 **is** — a product thesis that was never written down explicitly until the motif made it legible.

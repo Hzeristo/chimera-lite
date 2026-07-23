@@ -11,7 +11,7 @@ Each rule carries an **enforcement status**:
 - **STRUCTURAL** — a schema / gate / code path makes it load-bearing; violating it is impossible or
   is caught by an automated check. The rule is real.
 - **ADVISORY** — the invariant is committed, but the enforcing code does not yet exist. By this
-  project's own north star (*advisory rigor is negative value* — `chimera-core-philosophy:26-30`),
+  project's own north star (*advisory rigor is negative value* — `PHILOSOPHY.md §3`),
   an advisory rule is **acknowledged technical debt, not a shipped guarantee.** Every advisory gap
   below names the phase that lands it. See the enforcement-debt register (Appendix B).
 

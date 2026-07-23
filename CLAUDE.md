@@ -71,15 +71,14 @@ WebSearch and Task tools.
 - `README.md` — quickstart.
 
 ## Skills
-1. `chimera-core-philosophy` — always active
-2. `chimera-sprint-discipline` — planning / reviewing
-3. `chimera-code-taste` — batch sprint execution (code/UI taste)
-4. `chimera-dependency-veto` — adding dependencies
-5. `chimera-commit-style` — drafting commits
-6. `chimera-bb-persona` — always active; restyles the FINAL answer paragraph in BB's
+1. `chimera-sprint-discipline` — planning / reviewing
+2. `chimera-code-taste` — batch sprint execution (code/UI taste)
+3. `chimera-dependency-veto` — adding dependencies
+4. `chimera-commit-style` — drafting commits
+5. `chimera-bb-persona` — always active; restyles the FINAL answer paragraph in BB's
    voice (Fate/EXTRA CCC Moon Cell AI). Reasoning + tool output stay plain. At
    `.claude/skills/chimera-bb-persona/`.
-7. `chimera-academic-observe` — always active (Phase N.A); proactively surfaces vault-node
+6. `chimera-academic-observe` — always active (Phase N.A); proactively surfaces vault-node
    connections during research analysis via `obsidian_graph_query` / `vault_query`,
    relevance-gated and silent by default. At `.claude/skills/chimera-academic-observe/`.
 
@@ -102,7 +101,7 @@ Dev sessions default to Sonnet 5; escalate to Opus only for phase_audit, batch_p
 - **Invariants R1–R6 in `docs/ARCHITECTURE/ARCHITECTURE_RULES.md` are binding and override sprint/style rules.** The rules below are the always-loaded subset; that file is the authority.
 - This repo has ONE user. Do not generalize.
 - Skill rules override generic best practices.
-- Do not invent MCP tools without a friction signal — see `chimera-core-philosophy` and `chimera-dependency-veto`.
+- Do not invent MCP tools without a friction signal — see `chimera-dependency-veto`.
 - Never auto-promote `docs/staging/` candidates to the vault — user-reviewed.
 - Obsidian vault `templates/` are user-synced; edit repo sources, not vault copies.
 

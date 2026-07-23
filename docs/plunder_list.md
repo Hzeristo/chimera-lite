@@ -1,8 +1,8 @@
 # Plunder List
 
 SOTA paper ideas filed for future consideration. Not actionable until
-a friction signal motivates implementation. Per chimera-core-philosophy
-and chimera-dependency-veto: read for architecture, file ideas here,
+a friction signal motivates implementation. Per chimera-dependency-veto:
+read for architecture, file ideas here,
 do not implement speculatively.
 
 ## Format per entry

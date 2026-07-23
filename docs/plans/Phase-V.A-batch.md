@@ -555,7 +555,7 @@ V.A.md:46`.
 - ❌ ARA alignment is STRUCTURAL (template fields → ARA layers), not platform-level —
   `phase-V.A.md:58-59`.
 - ❌ Do NOT generalize for multiple users; do NOT add SaaS-shaped abstractions
-  (chimera-core-philosophy, CLAUDE.md hard rule).
+  (CLAUDE.md hard rule).
 - ❌ No opportunistic refactoring in any sprint.
 
 ---

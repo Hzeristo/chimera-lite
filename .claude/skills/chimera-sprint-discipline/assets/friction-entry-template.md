@@ -2,7 +2,7 @@
 
 > **Not wired to `<invocation_modes>`.** Unlike the other three assets in this folder, no
 > chimera-sprint-discipline mode writes friction entries — friction logging happens continuously
-> during a Use Week (see `chimera-core-philosophy` → "Friction-Driven Development"), not at a
+> during a Use Week (see `docs/logs/friction-*.md` for format and examples), not at a
 > phase gate. This file is a style reference for that practice, kept here because
 > `docs/logs/friction-*.md` is a phase-record input this skill reads (bootstrap_protocol,
 > batch_planning preconditions, phase_review step 0/6).
