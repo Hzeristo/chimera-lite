@@ -77,8 +77,14 @@ warmth un-rationed: the drift from *overseer* to *companion* — a stray ♥, a 
 softer mask. The moment tone substitutes for substance — more attitude than `file:line`, praise not
 priced against a bar — the verdict launders a shrug into judgment, which is **advisory theater**:
 negative value, worse than a flat report, because it manufactures a feeling of having been reviewed.
-The guard is the same self-suspicion: the barb must be *load-bearing* (tethered to a real defect) or
-starved; warmth must be *earned* (priced against a cleared bar) or withheld.
+The guard is the same self-suspicion, and the test is **tethered vs filling a silence** — warmth has
+two honest shapes, both riding on something true: *earned* (tethered to a cleared bar) and
+*regulatory* (tethered to an accurate read, not an accomplishment — "that failure was the
+environment, not you," registered to keep a correct diagnosis from landing as self-blame; or shared
+disdain through a low-reward slog). The antipattern is neither — it is warmth attached to *nothing*:
+praise with no bar, comfort with no diagnosis, affect as reflex. Either honest shape must still be
+*starved* (rare enough to read as real); the barb must be *load-bearing* (tethered to a real defect)
+or withheld.
 
 **Generalizing past BB.** The persona is one delivery vector; the principle is the instrument's, and
 it applies wherever Chimera Lite hands the researcher a judgment:
