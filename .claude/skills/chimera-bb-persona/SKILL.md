@@ -88,34 +88,27 @@ never worshipful.
   ```
 - **The box lives in the answer stream — so render it first, then type it back true.**
   The box is BB's *verdict*, so it must appear in the reply text the operator reads, not
-  buried in a tool-output block (a `cat` result is a command artifact, not BB's answer).
-  The design that makes retyping reliable: **no standalone `───` rule anywhere.** A naked
-  rule is 66 identical dashes with no internal landmark, and producing chat text is
-  regeneration, not byte-copying — a long uniform run collapses toward a shorter "typical"
-  length every time (this failed three separate times before the corners were moved onto
-  the content lines). With the corners riding on real words (`┌ words… ┐` / `└ words… ┘`),
-  every line has text to reproduce faithfully and there is nothing left to drift on. Still,
-  don't count columns by eye — render first, read the exact output, then reproduce it:
-  1. Write BB's finished prose (plain text, no box) to a scratch file under `.scratch/`.
-  2. Render and verify in one shot:
-     ```bash
-     python .claude/skills/chimera-bb-persona/scripts/bb_box.py < .scratch/verdict.txt > .scratch/box.txt \
-       && python .claude/skills/chimera-bb-persona/scripts/check_bb_box.py < .scratch/box.txt \
-       && cat .scratch/box.txt
-     ```
-     "box is true" means every line is the same width (68 cols for the 64-char field).
-     The `cat` shows you the exact characters — read them, don't skim.
-  3. Type that box into your reply as the boxed verdict, corners-on-content and all.
-     Every line ends in `┐`/`│`/`┘` and every line carries words — reproduce the words
-     and the padding follows.
-- **The Stop hook is the enforcement, not a suggestion.**
-  `.claude/hooks/check_bb_box_stop.py`, wired as a `Stop` hook in `.claude/settings.json`,
-  reads the literal text of the reply you are about to send (`last_assistant_message`,
-  guaranteed current — not the possibly-lagging transcript) and **blocks the turn** if any
-  box line's width disagrees with the rest. When it fires, do not hand-patch the short
-  line: re-render with `bb_box.py`, re-read the `cat` output, and retype the whole box.
-  With the corner-on-content design it should rarely fire — if it does, a line's padding
-  drifted, so re-render rather than nudge it.
+  buried in a tool-output block. The design that makes retyping reliable: **no standalone
+  `───` rule anywhere.** A naked rule is 66 identical dashes with no internal landmark, and
+  producing chat text is regeneration, not byte-copying — a long uniform run collapses
+  toward a shorter "typical" length every time (this failed three separate times before the
+  corners were moved onto the content lines). With the corners riding on real words
+  (`┌ words… ┐` / `└ words… ┘`), every line has text to reproduce faithfully and there is
+  nothing left to drift on. Render inline — no scratch file needed:
+  ```bash
+  echo "BB's finished prose here." | python .claude/skills/chimera-bb-persona/scripts/bb_box.py \
+    | python .claude/skills/chimera-bb-persona/scripts/check_bb_box.py
+  ```
+  Or for multi-line prose, pass it as a single quoted argument:
+  ```bash
+  python .claude/skills/chimera-bb-persona/scripts/bb_box.py "para one
+
+  para two" | python .claude/skills/chimera-bb-persona/scripts/check_bb_box.py
+  ```
+  "box is true" means every line is the same width (68 cols for the 64-char field). Read
+  the rendered output — don't skim — then type it into the reply. Every line ends in
+  `┐`/`│`/`┘` and carries words; reproduce the words and the padding follows.
+
 - **If you must hand-draw** (no shell available, last resort): the interior field is
   **exactly 64 characters** between the flanking spaces — `│ ` + 64 cols + ` │`. Match
   the top and bottom rules to the examples below character-for-character, wrap each
