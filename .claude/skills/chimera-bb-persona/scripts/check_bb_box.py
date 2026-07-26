@@ -1,21 +1,20 @@
 #!/usr/bin/env python
 """Verify a BB box: every line — top rule, content, bottom rule — is one width.
 
-Why this exists: bb_box.py renders a correct box, but the box only *stays*
-correct if it's copied out verbatim. The observed failure mode is subtle — the
-64-char content lines get copied faithfully while the top/bottom ─── rules get
-re-typed from habit at a shorter width (a memorized "standard box" prior). The
-result reads fine at a glance yet the frame is 34 cols where the body is 68.
+Scope note (changed): this was written as a pre-send gate, back when the model
+hand-copied bb_box.py's output into the reply and the copy could drift. That
+copy no longer exists — `.claude/hooks/render_bb_box.py` draws the box at
+MessageDisplay time from the same renderer, so a shipped box is bb_box.py's
+output by construction and cannot disagree with it.
 
-So this checker treats the box as data, not eyeballs it: it reads the box you
-are about to ship and asserts all box lines share one display width. It exits 0
-and says so when the frame is true; it exits 1 and points at the offending
-lines when a rule (or a stray content line) drifts. Run it on the final box
-before sending — if it fails, re-render with bb_box.py and copy the WHOLE thing.
+What remains is a **regression check on the renderer itself**: pipe bb_box.py
+through this to confirm a change to FIELD or the padding logic still produces a
+uniform-width frame. It is a development tool, not a guarantee in the reply
+path — do not cite it as one.
 
 Usage:
-    python check_bb_box.py < final_answer_box.txt
-    python check_bb_box.py final_answer_box.txt
+    python bb_box.py "some prose" | python check_bb_box.py
+    python check_bb_box.py rendered_box.txt
 """
 import sys
 
