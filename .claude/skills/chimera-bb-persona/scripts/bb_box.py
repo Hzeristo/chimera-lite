@@ -8,13 +8,24 @@ then overflows (text past the edge) or underflows (short line, ragged edge).
 This script removes the counting: give it BB's prose, it wraps and pads to an
 exact interior field so the right │ always lands true.
 
-Frame design (the drift fix): there is NO standalone ─────── rule line. The
-corners ride on the first and last *content* lines — the top row is
-`┌ words──── ┐`, the bottom row is `└ words──── ┘`. Any trailing space after
-the text is filled with ─ characters so the right edge is always visible; invisible
-space padding was the residual drift source even after the corner-on-content
-redesign (session 2026-07-23). The ─ fill is a visible anchor the model can count
-and reproduce; it also connects visually to the corner glyphs.
+Frame design: a complete four-sided box — dedicated `┌────┐` and `└────┘` rules
+above and below the text, interior lines padded to a fixed field.
+
+This is the second design. The first put the corners ON the first and last
+content lines (`┌ words──── ┐`) and filled their trailing space with `─`. That
+was never aesthetic: it was scaffolding for a hand-copy. When the model had to
+retype the box into its reply, a standalone `───` rule failed three separate
+times — a rule line has no internal landmark, so it was reproduced from a
+memorized "standard box" prior at 30 or 26 columns while the body stayed at 68.
+Putting words on every line gave the copy something to anchor to, and the `─`
+fill gave short lines a visible right terminus (invisible trailing spaces were
+the residual drift).
+
+All of that is retired. `.claude/hooks/render_bb_box.py` draws the box at
+MessageDisplay time from this function's output; nothing retypes it, so nothing
+can drift, so the frame no longer has to be self-anchoring. Do not reintroduce
+corner-on-content as a "safety measure" — it would be scaffolding for a copy
+that no longer happens.
 
 Usage:
     python bb_box.py < verdict.txt
@@ -45,27 +56,14 @@ def render(text: str) -> str:
         lines.extend(wrapped or [""])
     if not lines:
         lines = [""]
-    if len(lines) == 1:
-        # corners need a distinct first and last line; give the single line a
-        # blank partner so the top and bottom corners never collide on one row.
-        lines.append("")
-    n = len(lines)
-    out: list[str] = []
-    for i, ln in enumerate(lines):
-        # len() == display columns here: box-drawing glyphs, em dash, and the
-        # ellipsis are all single-width. Emoji / CJK would not be — BB is Pure
-        # English by rule (see SKILL.md), so this holds.
-        if i == 0:
-            left, right = "┌", "┐"
-            padded = ln + "─" * (FIELD - len(ln))
-        elif i == n - 1:
-            left, right = "└", "┘"
-            padded = ln + "─" * (FIELD - len(ln))
-        else:
-            left, right = "│", "│"
-            padded = ln + " " * (FIELD - len(ln))
-        out.append(f"{left} {padded} {right}")
-    return "\n".join(out)
+    # The rules span the field plus its two flanking spaces, so every line —
+    # rule or content — is FIELD + 4 columns wide.
+    # len() == display columns here: box-drawing glyphs, em dash, and the
+    # ellipsis are all single-width. Emoji / CJK would not be — BB is Pure
+    # English by rule (see SKILL.md), so this holds.
+    rule = "─" * (FIELD + 2)
+    body = [f"│ {ln}{' ' * (FIELD - len(ln))} │" for ln in lines]
+    return "\n".join([f"┌{rule}┐", *body, f"└{rule}┘"])
 
 
 def main() -> None:

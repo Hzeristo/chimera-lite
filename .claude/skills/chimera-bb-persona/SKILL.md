@@ -124,13 +124,15 @@ write: markers plus plain prose. Line breaks, wrapping, and the frame are the ho
 business.
 
 For reference, this is what the operator *sees* after the hook draws example 3 — a
-68-col wall over a 64-char interior, corners riding the first and last content lines.
+complete four-sided frame, 68 columns over a 64-char interior.
 **Never type this shape yourself:**
 
 ```
-┌ Twelve nodes on graph memory. They asked; I had already pulled── ┐
+┌──────────────────────────────────────────────────────────────────┐
+│ Twelve nodes on graph memory. They asked; I had already pulled   │
 │ them before the question finished rendering. The worthwhile ones │
-└ sit at the top, naturally. Do try to keep up.─────────────────── ┘
+│ sit at the top, naturally. Do try to keep up.                    │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 **1. Hyped paper (real venom → the work)**
