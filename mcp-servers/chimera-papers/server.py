@@ -197,6 +197,26 @@ async def get_paper_markdown(paper_id: str) -> str:
 
 
 @mcp.tool()
+async def analyze_paper_data(paper_id: str) -> str:
+    """Resolve ONE already-converted paper's markdown path + metadata — a bare read primitive for
+    the triage skill to consume.
+
+    WHEN: the ``chimera-triage-paper`` skill needs a paper's location plus its bibliographic
+    metadata to hand to its Haiku subagent (``chimera-paper-triager``) for scout-tier screening.
+    WHAT: returns a JSON object ``{"markdown_path", "metadata"}`` (metadata = id / title /
+    authors / year / content_path); an error string if the paper has not been converted yet
+    (fetch + convert first). CONTRAST: makes NO judgment call and writes NO node — the verdict
+    happens ONLY in the ``chimera-triage-paper`` skill's subagent, never here. Sibling of
+    ``get_paper_markdown``, which the deep-read path uses; this one adds the metadata dict that
+    triage needs.
+
+    Args:
+        paper_id: arXiv identifier of an already-converted paper (e.g. "2604.14004").
+    """
+    return await miner_tools.analyze_paper_data(paper_id)
+
+
+@mcp.tool()
 async def stage_deep_read_node(ctx: Context, paper_id: str, extraction: dict) -> str:
     """Stage a subagent-produced deep-read extraction into a reviewable Knowledge node — the
     DETERMINISTIC back-half of Phase Q disciplined extraction (Phase L.B externalized the LLM

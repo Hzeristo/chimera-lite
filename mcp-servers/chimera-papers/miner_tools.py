@@ -7,6 +7,7 @@ Long-running tools return a ``task_id`` immediately; callers poll ``check_task_s
 from __future__ import annotations
 
 import asyncio
+import json
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 
@@ -253,6 +254,28 @@ async def get_paper_markdown(paper_id: str) -> str:
     except FileNotFoundError as exc:
         return f"[Extract Error] {exc}"
     return str(path)
+
+
+async def analyze_paper_data(paper_id: str) -> str:
+    """Resolve ONE already-converted paper's markdown path + metadata — a bare read primitive.
+
+    The ``chimera-triage-paper`` skill calls this first, then hands the path + metadata to its
+    ``chimera-paper-triager`` subagent, which reads the paper itself (isolation: this MCP layer
+    never sees paper content, and makes NO LLM call). Returns a JSON object with
+    ``markdown_path`` + ``metadata``.
+    """
+    pid = (paper_id or "").strip()
+    if not pid:
+        return "[Tool Error]: analyze_paper_data requires a non-empty paper_id."
+
+    # Lazy import: keep the vault/config chain out of module load.
+    from filter_service import analyze_paper_data as _analyze_paper_data
+
+    try:
+        data = await asyncio.to_thread(_analyze_paper_data, pid)
+    except FileNotFoundError as exc:
+        return f"[Extract Error] {exc}"
+    return json.dumps(data, ensure_ascii=False, indent=2)
 
 
 async def stage_deep_read_node(
