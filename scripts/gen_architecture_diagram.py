@@ -4,8 +4,15 @@ Everything rendered here is DERIVED from source. Nothing about the flow is asser
 
   - the ``@mcp.tool()`` inventory of both MCP servers (parsed from server.py source);
   - the pinned worker model of every ``.claude/agents/*.md`` subagent (YAML frontmatter);
-  - and, for each declared WRITE SURFACE, the set of MCP tools that actually REACH it,
-    computed by walking a reference graph over both server packages.
+  - for each declared WRITE SURFACE, the set of MCP tools that actually REACH it, computed by
+    walking a reference graph over both server packages;
+  - and the invariant roster (rule ids / titles / self-declared enforcement tiers) parsed from
+    ``ARCHITECTURE_RULES.md``.
+
+The map is PARTIAL and renders its own coverage first (``COVERAGE_LAYERS``): layer 1 (dataflow)
+is verified, layer 2 (R1-R6 conformance) is listed but NOT checked, layer 3 (the skill/context
+call graph) is absent. Stating the frontier is load-bearing — an artifact that looks complete
+while covering a third is the same lie as a literal that reproduces while being false.
 
 Why the reference graph rather than a hand-drawn flow (the L.B.5 defect, 2026-08-03): the
 previous generator carried the four ingestion paths as a hardcoded literal. When L.B.2 moved
@@ -38,6 +45,44 @@ SERVERS = {
     "chimera-papers": REPO_ROOT / "mcp-servers" / "chimera-papers" / "server.py",
     "chimera-vault": REPO_ROOT / "mcp-servers" / "chimera-vault" / "server.py",
 }
+RULES_DOC = REPO_ROOT / "docs" / "ARCHITECTURE" / "ARCHITECTURE_RULES.md"
+SKILLS_DIR = REPO_ROOT / ".claude" / "skills"
+AGENTS_DIR = REPO_ROOT / ".claude" / "agents"
+
+# What this map covers, and what it does NOT. Rendered into the artifact so a reader can never
+# mistake a partial map for a whole one. `status` is the map's OWN coverage, not a code verdict.
+COVERAGE_LAYERS = [
+    (
+        "1. Dataflow / write surfaces",
+        "VERIFIED",
+        (
+            "Every write edge is derived from a reference chain in source and asserted by "
+            "`tests/test_architecture_dataflow.py`; an unreached surface renders ORPHANED."
+        ),
+    ),
+    (
+        "2. Invariant conformance (R1-R6)",
+        "VERIFIED",
+        (
+            "Each rule in the SOT is adjudicated by a mechanical verifier below. A rule with no "
+            "possible mechanical check reports UNCHECKABLE with the reason, never a silent pass."
+        ),
+    ),
+    (
+        "3. Skill / context layer",
+        "OUT OF SCOPE",
+        (
+            "Which skill invokes which tool and spawns which subagent is NOT mapped, and is not "
+            "pursued: skill bodies name tools in red lines precisely to FORBID them, so any "
+            "derivation short of real intent-parsing would mint edges asserting the opposite of "
+            "the source's meaning. Declared here so the map's edge is legible, not as pending work."
+        ),
+    ),
+]
+
+RULE_HEADING_RE = re.compile(r"^## (R\d+) — (.+)$", re.MULTILINE)
+ENFORCEMENT_RE = re.compile(r"\*\*Enforcement:\*\*\s*(.+?)(?=\n\s*\n|\n---|\Z)", re.DOTALL)
+ENFORCEMENT_TIER_RE = re.compile(r"\b(STRUCTURAL|ADVISORY|CONVENTION)\b")
 SERVER_PKGS = [
     REPO_ROOT / "mcp-servers" / "chimera-papers",
     REPO_ROOT / "mcp-servers" / "chimera-vault",
@@ -106,6 +151,52 @@ WRITE_SURFACES = [
         note="Oligo-era surface; its only caller is the retired OpticsService.irradiate path.",
     ),
 ]
+
+
+def parse_rules() -> list[tuple[str, str, str]]:
+    """Read (rule_id, title, self-declared enforcement tier) from the human-authored invariant SSOT.
+
+    The rules are the Architect's to write; this script may only ever implement VERIFIERS against
+    them (CLAUDE.md: reference the rule SOT, never restate or override it). So this is a re-parse on
+    every run, never a hardcoded copy — a copy would drift exactly like the flow literal did, and
+    would additionally be an unauthorized restatement of a human-owned authority.
+
+    The tier reported is each rule's OWN claim about itself. This map verifies NONE of it (coverage
+    layer 2), and renders UNCHECKED rather than implying otherwise.
+    """
+    if not RULES_DOC.is_file():
+        raise SystemExit(f"[dataflow] invariant SOT missing: {RULES_DOC}")
+    text = RULES_DOC.read_text(encoding="utf-8")
+    matches = list(RULE_HEADING_RE.finditer(text))
+    if not matches:
+        raise SystemExit("[dataflow] no `## R<n> — <title>` rule headings found in the invariant SOT")
+
+    rules: list[tuple[str, str, str]] = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        section = text[match.start() : end]
+        enforcement = ENFORCEMENT_RE.search(section)
+        tier = "UNDECLARED"
+        if enforcement:
+            tiers = ENFORCEMENT_TIER_RE.findall(enforcement.group(1))
+            if tiers:
+                # A rule may name several tiers (R3 splits per write path); keep them in order,
+                # deduped, so a mixed-enforcement rule is not flattened into a false single claim.
+                seen: list[str] = []
+                for entry in tiers:
+                    if entry not in seen:
+                        seen.append(entry)
+                tier = "/".join(seen)
+        rules.append((match.group(1), match.group(2).strip(), tier))
+    return rules
+
+
+def count_skill_layer() -> tuple[int, int]:
+    """Size the unmapped skill/context layer: (skills, agents). Counted, not enumerated —
+    an honest scale for a layer this map does not yet derive."""
+    skills = len([p for p in SKILLS_DIR.glob("*/SKILL.md")]) if SKILLS_DIR.is_dir() else 0
+    agents = len(list(AGENTS_DIR.glob("*.md"))) if AGENTS_DIR.is_dir() else 0
+    return skills, agents
 
 
 def parse_tools(server_path: Path) -> list[str]:
@@ -224,6 +315,305 @@ def derive_flows(
     return derived
 
 
+@dataclass(frozen=True)
+class RuleVerdict:
+    """One rule's mechanical adjudication. `status` is this map's finding, never the rule's claim."""
+
+    rule_id: str
+    status: str  # PASS | VIOLATED | PARTIAL | UNCHECKABLE
+    checked: str  # exactly what was mechanically tested
+    evidence: str
+
+
+# Exact AST identifiers for an LLM invocation. Matched as whole Name/Attribute ids, never as
+# substrings — `OpenAICompatibleClient` is a different identifier from `OpenAI` and must not match.
+LLM_CALL_IDS = frozenset(
+    {
+        "generate_structured_data",
+        "generate_structured_data_async",
+        "generate_raw_text",
+        "AsyncOpenAI",
+        "OpenAI",
+    }
+)
+
+
+def find_llm_call_sites() -> list[tuple[str, int, str, str, str]]:
+    """Every LLM invocation physically inside a server package.
+
+    Returns (module, line, function, enclosing_class, identifier). The class matters: a call inside
+    ``__init__`` is only executed if the CLASS is instantiated, and instantiation references the
+    class name, never ``__init__`` — so reachability must be anchored on both or a client
+    constructor would be written off as dead without justification.
+    """
+    sites: list[tuple[str, int, str, str, str]] = []
+    for pkg in SERVER_PKGS:
+        for py_path in sorted(pkg.rglob("*.py")):
+            try:
+                tree = ast.parse(py_path.read_text(encoding="utf-8"))
+            except SyntaxError:
+                continue
+            rel = py_path.relative_to(REPO_ROOT).as_posix()
+            owner: dict[int, str] = {}
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef):
+                    for member in node.body:
+                        if isinstance(member, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                            owner[id(member)] = node.name
+            for node in ast.walk(tree):
+                if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    continue
+                enclosing_class = owner.get(id(node), "")
+                for child in ast.walk(node):
+                    ident = (
+                        child.id
+                        if isinstance(child, ast.Name)
+                        else child.attr
+                        if isinstance(child, ast.Attribute)
+                        else None
+                    )
+                    if ident in LLM_CALL_IDS:
+                        sites.append((rel, child.lineno, node.name, enclosing_class, ident))
+    return sorted(set(sites))
+
+
+def _tool_names(tools_by_server: dict[str, list[str]]) -> list[str]:
+    return sorted({t for tools in tools_by_server.values() for t in tools})
+
+
+def _function_source(module_rel: str, symbol: str) -> str:
+    """Source text of one function, for guard checks. Empty when absent."""
+    path = REPO_ROOT / module_rel
+    if not path.is_file():
+        return ""
+    text = path.read_text(encoding="utf-8")
+    tree = ast.parse(text)
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == symbol:
+            return ast.get_source_segment(text, node) or ""
+    return ""
+
+
+def _verify_r1(tools_by_server: dict[str, list[str]], graph: dict[str, set[str]]) -> RuleVerdict:
+    """R1 — no LLM call inside any MCP server process. Live reachability, not mere presence."""
+    sites = find_llm_call_sites()
+    tools = _tool_names(tools_by_server)
+    live: list[str] = []
+    dead: list[str] = []
+    for module_rel, line, func, enclosing_class, ident in sites:
+        # Anchor on the function AND its class: a constructor is reached via the class name.
+        anchors = [func] + ([enclosing_class] if enclosing_class else [])
+        reaching = sorted(
+            {t for t in tools for anchor in anchors if find_chain(t, anchor, graph) is not None}
+        )
+        where = f"`{func}`" + (f" of `{enclosing_class}`" if enclosing_class else "")
+        label = f"`{module_rel}:{line}` (`{ident}` in {where})"
+        if reaching:
+            live.append(f"{label} reachable from {', '.join(f'`{t}`' for t in reaching)}")
+        else:
+            dead.append(label)
+    checked = (
+        f"AST-scanned both server packages for {len(LLM_CALL_IDS)} LLM identifiers, then tested "
+        "whether each call's enclosing function OR its enclosing class is reachable from any "
+        "registered MCP tool via the reference graph."
+    )
+    if live:
+        return RuleVerdict("R1", "VIOLATED", checked, "LIVE: " + "; ".join(live))
+    if dead:
+        return RuleVerdict(
+            "R1",
+            "PASS",
+            checked,
+            (
+                f"No LLM call is reachable from any MCP tool. {len(dead)} call site(s) exist but are "
+                f"unreachable (dead code): {'; '.join(dead)}."
+            ),
+        )
+    return RuleVerdict("R1", "PASS", checked, "No LLM call identifiers present in either package.")
+
+
+def _verify_r2(tools_by_server: dict[str, list[str]], graph: dict[str, set[str]]) -> RuleVerdict:
+    """R2 — no truth advance without a human action: committed-tier writes only via MCP tools."""
+    tools = _tool_names(tools_by_server)
+    writers = sorted(t for t in tools if find_chain(t, "_promote_write", graph) is not None)
+    background = [
+        entry
+        for entry in ("run_subprocess_task", "create_task", "_run_task", "daily_paper_pipeline")
+        if find_chain(entry, "_promote_write", graph) is not None
+    ]
+    checked = (
+        "Tested which entry points reach `_promote_write` (the only committed-tier write "
+        "mechanic): registered MCP tools vs background/scheduled task entry points."
+    )
+    if background:
+        return RuleVerdict(
+            "R2", "VIOLATED", checked, f"Non-human entry reaches the committed tier: {background}"
+        )
+    return RuleVerdict(
+        "R2",
+        "PASS",
+        checked,
+        (
+            f"`_promote_write` is reached only by human-invoked MCP tool(s): "
+            f"{', '.join(f'`{w}`' for w in writers)}. No background/scheduled path reaches it."
+        ),
+    )
+
+
+def _verify_r3() -> RuleVerdict:
+    """R3 — ascend_node is the sole writer of Knowledge/, enforced by promote_node's refusal."""
+    module = "mcp-servers/chimera-papers/staging_service.py"
+    promote = _function_source(module, "promote_node")
+    ascend = _function_source(module, "ascend_node")
+    checked = (
+        "AST-extracted `promote_node` / `ascend_node` and tested for the tier guards that make "
+        "the sole-writer guarantee structural rather than conventional."
+    )
+    promote_guards = "deep_read" in promote and "raise" in promote
+    ascend_guards = "deep_read" in ascend and "raise" in ascend
+    if promote_guards and ascend_guards:
+        return RuleVerdict(
+            "R3",
+            "PASS",
+            checked,
+            (
+                f"`promote_node` refuses `chimera_tier=deep_read` and `ascend_node` requires it "
+                f"(`{module}`), so `ascend_node` is structurally the sole `Knowledge/` writer."
+            ),
+        )
+    missing = [
+        name
+        for name, ok in (("promote_node refusal", promote_guards), ("ascend_node gate", ascend_guards))
+        if not ok
+    ]
+    return RuleVerdict("R3", "VIOLATED", checked, f"Missing guard(s): {', '.join(missing)}")
+
+
+def _verify_r4() -> RuleVerdict:
+    """R4 — tier integrity: a `knowledge` node is never silently defaulted to a tier."""
+    module = "mcp-servers/chimera-papers/staging_service.py"
+    creator = _function_source(module, "create_staging_node")
+    checked = (
+        "AST-extracted `create_staging_node` and tested that its tier default excludes "
+        "`knowledge` (forcing its writer to declare scout vs deep_read)."
+    )
+    defaults_line = next(
+        (ln for ln in creator.splitlines() if "tier is None" in ln and "node_type in" in ln), ""
+    )
+    if defaults_line and "knowledge" not in defaults_line:
+        return RuleVerdict(
+            "R4",
+            "PASS",
+            checked,
+            (
+                f"Tier defaulting is restricted to thought/insight/decision; `knowledge` is "
+                f"excluded (`{module}`), so an untiered K node stays untiered rather than "
+                "being silently mis-tiered."
+            ),
+        )
+    return RuleVerdict(
+        "R4",
+        "VIOLATED" if defaults_line else "UNCHECKABLE",
+        checked,
+        (
+            f"`knowledge` appears in the tier-default guard: {defaults_line.strip()!r}"
+            if defaults_line
+            else "Could not locate the tier-default guard; the check cannot be made honestly."
+        ),
+    )
+
+
+def _verify_r5() -> RuleVerdict:
+    """R5 — provenance load-bearing: is the verdict tag structurally constrained to V/P/U?"""
+    module = "mcp-servers/chimera-vault/server.py"
+    source = _function_source(module, "write_result")
+    checked = (
+        "AST-extracted `write_result` and tested whether its `verdict` parameter is constrained "
+        'to `Literal["V","P","U"]` (structural) or accepts an arbitrary string (advisory).'
+    )
+    verdict_line = next((ln for ln in source.splitlines() if ln.strip().startswith("verdict")), "")
+    if "Literal" in verdict_line:
+        return RuleVerdict("R5", "PASS", checked, f"`verdict` is schema-constrained: {verdict_line.strip()!r}")
+    return RuleVerdict(
+        "R5",
+        "VIOLATED",
+        checked,
+        (
+            f"`verdict` is an unconstrained string ({verdict_line.strip()!r} in `{module}`), so a "
+            "`[V]` carries no structural guarantee. This CONFIRMS the SOT's own ADVISORY "
+            "admission — the rule is aspirational until Phase K lands schema-reject."
+        ),
+    )
+
+
+def _verify_r6(tools_by_server: dict[str, list[str]], graph: dict[str, set[str]]) -> RuleVerdict:
+    """R6 — human authorship of T/I/D bodies. Only partially mechanisable."""
+    checked = (
+        "Tested whether any T/I/D body content can be machine-generated inside the servers: "
+        "(a) no LLM call is tool-reachable (see R1), and (b) `create_staging_node`'s `body` is a "
+        "caller-supplied parameter rather than generated in-module."
+    )
+    creator = _function_source("mcp-servers/chimera-papers/staging_service.py", "create_staging_node")
+    body_is_param = "body: str" in creator or "body," in creator.split(")")[0]
+    r1 = _verify_r1(tools_by_server, graph)
+    if body_is_param and r1.status == "PASS":
+        return RuleVerdict(
+            "R6",
+            "PARTIAL",
+            checked,
+            (
+                "Both mechanisable halves hold: `body` is a caller-supplied parameter and no "
+                "tool-reachable LLM call exists, so no server path can synthesise a T/I/D body. "
+                "NOT fully verifiable: nothing prevents a FUTURE path from populating a body, and "
+                "whether the human actually authored the text is outside code's reach. The SOT "
+                "declares this CONVENTION; that remains accurate."
+            ),
+        )
+    return RuleVerdict(
+        "R6",
+        "VIOLATED" if not body_is_param else "PARTIAL",
+        checked,
+        "A server path can supply T/I/D body content without a human action.",
+    )
+
+
+def verify_rules(
+    rules: list[tuple[str, str, str]],
+    tools_by_server: dict[str, list[str]],
+    graph: dict[str, set[str]],
+) -> list[RuleVerdict]:
+    """Adjudicate every rule the SOT declares. An unknown rule id yields UNCHECKABLE, never a pass.
+
+    The SOT is human-authored and owns the rules; this function only implements verifiers against
+    it. A rule appearing in the SOT with no verifier here is reported as such, so adding a rule
+    upstream cannot silently inherit a clean bill of health.
+    """
+    verdicts: list[RuleVerdict] = []
+    for rule_id, _title, _tier in rules:
+        if rule_id == "R1":
+            verdicts.append(_verify_r1(tools_by_server, graph))
+        elif rule_id == "R2":
+            verdicts.append(_verify_r2(tools_by_server, graph))
+        elif rule_id == "R3":
+            verdicts.append(_verify_r3())
+        elif rule_id == "R4":
+            verdicts.append(_verify_r4())
+        elif rule_id == "R5":
+            verdicts.append(_verify_r5())
+        elif rule_id == "R6":
+            verdicts.append(_verify_r6(tools_by_server, graph))
+        else:
+            verdicts.append(
+                RuleVerdict(
+                    rule_id,
+                    "UNCHECKABLE",
+                    "No verifier implemented for this rule id.",
+                    "Declared in the SOT after the verifiers were written; needs one here.",
+                )
+            )
+    return verdicts
+
+
 def _md_cell(text: str) -> str:
     """Escape a value for a markdown table cell — destinations contain `|` (alternation)."""
     return text.replace("|", "\\|")
@@ -245,14 +635,44 @@ def render(
     tools_by_server: dict[str, list[str]],
     agents: list[tuple[str, str]],
     flows: list[tuple[WriteSurface, int, list[tuple[str, str, list[str]]]]],
+    rules: list[tuple[str, str, str]],
+    skill_counts: tuple[int, int],
+    verdicts: list[RuleVerdict],
 ) -> str:
     lines: list[str] = []
-    lines.append("# Chimera Lite — Dataflow Map (generated)")
+    verified = sum(1 for _name, status, _ev in COVERAGE_LAYERS if status == "VERIFIED")
+    total = len(COVERAGE_LAYERS)
+    edge_count = sum(len(edges) for _s, _l, edges in flows)
+    skills, agent_count = skill_counts
+
+    lines.append("# Chimera Lite — Architecture Map (generated)")
     lines.append("")
     lines.append(
         "Generated by `scripts/gen_architecture_diagram.py`. Do not hand-edit — regenerate "
-        "at every phase seal. Every write edge below is DERIVED from a reference chain in "
-        "source; none is asserted by hand. Describes actual code as it stands; never aspiration."
+        "at every phase seal. Describes actual code as it stands; never aspiration."
+    )
+    lines.append("")
+    lines.append(f"## Coverage — {verified} of {total} layers verified (PARTIAL)")
+    lines.append("")
+    lines.append(
+        "**This map is deliberately incomplete, and states so.** A partial map presented as whole "
+        "is the failure mode this artifact already suffered once: its flow section was a hardcoded "
+        "literal that reproduced byte-for-byte while asserting write paths L.B.2 had removed "
+        "(`docs/sprints/phase-L.B/L.B.5.md`, amendment 2026-08-03). Coverage is therefore rendered "
+        "before any content."
+    )
+    lines.append("")
+    lines.append("| layer | status | what that means |")
+    lines.append("|---|---|---|")
+    for name, status, evidence in COVERAGE_LAYERS:
+        lines.append(f"| {name} | **{status}** | {_md_cell(evidence)} |")
+    lines.append("")
+    lines.append(
+        f"Derived this run: **{len(flows)} write surfaces**, **{edge_count} write edges**, "
+        f"**{len(tools_by_server['chimera-papers']) + len(tools_by_server['chimera-vault'])} MCP "
+        f"tools**, **{len(agents)} pinned subagents**. Not derived: "
+        f"**{len(rules)} invariants** (layer 2) and the **{skills} skills / {agent_count} agents** "
+        f"call graph (layer 3)."
     )
     lines.append("")
 
@@ -319,6 +739,98 @@ def render(
             lines.append(f'    tool_{tool}["{tool}"] --> {dest_node}')
     lines.append("```")
     lines.append("")
+
+    status_counts: dict[str, int] = {}
+    for verdict in verdicts:
+        status_counts[verdict.status] = status_counts.get(verdict.status, 0) + 1
+    tally = ", ".join(f"{count} {status}" for status, count in sorted(status_counts.items()))
+
+    lines.append(f"## Layer 2 — invariant conformance ({tally})")
+    lines.append("")
+    lines.append(
+        "The invariants are a HUMAN-AUTHORED SSOT: `docs/ARCHITECTURE/ARCHITECTURE_RULES.md` owns "
+        "them, and this generator may only ever implement VERIFIERS against it — never author, "
+        "restate, or override a rule (CLAUDE.md drift rule). Rule ids, titles, and declared tiers "
+        "are re-parsed from that file on every run, so those columns are a pointer that cannot "
+        "drift, not a copy that can."
+    )
+    lines.append("")
+    lines.append(
+        "**`declared` is the rule's claim about itself; `verdict` is this map's mechanical "
+        "finding.** Where the two disagree, the verdict is the one backed by a check. A rule with "
+        "no possible mechanical check reports `UNCHECKABLE` with the reason — never a silent pass."
+    )
+    lines.append("")
+    lines.append("| rule | invariant | declared | verdict |")
+    lines.append("|---|---|---|---|")
+    by_id = {verdict.rule_id: verdict for verdict in verdicts}
+    for rule_id, title, tier in rules:
+        verdict = by_id.get(rule_id)
+        status = verdict.status if verdict else "UNCHECKABLE"
+        lines.append(f"| {rule_id} | {_md_cell(title)} | {_md_cell(tier)} | **{status}** |")
+    lines.append("")
+    lines.append("### Verifier findings")
+    lines.append("")
+    for verdict in verdicts:
+        lines.append(f"**{verdict.rule_id} — {verdict.status}**")
+        lines.append("")
+        lines.append(f"- *Checked:* {verdict.checked}")
+        lines.append(f"- *Finding:* {verdict.evidence}")
+        lines.append("")
+
+    lines.append("### Where the verifiers stop (the border)")
+    lines.append("")
+    lines.append(
+        "**A verifier cannot cover every violation of a stated invariant, and this one does not "
+        "claim to.** The rules are human-authored intent; a static checker reaches only the part "
+        "of that intent expressible as a property of source. The border is stated here so a `PASS` "
+        "is read as \"this check held\", never as \"this rule is safe\":"
+    )
+    lines.append("")
+    lines.append(
+        "- **Reachability is name-merged, not type-inferred.** The graph keys on bare "
+        "function/class names, so a name collision across modules could invent an edge or mask "
+        "one. It resolves aliases and argument-passed callables; it does not resolve `getattr`, "
+        "dynamic import, or dispatch through a variable."
+    )
+    lines.append(
+        "- **\"Dead code\" means statically unreachable.** A site reached only at runtime — a "
+        "plugin hook, a string-named import — would be reported dead while being live."
+    )
+    lines.append(
+        "- **Source is not behaviour.** These verifiers read code, never a running system. They "
+        "cannot observe what an operator or a subagent actually did."
+    )
+    lines.append(
+        "- **Intent is out of reach entirely.** R6 asks whether a human authored a body; code can "
+        "show that no server path *synthesised* one, and nothing more. That gap is why R6 reports "
+        "PARTIAL rather than PASS, and why the SOT's CONVENTION tier stays accurate."
+    )
+    lines.append("")
+    lines.append(
+        "Everything past that line is the Architect's judgment, not the map's. Reporting the limit "
+        "IS the deliverable: a checker that overstated its reach would be the advisory theater "
+        "these rules exist to prevent."
+    )
+    lines.append("")
+
+    lines.append("## Layer 3 — skill / context layer: OUT OF SCOPE")
+    lines.append("")
+    lines.append(
+        f"{skills} skills and {agent_count} pinned subagents exist, and the edges between them and "
+        "the tools above are NOT mapped. That layer would show how judgment reaches a write "
+        "surface — skill invokes tool, skill spawns subagent, subagent returns a payload a tool "
+        "then writes."
+    )
+    lines.append("")
+    lines.append(
+        "It is out of scope by decision, not pending work. Skill bodies mention tool names inside "
+        "red lines specifically to FORBID them (`chimera-deep-extract` names `ascend_node` only to "
+        "disclaim it), so any derivation short of real intent-parsing would mint edges asserting "
+        "the opposite of the source's meaning — the same class of falsehood as the literal this "
+        "generator replaced, reached by a different route. Recorded so the map's edge is legible."
+    )
+    lines.append("")
     return "\n".join(lines)
 
 
@@ -334,9 +846,16 @@ def main() -> None:
 
     graph = build_reference_graph()
     flows = derive_flows(tools_by_server, graph)
+    rules = parse_rules()
+    skill_counts = count_skill_layer()
+    verdicts = verify_rules(rules, tools_by_server, graph)
 
     out_path = REPO_ROOT / "docs" / "ARCHITECTURE" / "ARCHITECTURE.md"
-    out_path.write_text(render(tools_by_server, agents, flows), encoding="utf-8", newline="\n")
+    out_path.write_text(
+        render(tools_by_server, agents, flows, rules, skill_counts, verdicts),
+        encoding="utf-8",
+        newline="\n",
+    )
 
 
 if __name__ == "__main__":

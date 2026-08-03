@@ -1,10 +1,39 @@
 # friction-260803-01 — the invariant SOT declares R1-R6 but nothing checks them; the dataflow map derives edges without checking rules
 
 **Date:** 2026-08-03
-**Status:** OPEN
+**Status:** RESOLVED (verifiers implemented 2026-08-03, same session)
 **Phase context:** Phase L.B (branch `phase-L`), raised while fixing the L.B.5 dataflow map
 (`scripts/gen_architecture_diagram.py`). Not itself an L.B deliverable — an ARCHITECTURE-tier gap
 surfaced by that work.
+
+## Resolution (2026-08-03)
+Verifiers were implemented in the same session, at the operator's direction ("for the invariant
+verifier, finish them off"). `docs/ARCHITECTURE/ARCHITECTURE.md` layer 2 now adjudicates every rule
+the SOT declares: **R1 PASS, R2 PASS, R3 PASS, R4 PASS, R5 VIOLATED, R6 PARTIAL** — each with the
+check performed and the finding, and `UNCHECKABLE` for any future rule lacking a verifier.
+
+The invariants remain a **human-authored SSOT**; only verifiers were added. Rule ids, titles, and
+declared tiers are re-parsed from `ARCHITECTURE_RULES.md` every run, never restated
+(`test_generator_does_not_hardcode_rule_text` enforces it).
+
+Two results the prose below anticipated, now mechanical:
+- **R1** found **4** LLM call sites in the server packages (not the 1 known by hand), all statically
+  unreachable from every registered tool — so the "dead LLM call vs live R1 breach" distinction is
+  no longer held by a human remembering to grep.
+- **R5 VIOLATED** confirms the SOT's own ADVISORY admission: `write_result.verdict` is `str | None`,
+  not `Literal["V","P","U"]`.
+
+**The border is stated, not papered over** (operator: *a verifier cannot cover all violations; stop
+when the border is reached*). The artifact renders its limits — name-merged reachability, "dead"
+meaning statically unreachable, source never behaviour, intent out of reach — which is precisely why
+R6 reports PARTIAL rather than PASS. Record: `docs/sprints/phase-L.B/L.B.5.md` Part 2.
+
+Layer 3 (skill/context) was declared **OUT OF SCOPE** by the operator in the same exchange — not
+pursued, no audit, not tracked as pending work.
+
+---
+
+## Original entry (retained as the record of the gap)
 
 ## What I wanted
 `docs/ARCHITECTURE/ARCHITECTURE_RULES.md` is the single source of truth for the six invariants that

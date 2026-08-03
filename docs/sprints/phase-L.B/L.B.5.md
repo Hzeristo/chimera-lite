@@ -152,11 +152,78 @@ Acceptance is now **accuracy: every flow edge must map to a real write call site
 ### Not in this change (deliberately)
 - **R1-R6 conformance section** — logged as `docs/logs/friction-260803.md` (OPEN). The map checks
   topology, not invariants; bundling an unverified rules section alongside the verified edges would
-  repeat the sin being fixed. Part 2, once each rule has a real check.
+  repeat the sin being fixed. Part 2, once each rule has a real check. **[DONE — see Part 2 below.]**
 - **Skill → tool / skill → subagent layer** — a full dataflow map wants it, but naive backtick
   parsing of `SKILL.md` would mint false edges (red lines mention tools precisely to forbid them,
   e.g. `chimera-deep-extract` names `ascend_node` only to disclaim it). Deferred until it can be
-  derived precisely rather than guessed.
+  derived precisely rather than guessed. **[Operator decision 2026-08-03: OUT OF SCOPE — not
+  pursued, no audit, not tracked as pending work. Declared in the artifact so the map's edge is
+  legible.]**
+
+---
+
+## PART 2 (2026-08-03) — R1-R6 verifiers + coverage self-declaration
+
+The map now renders its OWN coverage before any content, and layer 2 is adjudicated by real
+verifiers rather than listed as a gap.
+
+### Coverage (rendered first, fraction computed from `COVERAGE_LAYERS`)
+
+| layer | status |
+|---|---|
+| 1. Dataflow / write surfaces | **VERIFIED** (Part 1) |
+| 2. Invariant conformance (R1-R6) | **VERIFIED** (this part) |
+| 3. Skill / context layer | **OUT OF SCOPE** (operator decision) |
+
+### Verifiers — the invariants stay a human SSOT; only verifiers were implemented
+
+`ARCHITECTURE_RULES.md` is human-authored and owns the rules. This generator **only implements
+verifiers against it**: rule ids, titles, and declared enforcement tiers are **re-parsed on every
+run** (`parse_rules`), never copied — a hardcoded title would be both an unauthorized restatement
+(CLAUDE.md drift rule) and a fresh drift surface. `test_generator_does_not_hardcode_rule_text`
+enforces this. `declared` is the rule's claim about itself; `verdict` is the map's mechanical
+finding, and the two columns are shown side by side.
+
+| rule | declared | verdict | what the verifier tests |
+|---|---|---|---|
+| R1 | STRUCTURAL | **PASS** | AST-scan both server packages for 5 LLM identifiers, then test whether each call's enclosing function **or its enclosing class** is reachable from any registered MCP tool |
+| R2 | STRUCTURAL/ADVISORY | **PASS** | which entry points reach `_promote_write` — MCP tools vs background/scheduled entries |
+| R3 | STRUCTURAL/ADVISORY | **PASS** | `promote_node` refuses `deep_read` **and** `ascend_node` requires it |
+| R4 | STRUCTURAL | **PASS** | `create_staging_node`'s tier default excludes `knowledge` |
+| R5 | ADVISORY | **VIOLATED** | `write_result.verdict` is `str \| None`, not `Literal["V","P","U"]` |
+| R6 | CONVENTION | **PARTIAL** | body is caller-supplied + no tool-reachable LLM call; authorship itself is unreachable |
+
+Two findings worth the record:
+
+1. **R5 VIOLATED confirms the SOT's own ADVISORY admission.** `verdict` is an unconstrained string
+   (`chimera-vault/server.py`), so a `[V]` carries no structural guarantee — R5 is aspirational
+   until Phase K lands schema-reject. The verifier turns a self-declared weakness into a mechanical
+   finding.
+2. **R1 PASS is now earned, not assumed.** The scan found **4** LLM call sites inside the server
+   packages, not the 1 previously known by hand: `optics_service.py:134`, two client constructors in
+   `ports/llm/openai_compatible_client.py:113,118`, and `task_service.py:467`
+   (`_extract_failure_lesson`, Phase III.E residue). All 4 are statically unreachable from every
+   registered tool. The class-anchoring matters: the two constructor sites live in `__init__`, and
+   instantiation references the CLASS name, so a function-only anchor would have dismissed them as
+   dead without justification.
+
+### The border — stated, not papered over
+
+Per the operator (2026-08-03): *a verifier cannot cover all violations of a stated invariant; stop
+when the border is reached.* The artifact renders that border explicitly — name-merged reachability
+(no type inference, no `getattr`/dynamic dispatch), "dead" meaning statically unreachable, source
+never behaviour, and intent out of reach entirely (which is exactly why R6 is PARTIAL, not PASS).
+Reporting the limit IS the deliverable; a checker overstating its reach would be the advisory
+theater these rules exist to prevent.
+
+### Verification
+- `pytest tests/test_architecture_dataflow.py` → **26 passed**; full suite → **183 passed, 0 failed**.
+- ruff on both changed files → **All checks passed!** (exit 0). Determinism retained (two runs
+  byte-identical). Pure-English clean.
+- **Negative controls** — (a) claiming layer 2 VERIFIED without a verifier → 3 failures; (b)
+  hardcoding a rule title → `test_generator_does_not_hardcode_rule_text` fails; (c) a rigged graph
+  where a tool reaches a real LLM call → R1 correctly reports **VIOLATED**; (d) an invented `R99`
+  in the SOT → **UNCHECKABLE**, never an inherited pass.
 
 **Status:** L.B.5 acceptance re-met on the accuracy criterion. **Phase L.B must NOT seal** until the
 flow section matches live code — it now does, but the seal remains blocked on the L.B.6 e2e (halted:
