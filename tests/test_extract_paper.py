@@ -178,6 +178,59 @@ def test_get_paper_markdown_missing_raises(tmp_path: Path) -> None:
         get_paper_markdown("2305.16291", settings=_StubSettings(md_dir))
 
 
+class _StubPaperMinerAllLayouts(_StubPaperMiner):
+    """Stub exposing all three markdown layouts the L.B.6 F2 resolver searches."""
+
+    def __init__(self, root: Path) -> None:
+        super().__init__(root / "md_papers")
+        self.md_papers_raw_dir = root / "md_papers_raw"
+        self.filtered_dir = root / "filtered"
+
+
+class _StubSettingsAllLayouts(_StubSettings):
+    def __init__(self, root: Path) -> None:
+        super().__init__(root)
+        self._pm = _StubPaperMinerAllLayouts(root)
+
+
+def test_get_paper_markdown_falls_back_to_raw_mineru_output(tmp_path: Path) -> None:
+    """F2: ``convert_pdf_to_md`` writes only under ``md_papers_raw`` — resolve it there."""
+    raw = tmp_path / "md_papers_raw" / "2603.02096" / "hybrid_auto"
+    raw.mkdir(parents=True)
+    target = raw / "2603.02096.md"
+    target.write_text("# FluxMem\n", encoding="utf-8")
+    (tmp_path / "md_papers").mkdir()
+
+    assert get_paper_markdown("2603.02096", settings=_StubSettingsAllLayouts(tmp_path)) == target
+
+
+def test_get_paper_markdown_falls_back_to_triage_archive(tmp_path: Path) -> None:
+    """F2: after triage the clean MD is MOVED to ``filtered/<verdict>/<id>-<Moniker>.md``.
+
+    Without this fallback, a paper that completed Path 1 is unreadable to Path 2.
+    """
+    archived = tmp_path / "filtered" / "Skim"
+    archived.mkdir(parents=True)
+    target = archived / "2607.01224-AutoMem.md"
+    target.write_text("# AutoMem\n", encoding="utf-8")
+    (tmp_path / "md_papers").mkdir()
+
+    assert get_paper_markdown("2607.01224", settings=_StubSettingsAllLayouts(tmp_path)) == target
+
+
+def test_get_paper_markdown_prefers_clean_over_fallbacks(tmp_path: Path) -> None:
+    """Search order is load-bearing: the clean copy wins when several layouts hold the paper."""
+    md_dir = tmp_path / "md_papers"
+    md_dir.mkdir()
+    clean = md_dir / "2603.02096.md"
+    clean.write_text("# clean\n", encoding="utf-8")
+    raw = tmp_path / "md_papers_raw" / "2603.02096" / "hybrid_auto"
+    raw.mkdir(parents=True)
+    (raw / "2603.02096.md").write_text("# raw\n", encoding="utf-8")
+
+    assert get_paper_markdown("2603.02096", settings=_StubSettingsAllLayouts(tmp_path)) == clean
+
+
 async def test_stage_deep_read_node_grounded_edge(tmp_path: Path) -> None:
     vault = _make_vault(tmp_path)
     staging = StagingService(tmp_path / "staging", vault)

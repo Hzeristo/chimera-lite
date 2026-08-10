@@ -21,10 +21,35 @@ identity always maps to the same file):
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
 import yaml
+
+
+@dataclass(frozen=True)
+class WriteOutcome:
+    """What a ``write_result`` call actually did (L.B.6 F6).
+
+    ``merged_*`` are meaningful only for ``mode="merge"``; a supersede/first write reports
+    ``merged_added=0, merged_skipped=0`` with ``total`` = the artifact's block count. Returning
+    these to the caller is the point: a merge that adds nothing looks identical to a successful
+    update unless the counts come back.
+    """
+
+    path: Path
+    merged_added: int = 0
+    merged_skipped: int = 0
+    total: int = 0
+
+    def as_dict(self) -> dict:
+        return {
+            "path": str(self.path),
+            "merged_added": self.merged_added,
+            "merged_skipped": self.merged_skipped,
+            "total": self.total,
+        }
 
 _SLUG_RE = re.compile(r'[\\/:*?"<>|\s]+')
 _PAPER_KEY_RE = re.compile(r"<!--\s*w2:paper=(?P<id>\S+?)\s*-->")
@@ -53,27 +78,32 @@ def _parse_blocks(body: str) -> tuple[str, list[tuple[str, str]]]:
     return preamble, blocks
 
 
-def _merge_bodies(existing: str, incoming: str) -> tuple[str, int]:
+def _merge_bodies(existing: str, incoming: str) -> tuple[str, int, int]:
     """Union two W2 map bodies by paper key. EXISTING WINS — its blocks (with any human
     annotations) are kept verbatim; incoming blocks for NEW keys are appended. Returns
-    ``(merged_body, added_count)``. Never clobbers an existing key, never duplicates one.
+    ``(merged_body, added_count, skipped_count)`` — ``skipped`` counts incoming blocks whose
+    key already existed and were therefore DISCARDED (L.B.6 F6: a silently dropped recompute
+    used to be invisible to the caller). Never clobbers an existing key, never duplicates one.
     """
     ex_pre, ex_blocks = _parse_blocks(existing)
     in_pre, in_blocks = _parse_blocks(incoming)
     seen = {pid for pid, _ in ex_blocks}
     merged = list(ex_blocks)
     added = 0
+    skipped = 0
     for pid, block in in_blocks:
         if pid not in seen:
             merged.append((pid, block))
             seen.add(pid)
             added += 1
+        else:
+            skipped += 1
     preamble = ex_pre if ex_pre.strip() else in_pre
     parts: list[str] = []
     if preamble.strip():
         parts.append(preamble.strip())
     parts.extend(block.strip() for _, block in merged)
-    return "\n\n".join(parts) + "\n", added
+    return "\n\n".join(parts) + "\n", added, skipped
 
 
 def _split_artifact(text: str) -> tuple[dict, str, str]:
@@ -111,8 +141,29 @@ class ResultService:
     ) -> Path:
         """Write / merge / transition one harness artifact keyed by ``(kind, identity)``.
 
-        ``mode`` selects the re-run semantics (see the module docstring). Returns the artifact path.
+        ``mode`` selects the re-run semantics (see the module docstring). Returns the artifact
+        path; call ``write_result_detailed`` when you also need the merge counts.
         """
+        return self.write_result_detailed(
+            kind=kind,
+            identity=identity,
+            title=title,
+            body=body,
+            metadata=metadata,
+            mode=mode,
+        ).path
+
+    def write_result_detailed(
+        self,
+        *,
+        kind: str,
+        identity: str,
+        title: str,
+        body: str,
+        metadata: dict | None = None,
+        mode: str = "supersede",
+    ) -> WriteOutcome:
+        """As ``write_result``, but returns a ``WriteOutcome`` carrying the merge counts (F6)."""
         if mode not in _VALID_MODES:
             raise ValueError(f"write_result: unknown mode {mode!r} (expected one of {sorted(_VALID_MODES)})")
         ident = str(identity).strip()
@@ -148,7 +199,7 @@ class ResultService:
         metadata: dict | None,
         status: str,
         superseded_prior: bool,
-    ) -> Path:
+    ) -> WriteOutcome:
         fm: dict = {
             "type": kind,
             "status": status,
@@ -163,13 +214,17 @@ class ResultService:
             f"---\n\n# {title}\n\n{body}\n"
         )
         path.write_text(content, encoding="utf-8")
-        return path
+        _, blocks = _parse_blocks(body)
+        return WriteOutcome(path=path, total=len(blocks))
 
-    def _merge(self, path: Path, *, title: str, body: str, metadata: dict | None) -> Path:
+    def _merge(
+        self, path: Path, *, title: str, body: str, metadata: dict | None
+    ) -> WriteOutcome:
         fm, ex_title, existing_body = _split_artifact(path.read_text(encoding="utf-8"))
-        merged_body, added = _merge_bodies(existing_body, body)
+        merged_body, added, skipped = _merge_bodies(existing_body, body)
         fm["status"] = "MERGED" if added else fm.get("status", "PENDING_REVIEW")
         fm["merged_added"] = added
+        fm["merged_skipped"] = skipped
         fm["updated_at"] = datetime.now().strftime("%Y-%m-%d")
         if metadata:
             fm.update(metadata)
@@ -179,9 +234,15 @@ class ResultService:
             f"---\n\n# {final_title}\n\n{merged_body}"
         )
         path.write_text(content, encoding="utf-8")
-        return path
+        _, merged_blocks = _parse_blocks(merged_body)
+        return WriteOutcome(
+            path=path,
+            merged_added=added,
+            merged_skipped=skipped,
+            total=len(merged_blocks),
+        )
 
-    def _transition(self, path: Path, new_status: str) -> Path:
+    def _transition(self, path: Path, new_status: str) -> WriteOutcome:
         if not path.exists():
             raise FileNotFoundError(f"write_result {new_status}: no artifact at {path}")
         fm, title, body = _split_artifact(path.read_text(encoding="utf-8"))
@@ -193,4 +254,5 @@ class ResultService:
         if not content.endswith("\n"):
             content += "\n"
         path.write_text(content, encoding="utf-8")
-        return path
+        _, blocks = _parse_blocks(body)
+        return WriteOutcome(path=path, total=len(blocks))

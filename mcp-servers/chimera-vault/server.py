@@ -9,6 +9,7 @@ tool bodies (``vault_tools`` / ``vault_query`` for reads; ``StagingService`` for
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -301,6 +302,12 @@ async def write_result(
       ``<!-- w2:paper=<id> -->`` so the merge can key on it. Merge never clobbers.
     - ``reject`` / ``mark_stale``: status transition on an EXISTING artifact (body untouched).
 
+    Returns a JSON object ``{"path", "merged_added", "merged_skipped", "total"}``. The counts
+    matter on ``merge``: a re-run whose papers are all already mapped reports
+    ``merged_added=0, merged_skipped=<n>`` — the recomputed blocks were DISCARDED (existing
+    blocks win, preserving human annotations), which is otherwise indistinguishable from a
+    successful update.
+
     Args:
         kind: Artifact kind, e.g. ``w1_verdict`` / ``w2_breadth_map``.
         identity: Stable identity — a claim_hash / arxiv_id (W1) or a topic / seed-set slug (W2).
@@ -320,10 +327,10 @@ async def write_result(
     if depends_on is not None:
         metadata["depends_on"] = depends_on
     service = ResultService(config.require_path("vault_root") / "Harness")
-    path = service.write_result(
+    outcome = service.write_result_detailed(
         kind=kind, identity=identity, title=title, body=body, metadata=metadata or None, mode=mode
     )
-    return str(path)
+    return json.dumps(outcome.as_dict())
 
 
 if __name__ == "__main__":

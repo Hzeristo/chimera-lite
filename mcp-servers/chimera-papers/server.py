@@ -237,9 +237,10 @@ async def stage_deep_read_node(ctx: Context, paper_id: str, extraction: dict) ->
         paper_id: arXiv identifier of the paper the extraction is about (e.g. "2305.16291").
         extraction: The subagent's ``KNodeExtraction`` payload as a JSON-serializable dict.
     """
-    async with _start_lock:
-        if get_task_service().has_active_long_task():
-            return _busy_message()
+    # No busy guard: this is a deterministic grounding/render/write with no GPU, MinerU, or
+    # network use — the same shape as its sibling ``write_scout_card``, which has never carried
+    # one. The guard exists to serialize the shared GPU; applying it here made Path 2's back-half
+    # unreachable whenever an unrelated pipeline was converting (L.B.6).
     return await miner_tools.stage_deep_read_node(paper_id, extraction, progress=_reporter(ctx))
 
 

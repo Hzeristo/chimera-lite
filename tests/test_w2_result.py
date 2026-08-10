@@ -33,6 +33,33 @@ def _map_body(*paper_ids: str) -> str:
     )
 
 
+def test_w2_merge_reports_added_skipped_and_total(tmp_path: Path) -> None:
+    """F6: a re-run whose papers are all already mapped DISCARDS the recomputed blocks.
+
+    That is correct (existing blocks win, preserving annotations) but used to be invisible —
+    the caller got only a path back. The counts are what distinguish it from a real update.
+    """
+    svc = ResultService(tmp_path / "Harness")
+    svc.write_result(kind=W2, identity=TOPIC, title="map", body=_map_body("A", "B"), mode="merge")
+
+    # Re-run with one already-mapped paper and one new one.
+    outcome = svc.write_result_detailed(
+        kind=W2, identity=TOPIC, title="map", body=_map_body("A", "C"), mode="merge"
+    )
+    assert outcome.merged_added == 1  # C
+    assert outcome.merged_skipped == 1  # A — recomputed block dropped
+    assert outcome.total == 3  # A, B, C
+    assert outcome.as_dict()["path"] == str(outcome.path)
+
+    # A pure no-op re-run: nothing added, everything skipped.
+    noop = svc.write_result_detailed(
+        kind=W2, identity=TOPIC, title="map", body=_map_body("A", "B"), mode="merge"
+    )
+    assert noop.merged_added == 0
+    assert noop.merged_skipped == 2
+    assert _fm(noop.path)["merged_skipped"] == 2
+
+
 def test_w2_first_write_is_pending(tmp_path: Path) -> None:
     svc = ResultService(tmp_path / "Harness")
     p = svc.write_result(kind=W2, identity=TOPIC, title="map", body=_map_body("A", "B"), mode="merge")

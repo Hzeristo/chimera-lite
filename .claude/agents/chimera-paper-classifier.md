@@ -38,6 +38,24 @@ title and abstract actually sell. Do not widen the set; every paper is exactly o
 `load_criteria` can find a real `criteria/field/{field}.md`. Derive it from the vault; do not
 invent it from thin air.
 
+0. **ANCHOR CHECK FIRST — this overrides every step below.** Before classifying, check whether
+   the paper's arXiv ID appears as an anchor in any `criteria/field/*.md` file. Grep the criteria
+   directory for the bare id (no version suffix), e.g.:
+
+   ```
+   Grep(pattern="2509\.24871", path="D:\\MAS\\project_chimera_vault\\criteria\\field", output_mode="files_with_matches")
+   ```
+
+   If the id is found in `criteria/field/<slug>.md`, **`field` is `<slug>`. Full stop.** Do not
+   override an anchor-matched classification with a vault-neighborhood judgment, and do not
+   re-litigate it because a different field "feels" closer — a criteria file that cites the paper
+   as a verified case anchor is the field's own authority on where that paper sits. Skip steps 2–4
+   and return. This is what makes the classifier deterministic across runs for anchored papers
+   (L.B.6 F5): the same paper must select the same criteria file every time, because the field
+   label decides which criteria judge it.
+
+   Only when the id appears in NO criteria file do you continue:
+
 1. **Load your MCP tools first.** `mcp__chimera-vault__*` tools arrive DEFERRED — call `ToolSearch`
    with `select:mcp__chimera-vault__vault_query,mcp__chimera-vault__obsidian_graph_query` before you
    use them, or they will not be callable.
@@ -57,5 +75,7 @@ invent it from thin air.
 - Keep the paper's full text in **your** context — return only the two labels. The orchestrator
   must not receive the paper body back (isolation).
 - **Never fabricate** a vault neighborhood you did not actually observe in a query result.
+- **An anchor match wins.** If the paper's arXiv id is cited in a `criteria/field/<slug>.md`, that
+  slug IS the field — never substitute your own judgment for it.
 - No prose, no explanation in the final message — just the `{type, field}` line (plus the optional
   `field-unanchored` line).

@@ -182,18 +182,50 @@ def _render_node_body(node: KNodeExtraction) -> str:
 
 
 def _resolve_markdown(paper_id: str, settings: ChimeraConfig) -> Path:
-    """Reuse the paper's already-converted clean markdown (NO MinerU). Backfill relies on this —
-    the Schema-C nodes point ``source_md`` at ``papers/md_papers/<id>.md``."""
+    """Reuse the paper's already-converted clean markdown (NO MinerU), wherever the converting
+    path happened to leave it (L.B.6 F2). Three producers write three different layouts, so
+    search all three in order and return the first hit:
+
+    1. ``md_papers/<id>.md``                        — ``ingest_to_papers`` clean output
+    2. ``md_papers_raw/<id>/hybrid_auto/<id>.md``   — ``convert_pdf_to_md`` raw MinerU output
+    3. ``filtered/<verdict>/<id>*.md``              — post-triage archive, which MOVES the clean
+       MD out of ``md_papers/`` and renames it ``<id>-<Moniker>.md``
+
+    Without (3) a paper that completed Path 1 triage is unreadable to Path 2; without (2) a
+    ``convert_pdf_to_md`` result is unreachable. Never moves or copies — resolution only."""
     pm = settings.paper_miner_or_default
-    md_dir = pm.md_papers_dir
-    if not md_dir.is_absolute():
-        md_dir = (settings.project_root / md_dir).resolve()
-    candidate = md_dir / f"{paper_id}.md"
-    if candidate.is_file():
-        return candidate
+
+    def _abs(path: Path | None) -> Path | None:
+        if path is None:
+            return None
+        return path if path.is_absolute() else (settings.project_root / path).resolve()
+
+    # getattr: the fallback layouts are optional config, and test stubs supply only md_papers_dir.
+    md_dir = _abs(getattr(pm, "md_papers_dir", None))
+    raw_dir = _abs(getattr(pm, "md_papers_raw_dir", None))
+    filtered_dir = _abs(getattr(pm, "filtered_dir", None))
+
+    searched: list[Path] = []
+    if md_dir is not None:
+        candidate = md_dir / f"{paper_id}.md"
+        searched.append(candidate)
+        if candidate.is_file():
+            return candidate
+    if raw_dir is not None:
+        candidate = raw_dir / paper_id / "hybrid_auto" / f"{paper_id}.md"
+        searched.append(candidate)
+        if candidate.is_file():
+            return candidate
+    if filtered_dir is not None:
+        searched.append(filtered_dir / "*" / f"{paper_id}*.md")
+        for candidate in sorted(filtered_dir.glob(f"*/{paper_id}*.md")):
+            if candidate.is_file():
+                return candidate
+
+    locations = "; ".join(str(p) for p in searched)
     raise FileNotFoundError(
-        f"No converted markdown for {paper_id!r} at {candidate}. get_paper_markdown reuses "
-        f"source_md; fetch+MinerU for a genuinely new paper is a later extension."
+        f"No converted markdown for {paper_id!r}. Searched: {locations}. "
+        f"Fetch + convert it first (ingest_paper / convert_pdf_to_md)."
     )
 
 

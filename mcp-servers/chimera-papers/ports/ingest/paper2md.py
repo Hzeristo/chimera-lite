@@ -133,7 +133,16 @@ class MineruClient:
         if reason == "non-zero exit":
             logger.error("[Ingest] MinerU non-zero exit for %s", pdf_path.name)
             _log_mineru_streams(mineru_stdout, mineru_stderr, pdf_name=pdf_path.name, reason="non-zero exit")
-            raise RuntimeError(f"Conversion failed for {pdf_path.name}") from failure
+            # L.B.6 F4: the child's output is sunk to a temp log, so the actual cause (commonly a
+            # CUDA OOM) never reached the caller — only "Conversion failed". Carry the diagnostic
+            # substring into the exception message so the MCP layer can surface it.
+            hint = ""
+            lowered = mineru_stdout.lower()
+            if "out of memory" in lowered or "cuda" in lowered:
+                hint = " (CUDA out of memory)"
+            raise RuntimeError(
+                f"Conversion failed for {pdf_path.name}{hint}"
+            ) from failure
 
         if not target_md.exists():
             mds = sorted(target_dir.rglob("*.md"))

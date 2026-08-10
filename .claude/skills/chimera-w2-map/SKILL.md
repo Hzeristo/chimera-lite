@@ -44,9 +44,16 @@ RECON reduction (gap + number), and MERGES the result into a living map — it n
       number + promote-candidate). RECON ONLY — no interpretive conclusion (Phase K frames later).
    A paper that cannot be resolved is recorded as a block with `number: —` and a note — never dropped.
 
-4. **Assemble the classified map.** Group the blocks by `field` into subfield sections. Confirm the
-   map spans ≥3 subfields and that every paper carries a gap + a number (HSC #4). Render each subfield
-   as a heading with its keyed paper blocks beneath.
+4. **Assemble the classified map.** Group the blocks by `field` into subfield sections. Every paper
+   must carry a gap + a number (HSC #4). Render each subfield as a heading with its keyed paper
+   blocks beneath. Breadth target: ≥3 subfields — but a narrower span is a **warning, not a
+   failure**. When the map spans fewer than 3 subfields, emit this line in the map body and in the
+   report, then continue normally:
+
+   > Note: single-subfield map — broaden seeds for production use.
+
+   (A tight seed set from one field family legitimately spans 1–2 subfields; failing the run there
+   would block small fixture-scoped runs for no fidelity gain — L.B.6 F7.)
 
 5. **Write (MERGE, not supersede).** `write_result(kind="w2_breadth_map", identity=<identity>,
    title=<topic>, body=<the subfield-grouped keyed blocks>, mode="merge")`. Merge PRESERVES the

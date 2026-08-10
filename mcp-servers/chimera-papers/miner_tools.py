@@ -233,6 +233,14 @@ async def convert_pdf_to_md(
     except FileNotFoundError as exc:
         return f"[Convert Error] PDF not found: {exc}"
     except Exception as exc:  # MinerU subprocess / conversion failure
+        # L.B.6 F4: MinerU sinks the child's output to a temp log, so an OOM used to reach the
+        # caller as a bare "Conversion failed for <pdf>". Surface the actionable cause.
+        detail = f"{exc}\n{getattr(exc, '__cause__', '') or ''}".lower()
+        if "cuda" in detail or "out of memory" in detail:
+            return (
+                "[Convert Error] CUDA out of memory — close GPU-consuming apps and retry. "
+                f"({exc})"
+            )
         return f"[Convert Error] {exc}"
     return f"[✔] Markdown converted (no vault node written): {md_path}"
 
