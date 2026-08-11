@@ -113,6 +113,9 @@ def log_path() -> Path:
 
 # --------------------------------------------------------------------------- liveness
 
+# Built once: the sidecar is always on loopback, so every request must bypass proxies.
+_DIRECT_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
 
 def probe(timeout: float = PROBE_TIMEOUT_SECONDS) -> dict | None:
     """Return MinerU's /health payload, or None. Never raises.
@@ -122,7 +125,12 @@ def probe(timeout: float = PROBE_TIMEOUT_SECONDS) -> dict | None:
     """
     url = f"{base_url()}{HEALTH_ENDPOINT}"
     try:
-        with urllib.request.urlopen(url, timeout=timeout) as response:  # noqa: S310 — fixed localhost URL
+        # Proxy-free opener: urllib honours the system/env proxy by default, and this box
+        # has one configured. Routing a 127.0.0.1 health check through an HTTP proxy makes
+        # the probe slow at best (measured ~2s per call to a dead port) and wrong at worst —
+        # a proxy answering for our loopback URL. An empty ProxyHandler pins it to a direct
+        # connection, which fails in microseconds when nothing is listening.
+        with _DIRECT_OPENER.open(url, timeout=timeout) as response:  # noqa: S310 — fixed localhost URL
             if response.status != 200:
                 return None
             payload = json.loads(response.read().decode("utf-8", errors="replace"))
@@ -310,6 +318,41 @@ def ensure_running(timeout: float = STARTUP_TIMEOUT_SECONDS) -> str | None:
     logger.error("[Sidecar] mineru-api did not become healthy within %ss; stopping it", timeout)
     _kill_tree(proc.pid)
     return None
+
+
+def start_for_batch() -> bool:
+    """Start the sidecar for a batch. Returns True only if THIS caller started it.
+
+    Ownership rule: **only the starter stops it.** A sidecar the operator brought up by hand
+    (via the `mineru_sidecar` tool) must outlive the batch — a pipeline that stopped it would
+    be disposing of something it does not own. Pair with ``stop_after_batch``.
+
+    Never raises: a batch must run, slowly, rather than not at all.
+    """
+    try:
+        if api_url_if_healthy() is not None:
+            logger.info("[Sidecar] Already running; the batch will use it but not stop it")
+            return False
+        started = ensure_running() is not None
+        if not started:
+            logger.warning("[Sidecar] Unavailable; this batch converts standalone (slower)")
+        return started
+    except Exception as exc:  # noqa: BLE001 — an accelerator must never fail a batch
+        logger.warning("[Sidecar] Could not start for the batch (%s); continuing standalone", exc)
+        return False
+
+
+def stop_after_batch(started_here: bool) -> None:
+    """Release the sidecar's VRAM iff this batch started it. Never raises."""
+    if not started_here:
+        return
+    try:
+        # force=True: this batch owns the sidecar and its own converts are done, so any
+        # in-flight count is stale bookkeeping rather than someone else's work.
+        state = stop(force=True)
+        logger.info("[Sidecar] Batch finished — %s", state.detail)
+    except Exception as exc:  # noqa: BLE001 — teardown must not mask a batch failure
+        logger.warning("[Sidecar] Could not stop after the batch (%s); it may hold VRAM", exc)
 
 
 def _kill_tree(pid: int) -> None:

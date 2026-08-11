@@ -46,7 +46,7 @@ def _fake_probe(monkeypatch, payload):
 
 
 def test_probe_returns_none_on_a_closed_port(isolated_state) -> None:
-    assert sc.probe(timeout=1.0) is None
+    assert sc.probe(timeout=0.25) is None
 
 
 def test_stale_runfile_does_not_read_as_running(isolated_state, monkeypatch) -> None:
@@ -82,7 +82,10 @@ def test_probe_rejects_a_foreign_process_holding_the_port(isolated_state, monkey
         def __exit__(self, *exc):
             return False
 
-    monkeypatch.setattr(sc.urllib.request, "urlopen", lambda *a, **k: _Response())
+    # Patch the opener probe() actually uses. Patching urllib.request.urlopen would silently
+    # miss — probe() goes through a proxy-free opener — and the test would then pass merely
+    # because nothing is listening, asserting nothing about rejection.
+    monkeypatch.setattr(sc._DIRECT_OPENER, "open", lambda *a, **k: _Response())
     assert sc.probe(timeout=1.0) is None
 
 

@@ -19,6 +19,7 @@ from core.config import ChimeraConfig, get_config, PaperMinerSettings
 from core.schemas import ToolOutput
 from ports.notify.telegram_notifier import TelegramNotifier
 from ports.arxiv.arxiv_fetch import ArxivFetcher
+from ports.ingest import mineru_sidecar
 from ports.ingest.mineru_pipeline import convert_queue_worker
 from task_service import TaskService
 
@@ -216,16 +217,25 @@ async def _run_pipelined_async(
             overall_progress=0.2,
         )
 
-    drain_task = asyncio.create_task(_drain_md_queue(md_queue), name="md-drain")
-    convert_task = asyncio.create_task(
-        convert_queue_worker(pdf_queue, md_queue, normalized_raw, normalized_clean),
-        name="convert-worker",
-    )
-    download_task = asyncio.create_task(_download_stage(), name="download-stage")
+    # Batch-scoped sidecar: hold MinerU's models in one resident service for the whole
+    # batch instead of reloading them per paper (~half of a convert's wall clock is that
+    # setup — friction-260810). Started here, stopped in the finally, and only if WE
+    # started it: a sidecar the operator brought up by hand outlives the batch.
+    sidecar_started_here = await asyncio.to_thread(mineru_sidecar.start_for_batch)
+    try:
+        drain_task = asyncio.create_task(_drain_md_queue(md_queue), name="md-drain")
+        convert_task = asyncio.create_task(
+            convert_queue_worker(pdf_queue, md_queue, normalized_raw, normalized_clean),
+            name="convert-worker",
+        )
+        download_task = asyncio.create_task(_download_stage(), name="download-stage")
 
-    await asyncio.gather(download_task, convert_task, drain_task)
+        await asyncio.gather(download_task, convert_task, drain_task)
 
-    ingested_count, convert_failures = convert_task.result()
+        ingested_count, convert_failures = convert_task.result()
+    finally:
+        # Runs on the failure path too — an aborted batch must not leave VRAM held.
+        await asyncio.to_thread(mineru_sidecar.stop_after_batch, sidecar_started_here)
     new_pdfs_count = new_pdfs_count_holder[0]
 
     logger.info(
