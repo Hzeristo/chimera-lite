@@ -20,12 +20,15 @@ logger = logging.getLogger(__name__)
 # restore autodetect. See docs/incidents/2026-08-10-mineru-3x-drift.md.
 MINERU_DEVICE = os.getenv("CHIMERA_MINERU_DEVICE", "cuda")
 
-# Backend pin. hybrid-engine is MinerU 3.x's DEFAULT, so this changes nothing today — it
-# is pinned so a future MinerU release cannot change our parse backend without a diff.
-# `--effort` is deliberately NOT set: effort=high transcribes chart pixels into markdown
-# tables of approximate numbers, which must not enter the corpus before a wrapper marks
-# them as machine-read.
-MINERU_BACKEND = "hybrid-engine"
+# Backend pin. `pipeline` runs NO VLM — layout + OCR + table models only. Measured over
+# 5 cells x 3 papers (docs/incidents/2026-08-10-mineru-backend-flip.md): it matches
+# hybrid-engine's text recall to within noise, produces identical image/table/equation
+# counts, and runs 1.4-2.8x faster on a quarter of the VRAM. Every VLM path (hybrid-* and
+# vlm-engine alike) transcribes chart PIXELS into markdown tables of approximate numbers
+# that appear in no paper's text; `pipeline` cannot, because there is no VLM to do it.
+# `--effort` is deliberately NOT set — it applies only to hybrid-* and is the expensive
+# half of that fabrication.
+MINERU_BACKEND = "pipeline"
 
 # Conversion budget. MinerU enforces these ITSELF (passed via env below), so the normal
 # deadline path is a child-side abort that runs mineru's own cleanup — it stops the
