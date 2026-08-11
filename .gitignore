@@ -33,3 +33,5 @@ Thumbs.db
 .claude/hooks/.render_bb_box.last
 .claude/hooks/.render_bb_box.log
 .claude/hooks/.bb_state/
+
+playground/mineru_debug
