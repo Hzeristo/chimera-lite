@@ -88,6 +88,16 @@ constraint: *belief advances exclusively on human-time.*
   STRUCTURAL-pending-seal: if L.B.3 has not sealed in the working context, it is ADVISORY until the
   code-constraint check passes.
 
+**R2 clarification — elicit/confirm is not human-time invocation.** `ctx.elicit` inside an agent
+tool call may collect *parameters* (machine-time information gathering). It does **not** constitute
+the human-time action that advances committed status. Human-time truth advance requires an
+Architect-initiated action — an Obsidian promote, an explicit `ascend_node` invocation — not a
+mid-pipeline confirm-click. A confirm-click launders machine-time into committed status while
+appearing to satisfy R2: the human is answering a prompt *inside* an agent turn the agent itself
+scheduled, which is not the same as the human deciding to advance a belief. This is precisely the
+cosmetic-rigor failure mode R2 exists to prevent, and it is the more dangerous kind, because the
+provenance chain would show a human event and still be false.
+
 ---
 
 ## R3 — Staging Gate Universality
@@ -143,10 +153,17 @@ LLM. Tier-3 (authorial framing) can never ground `[V]` — at most `[P]`. Semant
 - **Violation class:** assigning a tag without verbatim evidence; reasoning with a `[U]`/`[P]` claim
   as if `[V]` (the confession failure — `THEORETICAL_FRAMEWORK.md §3`); a gate implemented as a
   prompt instruction the agent "may honor" rather than a schema that rejects.
-- **Enforcement:** **ADVISORY** — `write_result.verdict` is still an unvalidated `str`
-  (`TAG_SYSTEM.md §9`), and Phase K (which lands schema-reject + Gate-1 monotonicity) is **Queued**,
-  not built. **This rule is aspirational until K.1 runs.** Debt: constrain `verdict` to
-  `Literal["V","P","U"]`; make Gate 1 a schema-structural refusal.
+- **Enforcement:** **SPLIT** — this rule has two independent halves, at different maturities:
+  - **R5a — tag well-formedness: STRUCTURAL.** `write_result.verdict` is
+    `Literal["V","P","U"]` and `mode` is a closed `Literal` set, so a malformed tag is rejected
+    by pydantic at the JSON-RPC boundary *before the handler body runs* — a refusal, not a
+    docstring request. Same treatment for `create_node.type` and `mineru_sidecar.action`.
+    Widening any of these back to `str` silently re-opens the gap.
+  - **R5b — monotonicity propagation: ADVISORY.** Gate 1 (`status(n) ≤ min status of recorded
+    `depends_on``) is *not* enforced. A well-formed `[V]` resting on a `[U]` dependency is still
+    accepted — well-formedness says nothing about whether the tag is *earned*. This is
+    poset-maintenance over the dependency graph, has no design doc yet, and remains **Phase K.1
+    (Queued)**. **This half is aspirational.**
 
 ---
 
@@ -179,6 +196,7 @@ looks.
 |---|---|
 | Does this add or route an LLM call inside an MCP server process (any layer, any purpose)? | **R1** |
 | Does this advance a node's truth/committed status without a human action in the chain? | **R2** |
+| Does this treat a mid-tool `ctx.elicit` confirm as the human action? (it is not — see R2) | **R2** |
 | Does this write to a committed tier (`Knowledge/`) without going through `ascend_node`? | **R3** |
 | Does this create/handle a K node with the `chimera_tier` field bypassed or defaulted? | **R4** |
 | Does this assign a `[V]/[P]/[U]` tag without recorded verbatim Tier-1/2 evidence? | **R5** |
@@ -205,7 +223,8 @@ not rebuild) at the cost of any R1–R6 invariant?* If yes → the invariant win
 |---|---|---|
 | R2 | `ascend_node` "impossible by code constraint" seal not yet verified in-context | L.B.3 seal / L.B.6 end-to-end |
 | R3 | `inbox/` scout non-advancement rests on convention + tier axis, not a dedicated refusal | L.B.6 verification |
-| R5 | `write_result.verdict` is unvalidated `str`; Gate-1 monotonicity not schema-enforced | Phase K (Queued) — K.1 |
+| ~~R5a~~ | ~~`write_result.verdict` is unvalidated `str`~~ — **RESOLVED**: `Literal["V","P","U"]` rejects at the transport boundary | — (discharged) |
+| R5b | Gate-1 monotonicity not enforced — a well-formed `[V]` may still rest on a `[U]` dependency | Phase K (Queued) — K.1 |
 | R6 | No structural gate prevents auto-writing a T/I/D body | Unhomed — next authorship sprint |
 
 > An ADVISORY rule is a **promise with no teeth yet**. It is listed here so it cannot be mistaken for

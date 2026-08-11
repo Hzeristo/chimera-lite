@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from typing import Literal
 
 # The shared domain package (core/, ports/) lives under the sibling papers server.
 # Put it on sys.path so this server can import core.config + the VaultReadAdapter.
@@ -33,7 +34,14 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
 )
 
-mcp = FastMCP("chimera-vault")
+# Cross-tool invariant, carried ONCE at server level instead of restated in every docstring
+# (chimera-mcp-taste `contract_surface`). Per-tool docstrings state only their own contract.
+_INSTRUCTIONS = (
+    "Primitives only. No tool returns a verdict or makes a judgment. "
+    "Judgment lives in Claude Code skills, never in a tool call."
+)
+
+mcp = FastMCP("chimera-vault", instructions=_INSTRUCTIONS)
 
 _adapter_ready = False
 
@@ -160,7 +168,7 @@ async def vault_query(
 
 @mcp.tool()
 async def create_node(
-    type: str,
+    type: Literal["knowledge", "thought", "insight", "decision"],
     title: str,
     body: str,
     edges: dict | None = None,
@@ -283,9 +291,9 @@ async def write_result(
     identity: str,
     title: str,
     body: str,
-    verdict: str | None = None,
+    verdict: Literal["V", "P", "U"] | None = None,
     depends_on: list[str] | None = None,
-    mode: str = "supersede",
+    mode: Literal["supersede", "merge", "reject", "mark_stale"] = "supersede",
 ) -> str:
     """Write a research-harness result artifact into the vault for the Architect's review.
 
@@ -313,7 +321,9 @@ async def write_result(
         identity: Stable identity — a claim_hash / arxiv_id (W1) or a topic / seed-set slug (W2).
         title: Human-readable artifact title.
         body: Markdown body — verdict + quotes (W1), or keyed paper blocks (W2).
-        verdict: For ``w1_verdict`` — the tag ``V`` / ``P`` / ``U``.
+        verdict: For ``w1_verdict`` — the tag ``V`` / ``P`` / ``U``. Enum-typed, so a
+            malformed tag is rejected at the JSON-RPC boundary before this body runs
+            (invariant R5a, tag well-formedness — do NOT widen back to ``str``).
         depends_on: The claim / quote ids the verdict rests on (C1 — recorded, not just the verdict).
         mode: ``supersede`` | ``merge`` | ``reject`` | ``mark_stale``.
     """

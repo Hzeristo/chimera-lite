@@ -213,7 +213,7 @@ Descriptive convergence targets (this doc does **not** execute them — like `NO
 |---|---|---|
 | `.claude/agents/chimera-verbatim-verifier.md` | own `[V]/[P]/[U]` rubric; **no Tier clause** | cite §3–4; add the Tier 1/2 requirement to `[V]` (CRITICAL-2) |
 | `<vault>/criteria/**/*.md` | pattern-triggers, tag-consistent by shared origin | header pointer to this file; the stub files (`type/{method,theory,survey}`, `_general`) author against §3–5 |
-| `chimera-vault` `write_result` | `verdict: str` unvalidated | `Literal["V","P","U"]` (schema-reject, per Phase K K.1); docstring links here (HIGH-3) |
+| `chimera-vault` `write_result` | `verdict: Literal["V","P","U"]` — schema-rejects a malformed tag at the JSON-RPC boundary (R5a, **done**) | nothing for well-formedness; Gate-1 monotonicity (R5b) still owed by Phase K.1 — a well-formed `[V]` on a `[U]` dependency is still accepted |
 | `docs/phases/phase-K.md` (Gate 1) | monotonicity design | implements §6 + §7 against this file |
 | `docs/phases/phase-L.md` (W1 HSC) | uses the tags | references §3 for the semantics |
 | `mcp-servers/chimera-papers/core/schemas.py` | `ExtractedClaim.status` (other vocab) | document the §7 crosswalk at the field |

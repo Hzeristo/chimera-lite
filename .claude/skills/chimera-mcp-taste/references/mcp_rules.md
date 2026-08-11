@@ -27,7 +27,7 @@ deepseek client added one layer down satisfies every other rule in this file and
 violates R1. The silence was the gap; ARCHITECTURE_RULES.md R1 names closing it as an
 explicit update requirement.)*
 
-**Bad:**
+**Bad (1) — the obvious route: a model client.**
 ```python
 # service or port layer — passes thin_adapter, still an R1 violation
 from anthropic import Anthropic
@@ -36,6 +36,40 @@ async def triage_paper(md_path: Path) -> dict:
     client = Anthropic()                       # an LLM call inside the server process
     return json.loads(client.messages.create(...).content[0].text)
 ```
+
+**Bad (2) — host sampling. The variant that passes every other check.**
+```python
+# NO client is constructed. No vendor SDK is imported. The dependency audit is clean,
+# thin_adapter is satisfied, Bad(1)'s grep finds nothing — and it is still an R1 violation,
+# because the JUDGMENT is being made inside a tool call.
+@mcp.tool()
+async def triage_paper(ctx: Context, paper_id: str) -> str:
+    md = await miner_tools.get_paper_markdown(paper_id)
+    result = await ctx.session.create_message(      # host does the inference, tool owns the verdict
+        messages=[SamplingMessage(role="user", content=TextContent(
+            type="text", text=f"Score this paper 1-10:\n{md}"))],
+        max_tokens=500,
+    )
+    return result.content.text                      # a verdict, returned from an MCP tool
+```
+
+*Why it is a violation even though the host runs the model:* R1 constrains **where judgment
+lives**, not who owns the GPU. Sampling authors the prompt in the server, consumes the answer in
+the server, and returns it as tool output — the tool has an opinion. The subagent boundary that
+makes judgment inspectable, isolatable, and model-pinnable is gone. "We didn't call an LLM, the
+host did" is the exact laundering R1 exists to refuse. `mcp-server-dev`'s
+`server-capabilities.md` recommends this pattern; that guidance does not apply here.
+
+**Bad (3) — `ctx.elicit` as R2 cover.**
+```python
+@mcp.tool()
+async def promote_and_confirm(ctx: Context, staging_path: str) -> str:
+    ok = await ctx.elicit("Promote this node to Knowledge/?", schema=ConfirmSchema)
+    if ok.action == "accept":
+        return ascend(staging_path)   # "a human confirmed it" — R2 NOT satisfied
+```
+A mid-tool confirm-click is machine-time information gathering, not the human-time action R2
+requires. See `ARCHITECTURE_RULES.md` R2's elicitation clarification: it advances nothing.
 
 **Good:**
 ```python
@@ -47,7 +81,9 @@ async def get_paper_markdown(paper_id: str) -> str:
 ```
 
 **Check before writing any tool:** does this module — or anything it imports at runtime —
-construct a model client or send a prompt? If yes, stop; it belongs in a subagent.
+construct a model client, **send a prompt by any route (including `ctx.session.create_message`
+/ `ctx.sample`)**, or return a verdict it formed itself? If yes, stop; it belongs in a subagent.
+The test is not "did we import a vendor SDK" — it is **"does this tool have an opinion?"**
 
 ## interpreter_resolution
 **Statement:** A subprocess that must run in the project's venv resolves its executable from `sys.executable`'s directory, never a bare PATH lookup. An MCP server inherits the *launcher's* PATH (Claude Code / anaconda / system), not your activated-venv PATH — so `which` finds the wrong python (wrong torch) or nothing.
@@ -246,6 +282,66 @@ async def daily_paper_pipeline(...) -> str:
             return _busy_message()
         return await miner_tools.daily_paper_pipeline(...)   # delegate; logic lives in the service
 ```
+
+## contract_surface
+**Statement:** The tool contract — schemas, docstrings, server `instructions` — is the surface
+Claude actually reads, and it is load-bearing, not documentation. Three consequences:
+
+**(a) A closed set is a `Literal`, never a `str` + a docstring.** If an invariant constrains an
+argument to a fixed vocabulary, type it as `Literal[...]`. FastMCP renders it as a JSON-Schema
+`enum` and pydantic rejects a bad value at the JSON-RPC boundary *before the handler body runs*.
+A docstring that says "must be V, P, or U" is a **request**; a `Literal` is a **refusal**. This
+is the cheapest ADVISORY→STRUCTURAL conversion available in this codebase — see R5a, discharged
+this way (`write_result.verdict`, `write_result.mode`, `create_node.type`,
+`mineru_sidecar.action`). Keep any domain-layer normalization as defense-in-depth for direct
+(non-MCP) callers; the schema is the gate, the domain check is the belt.
+
+**(b) Cross-tool invariants live in `instructions=`, once.** A rule that holds for *every* tool
+on a server belongs in the server-level `instructions` string, which lands in the system prompt
+one time — not restated in eleven docstrings, each of which costs tokens on every turn.
+chimera-vault and chimera-papers both carry: *"Primitives only. No tool returns a verdict or
+makes a judgment. Judgment lives in Claude Code skills, never in a tool call."*
+
+**(c) Per-tool sibling-disambiguation STAYS — do not "clean it up".** Our docstrings deliberately
+say things like *"for the BATCH sweep use `daily_paper_pipeline` instead, NOT this tool."* That is
+exactly what `mcp-server-dev`'s `tool-design.md` recommends for near-duplicate tools, and it is
+what keeps `ingest_paper` / `daily_paper_pipeline` / `fetch_paper` / `convert_pdf_to_md` from
+being mutually confusable. It is **not** covered by (b), because it is per-tool contract, not a
+cross-tool invariant.
+
+> ⚠️ A future session will encounter the Anthropic Directory review criterion *"tool descriptions
+> must not instruct Claude how to behave"* and be tempted to strip these lines as prompt
+> injection. **Do not.** That criterion governs *public connector submissions* — third-party
+> servers that could hijack a user's agent. This is a single-user local instrument, and the
+> "instruction" is disambiguation between our own sibling tools. Removing it degrades routing and
+> buys nothing: we are not submitting to the Directory.
+
+**Bad:**
+```python
+@mcp.tool()
+async def write_result(verdict: str | None = None, mode: str = "supersede") -> str:
+    """...
+    Args:
+        verdict: the tag ``V`` / ``P`` / ``U``.        # advisory — a polite request
+        mode: ``supersede`` | ``merge`` | ``reject``.  # nothing rejects "clobber"
+    """
+```
+
+**Good:**
+```python
+mcp = FastMCP("chimera-vault", instructions=_INSTRUCTIONS)   # cross-tool invariant, stated once
+
+@mcp.tool()
+async def write_result(
+    verdict: Literal["V", "P", "U"] | None = None,           # enum in the schema; pydantic refuses
+    mode: Literal["supersede", "merge", "reject", "mark_stale"] = "supersede",
+) -> str:
+```
+
+**Prove it, don't assume it** (`verification.md`): list the tool and read the generated schema —
+`enum` present? — then call it with an invalid value and confirm a `literal_error` *before* the
+body executes. A `Literal` that a `from __future__ import annotations` module fails to resolve
+silently degrades to an unconstrained string; only the probe tells you which you have.
 
 ## heavy_deps_lazy_optional
 **Statement:** Heavy or optional dependencies (torch, MinerU) import **inside** the function that needs them and raise a clear NotInstalled error — so the server module imports and its lighter tools work without the multi-GB stack present. A top-level `import torch` makes the whole server fail to load when the stack is absent, taking every unrelated tool down with it.

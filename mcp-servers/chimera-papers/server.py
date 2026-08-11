@@ -11,6 +11,7 @@ import asyncio
 import logging
 import sys
 from collections.abc import Awaitable, Callable
+from typing import Literal
 
 from mcp.server.fastmcp import Context, FastMCP
 
@@ -28,7 +29,14 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-mcp = FastMCP("chimera-papers")
+# Cross-tool invariant, carried ONCE at server level instead of restated in every docstring
+# (chimera-mcp-taste `contract_surface`). Per-tool docstrings state only their own contract.
+_INSTRUCTIONS = (
+    "Primitives only. No tool returns a verdict or makes a judgment. "
+    "Judgment lives in Claude Code skills, never in a tool call."
+)
+
+mcp = FastMCP("chimera-papers", instructions=_INSTRUCTIONS)
 
 # Serialize the check-and-start critical section so two concurrent calls cannot both pass
 # the busy check. TaskService persists PENDING synchronously, so the guard is race-free.
@@ -80,10 +88,8 @@ async def daily_paper_pipeline(
 ) -> str:
     """Run the full BATCH daily paper pipeline — arXiv sweep by query → fetch → convert → notify
     (long-running). Returns a ``task_id``; poll ``check_task_status``. Subject to the
-    single-pipeline concurrency guard.
-
-    Writes NO Knowledge node and makes NO LLM call (L.B.2) — triage of the converted papers is a
-    separate, explicitly invoked step: the ``chimera-triage-paper`` skill.
+    single-pipeline concurrency guard. Converts only — triage of the converted papers is the
+    separate, explicitly invoked ``chimera-triage-paper`` skill.
 
     For a SINGLE already-known paper (by arXiv id or a local PDF), use ``ingest_paper`` instead.
 
@@ -112,10 +118,8 @@ async def ingest_paper(
     (e.g. "2604.14004") OR a local PDF path. Fits requests like "pull in paper 2604.14004",
     "convert this PDF", "get <paper> ready for triage".
     WHAT: PDF → Markdown (MinerU on GPU); returns the converted markdown path. Synchronous
-    (no task_id). CONTRAST: writes NO Knowledge node and makes NO LLM call (L.B.2) — screening
-    a converted paper into a scout-tier card is the separate, explicitly invoked
-    ``chimera-triage-paper`` skill (its Haiku subagent reads the markdown itself, then calls
-    ``write_scout_card``).
+    (no task_id). Converts only — screening a converted paper into a scout-tier card is the
+    separate ``chimera-triage-paper`` skill.
 
     For the BATCH daily arXiv sweep — many papers pulled by a search query, not one known paper —
     use ``daily_paper_pipeline`` instead, NOT this tool.
@@ -140,11 +144,10 @@ async def fetch_paper(arxiv_id: str) -> str:
 
     WHEN: you want the raw PDF for a specific, already-known arXiv paper without converting it —
     e.g. inspecting it first, or as a manual fetch step paired with ``convert_pdf_to_md``.
-    Contrast with ``ingest_paper``, which fetches AND converts (fetch+convert only, no Knowledge
-    node — L.B.2). WHAT: downloads the PDF via arXiv (or reuses an already-downloaded local copy)
-    and returns its local path. Synchronous (no task_id). Rejected while a long-running
-    arXiv/pipeline job is active (shared GPU / network discipline — same guard as
-    ``ingest_paper``).
+    Contrast with ``ingest_paper``, which fetches AND converts. WHAT: downloads the PDF via arXiv
+    (or reuses an already-downloaded local copy) and returns its local path. Synchronous (no
+    task_id). Rejected while a long-running arXiv/pipeline job is active (shared GPU / network
+    discipline — same guard as ``ingest_paper``).
 
     Args:
         arxiv_id: arXiv identifier to fetch (e.g. "2604.14004").
@@ -162,7 +165,7 @@ async def convert_pdf_to_md(pdf_path: str | None = None, arxiv_id: str | None = 
 
     WHEN: you want just the converted markdown for a PDF or arXiv paper, with no triage and no
     vault write — e.g. a manual fetch→convert flow paired with ``fetch_paper``. Contrast with
-    ``ingest_paper``, which also fetches for you (fetch+convert only, no Knowledge node — L.B.2).
+    ``ingest_paper``, which also fetches for you.
     WHAT: PDF → Markdown via the same MinerU convert ``ingest_paper`` uses. If ``arxiv_id`` is
     given and ``pdf_path`` is not, fetches the PDF first. Returns the markdown path. Synchronous
     (no task_id). Rejected while a long-running arXiv/pipeline job is active (shared GPU / MinerU
@@ -180,7 +183,9 @@ async def convert_pdf_to_md(pdf_path: str | None = None, arxiv_id: str | None = 
 
 
 @mcp.tool()
-async def mineru_sidecar(action: str = "status", force: bool = False) -> str:
+async def mineru_sidecar(
+    action: Literal["status", "start", "stop"] = "status", force: bool = False
+) -> str:
     """Start / inspect / stop the resident MinerU parse service; writes NO vault node.
 
     WHEN: before a multi-paper ingest, to keep MinerU's models loaded across converts instead
@@ -206,8 +211,7 @@ async def get_paper_markdown(paper_id: str) -> str:
     WHEN: the ``chimera-deep-extract`` skill needs a paper's text to hand to its Sonnet subagent
     for deep-read extraction. WHAT: resolves ``paper_id``'s already-converted markdown path and
     returns it as a string; an error string if the paper has not been converted yet (fetch +
-    convert first). CONTRAST: makes NO judgment call and writes NO node — judgment happens ONLY in
-    the ``chimera-deep-extract`` skill's subagent, never here.
+    convert first). Writes no node.
 
     Args:
         paper_id: arXiv identifier of an already-ingested paper (e.g. "2305.16291").
@@ -224,10 +228,8 @@ async def analyze_paper_data(paper_id: str) -> str:
     metadata to hand to its Haiku subagent (``chimera-paper-triager``) for scout-tier screening.
     WHAT: returns a JSON object ``{"markdown_path", "metadata"}`` (metadata = id / title /
     authors / year / content_path); an error string if the paper has not been converted yet
-    (fetch + convert first). CONTRAST: makes NO judgment call and writes NO node — the verdict
-    happens ONLY in the ``chimera-triage-paper`` skill's subagent, never here. Sibling of
-    ``get_paper_markdown``, which the deep-read path uses; this one adds the metadata dict that
-    triage needs.
+    (fetch + convert first). Writes no node. Sibling of ``get_paper_markdown``, which the
+    deep-read path uses; this one adds the metadata dict that triage needs.
 
     Args:
         paper_id: arXiv identifier of an already-converted paper (e.g. "2604.14004").
@@ -246,11 +248,9 @@ async def stage_deep_read_node(ctx: Context, paper_id: str, extraction: dict) ->
     paper's markdown; call this to ground its citations into ``derives_from`` edges, detect
     supersede, render the node body, and write it to ``docs/staging/`` at
     ``chimera_tier="deep_read"``. WHAT: takes ``extraction`` as a JSON-serializable dict (the
-    subagent's structured output) and returns the staging path. Writes NO
+    subagent's already-judged structured output) and returns the staging path. Writes NO
     Insight/Thought/Decision node and never auto-promotes — the operator promotes via
-    ``ascend_node``. CONTRAST: makes NO judgment call itself; ``extraction`` is already-judged
-    input and this tool is purely deterministic (grounding, render, write) — never deepseek, never
-    an Anthropic client inside this server.
+    ``ascend_node``.
 
     Args:
         paper_id: arXiv identifier of the paper the extraction is about (e.g. "2305.16291").
@@ -271,11 +271,9 @@ async def write_scout_card(paper_id: str, analysis: dict) -> str:
     WHEN: the ``chimera-triage-paper`` skill's Haiku subagent (``chimera-paper-triager``) has
     already produced a ``PaperAnalysisResult`` (verdict + score + mechanism summary + critical
     flaws) from a paper's markdown; call this to write it into the vault. WHAT: takes
-    ``analysis`` as a JSON-serializable dict (the subagent's structured output) and returns the
-    written card's path, always under ``inbox/<verdict>/`` at ``chimera_tier="scout"`` — never
-    ``Harness/``. CONTRAST: makes NO judgment call itself; ``analysis`` is already-judged input
-    and this tool is purely a deterministic render + write — never deepseek, never an Anthropic
-    client inside this server.
+    ``analysis`` as a JSON-serializable dict (the subagent's already-judged structured output)
+    and returns the written card's path, always under ``inbox/<verdict>/`` at
+    ``chimera_tier="scout"`` — never ``Harness/``.
 
     Args:
         paper_id: arXiv identifier of the paper the analysis is about (e.g. "2604.14004").

@@ -219,7 +219,31 @@ def verdicts():
 
 
 def test_every_sot_rule_gets_a_verdict(verdicts) -> None:
-    assert {v.rule_id for v in verdicts} == {rid for rid, _t, _tier in gen.parse_rules()}
+    """Every SOT rule is adjudicated, and every verdict belongs to a real SOT rule.
+
+    A rule may be split into sub-rules (R5 → R5a/R5b) when its halves sit at different
+    maturities — a single merged verdict would let an enforced half carry an unenforced one to a
+    clean bill of health. Coverage is therefore checked in BOTH directions against the base id:
+    no SOT rule may go unadjudicated, and no verdict may name a rule the SOT does not declare.
+    """
+    sot_ids = {rid for rid, _t, _tier in gen.parse_rules()}
+    covered = {gen._base_rule_id(v.rule_id) for v in verdicts}
+    assert sot_ids <= covered, f"SOT rules with no verdict: {sorted(sot_ids - covered)}"
+    assert covered <= sot_ids, f"Verdicts for rules absent from the SOT: {sorted(covered - sot_ids)}"
+
+
+def test_split_rules_do_not_hide_an_unenforced_half(verdicts) -> None:
+    """A sub-rule split must not be a laundering device.
+
+    If a rule is adjudicated as sub-rules, each sub-verdict stands on its own in the report. This
+    pins the specific case the split exists for: R5a (tag well-formedness, schema-enforced) must
+    never be allowed to represent R5 as a whole while R5b (monotonicity) has no enforcement.
+    """
+    by_id = {v.rule_id: v for v in verdicts}
+    if "R5a" not in by_id:
+        pytest.skip("R5 is not currently split into sub-rules")
+    assert "R5b" in by_id, "R5 was split but R5b is unadjudicated — the unenforced half vanished"
+    assert "R5" not in by_id, "R5 has both a merged verdict and sub-verdicts; the merged one hides"
 
 
 def test_verdict_statuses_are_from_the_allowed_set(verdicts) -> None:

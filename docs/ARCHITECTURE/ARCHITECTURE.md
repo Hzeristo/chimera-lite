@@ -99,7 +99,7 @@ flowchart TD
     deep_reads_legacy_dest["vault/01_Deep_Reads/"]
 ```
 
-## Layer 2 — invariant conformance (1 PARTIAL, 4 PASS, 1 VIOLATED)
+## Layer 2 — invariant conformance (1 PARTIAL, 5 PASS, 1 VIOLATED)
 
 The invariants are a HUMAN-AUTHORED SSOT: `docs/ARCHITECTURE/ARCHITECTURE_RULES.md` owns them, and this generator may only ever implement VERIFIERS against it — never author, restate, or override a rule (CLAUDE.md drift rule). Rule ids, titles, and declared tiers are re-parsed from that file on every run, so those columns are a pointer that cannot drift, not a copy that can.
 
@@ -111,7 +111,8 @@ The invariants are a HUMAN-AUTHORED SSOT: `docs/ARCHITECTURE/ARCHITECTURE_RULES.
 | R2 | Human-Time Supremacy | STRUCTURAL/ADVISORY | **PASS** |
 | R3 | Staging Gate Universality | STRUCTURAL/ADVISORY | **PASS** |
 | R4 | Tier Integrity | STRUCTURAL | **PASS** |
-| R5 | Provenance Load-Bearing | ADVISORY | **VIOLATED** |
+| R5a | Provenance Load-Bearing | STRUCTURAL/ADVISORY | **PASS** |
+| R5b | Provenance Load-Bearing | STRUCTURAL/ADVISORY | **VIOLATED** |
 | R6 | Human Authorship of Judgment | CONVENTION | **PARTIAL** |
 
 ### Verifier findings
@@ -136,10 +137,15 @@ The invariants are a HUMAN-AUTHORED SSOT: `docs/ARCHITECTURE/ARCHITECTURE_RULES.
 - *Checked:* AST-extracted `create_staging_node` and tested that its tier default excludes `knowledge` (forcing its writer to declare scout vs deep_read).
 - *Finding:* Tier defaulting is restricted to thought/insight/decision; `knowledge` is excluded (`mcp-servers/chimera-papers/staging_service.py`), so an untiered K node stays untiered rather than being silently mis-tiered.
 
-**R5 — VIOLATED**
+**R5a — PASS**
 
 - *Checked:* AST-extracted `write_result` and tested whether its `verdict` parameter is constrained to `Literal["V","P","U"]` (structural) or accepts an arbitrary string (advisory).
-- *Finding:* `verdict` is an unconstrained string ('verdict: str | None = None,' in `mcp-servers/chimera-vault/server.py`), so a `[V]` carries no structural guarantee. This CONFIRMS the SOT's own ADVISORY admission — the rule is aspirational until Phase K lands schema-reject.
+- *Finding:* `verdict` is schema-constrained: 'verdict: Literal["V", "P", "U"] | None = None,'. A malformed tag is rejected by pydantic at the JSON-RPC boundary before the handler body runs. This covers WELL-FORMEDNESS ONLY — see R5b for whether the tag is earned.
+
+**R5b — VIOLATED**
+
+- *Checked:* Traced every use of `depends_on` across both server packages and tested whether ANY code path reads a dependency's status and constrains the artifact's verdict against it (Gate 1 monotonicity), rather than merely recording the dependency list.
+- *Finding:* No enforcement exists. `depends_on` is WRITTEN into artifact frontmatter (`chimera-vault/server.py` `write_result`) and never read back for a comparison — no code path computes `min` over dependency statuses or refuses a verdict that exceeds one. A well-formed `[V]` resting on a `[U]` dependency is accepted today. The machinery is ABSENT rather than broken (the SOT declares R5b ADVISORY and homes it at Phase K.1, Queued) — but absence is reported as VIOLATED, not as a softer 'missing', because the guarantee the rule states does not hold in the code and a status that reads as an empty slot gets skipped. R5a passing says NOTHING about this half.
 
 **R6 — PARTIAL**
 

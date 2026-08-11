@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import ast
 import re
+import string
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
@@ -319,8 +320,12 @@ def derive_flows(
 class RuleVerdict:
     """One rule's mechanical adjudication. `status` is this map's finding, never the rule's claim."""
 
-    rule_id: str
+    rule_id: str  # a SOT rule id, or a sub-rule of one (R5 → R5a / R5b)
     status: str  # PASS | VIOLATED | PARTIAL | UNCHECKABLE
+    # NOTE on vocabulary: an invariant with NO enforcement machinery reports VIOLATED, not a
+    # softer "missing"/"unenforced". A status that reads as an empty slot gets skipped by a
+    # reader, which is how an aspirational rule comes to be mistaken for a shipped guarantee.
+    # UNCHECKABLE means "no mechanical check is possible", never "the check found nothing".
     checked: str  # exactly what was mechanically tested
     evidence: str
 
@@ -379,6 +384,19 @@ def find_llm_call_sites() -> list[tuple[str, int, str, str, str]]:
 
 def _tool_names(tools_by_server: dict[str, list[str]]) -> list[str]:
     return sorted({t for tools in tools_by_server.values() for t in tools})
+
+
+def _base_rule_id(rule_id: str) -> str:
+    """The SOT rule a verdict belongs to: `R5a` → `R5`, `R5` → `R5`. Strips a sub-rule suffix
+    rather than slicing a fixed width, so a two-digit rule id (`R10a`) resolves correctly."""
+    return rule_id.rstrip(string.ascii_lowercase)
+
+
+def _server_python_files() -> list[Path]:
+    """Every .py inside a server package — the R5b sweep must cover the service/port layers too,
+    not just `server.py`, since a Gate-1 comparison could legitimately live one layer down."""
+    roots = {path.parent for path in SERVERS.values()}
+    return sorted({py for root in roots for py in root.rglob("*.py")})
 
 
 def _function_source(module_rel: str, symbol: str) -> str:
@@ -523,8 +541,20 @@ def _verify_r4() -> RuleVerdict:
     )
 
 
-def _verify_r5() -> RuleVerdict:
-    """R5 — provenance load-bearing: is the verdict tag structurally constrained to V/P/U?"""
+def _verify_r5() -> list[RuleVerdict]:
+    """R5 — provenance load-bearing. TWO independent halves, adjudicated separately.
+
+    The SOT (`ARCHITECTURE_RULES.md` R5) splits this rule because its halves sit at different
+    maturities, and a single verdict over both would launder the unenforced half under the
+    enforced one: a `[V]` can be perfectly well-formed and still be unearned. R5a is a property
+    of source and is checkable; R5b is a graph property with no implementation to check.
+    Reporting one merged `PASS` here is the exact cosmetic-rigor failure R5 exists to name.
+    """
+    return [_verify_r5a(), _verify_r5b()]
+
+
+def _verify_r5a() -> RuleVerdict:
+    """R5a — tag well-formedness: is the verdict tag structurally constrained to V/P/U?"""
     module = "mcp-servers/chimera-vault/server.py"
     source = _function_source(module, "write_result")
     checked = (
@@ -533,15 +563,68 @@ def _verify_r5() -> RuleVerdict:
     )
     verdict_line = next((ln for ln in source.splitlines() if ln.strip().startswith("verdict")), "")
     if "Literal" in verdict_line:
-        return RuleVerdict("R5", "PASS", checked, f"`verdict` is schema-constrained: {verdict_line.strip()!r}")
+        return RuleVerdict(
+            "R5a",
+            "PASS",
+            checked,
+            (
+                f"`verdict` is schema-constrained: {verdict_line.strip()!r}. A malformed tag is "
+                "rejected by pydantic at the JSON-RPC boundary before the handler body runs. "
+                "This covers WELL-FORMEDNESS ONLY — see R5b for whether the tag is earned."
+            ),
+        )
     return RuleVerdict(
-        "R5",
+        "R5a",
         "VIOLATED",
         checked,
         (
             f"`verdict` is an unconstrained string ({verdict_line.strip()!r} in `{module}`), so a "
             "`[V]` carries no structural guarantee. This CONFIRMS the SOT's own ADVISORY "
             "admission — the rule is aspirational until Phase K lands schema-reject."
+        ),
+    )
+
+
+def _verify_r5b() -> RuleVerdict:
+    """R5b — monotonicity propagation: is Gate 1 (`status(n) ≤ min(depends_on)`) enforced?"""
+    checked = (
+        "Traced every use of `depends_on` across both server packages and tested whether ANY code "
+        "path reads a dependency's status and constrains the artifact's verdict against it "
+        "(Gate 1 monotonicity), rather than merely recording the dependency list."
+    )
+    readers: list[str] = []
+    for module in _server_python_files():
+        try:
+            source = module.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for lineno, line in enumerate(source.splitlines(), start=1):
+            stripped = line.strip()
+            if "depends_on" not in stripped or stripped.startswith("#"):
+                continue
+            # A gate must COMPARE, not just store. Assignment/record/param-declaration is not a gate.
+            if any(op in stripped for op in ("<=", ">=", " < ", " > ", "min(", "max(")):
+                readers.append(f"{module.relative_to(REPO_ROOT).as_posix()}:{lineno}")
+    if readers:
+        return RuleVerdict(
+            "R5b",
+            "PASS",
+            checked,
+            f"A monotonicity comparison over `depends_on` exists at: {', '.join(readers)}.",
+        )
+    return RuleVerdict(
+        "R5b",
+        "VIOLATED",
+        checked,
+        (
+            "No enforcement exists. `depends_on` is WRITTEN into artifact frontmatter "
+            "(`chimera-vault/server.py` `write_result`) and never read back for a comparison — no "
+            "code path computes `min` over dependency statuses or refuses a verdict that exceeds "
+            "one. A well-formed `[V]` resting on a `[U]` dependency is accepted today. The "
+            "machinery is ABSENT rather than broken (the SOT declares R5b ADVISORY and homes it at "
+            "Phase K.1, Queued) — but absence is reported as VIOLATED, not as a softer 'missing', "
+            "because the guarantee the rule states does not hold in the code and a status that "
+            "reads as an empty slot gets skipped. R5a passing says NOTHING about this half."
         ),
     )
 
@@ -599,7 +682,8 @@ def verify_rules(
         elif rule_id == "R4":
             verdicts.append(_verify_r4())
         elif rule_id == "R5":
-            verdicts.append(_verify_r5())
+            # R5 is adjudicated as two sub-rules (R5a / R5b); see `_verify_r5`.
+            verdicts.extend(_verify_r5())
         elif rule_id == "R6":
             verdicts.append(_verify_r6(tools_by_server, graph))
         else:
@@ -763,11 +847,21 @@ def render(
     lines.append("")
     lines.append("| rule | invariant | declared | verdict |")
     lines.append("|---|---|---|---|")
-    by_id = {verdict.rule_id: verdict for verdict in verdicts}
+    # A SOT rule may be adjudicated as several sub-rules (R5 → R5a/R5b). Each gets its OWN row:
+    # collapsing them would let an enforced half carry an unenforced one to a clean verdict.
+    by_base: dict[str, list[RuleVerdict]] = {}
+    for verdict in verdicts:
+        by_base.setdefault(_base_rule_id(verdict.rule_id), []).append(verdict)
     for rule_id, title, tier in rules:
-        verdict = by_id.get(rule_id)
-        status = verdict.status if verdict else "UNCHECKABLE"
-        lines.append(f"| {rule_id} | {_md_cell(title)} | {_md_cell(tier)} | **{status}** |")
+        found = by_base.get(rule_id)
+        if not found:
+            lines.append(f"| {rule_id} | {_md_cell(title)} | {_md_cell(tier)} | **UNCHECKABLE** |")
+            continue
+        for verdict in found:
+            lines.append(
+                f"| {verdict.rule_id} | {_md_cell(title)} | {_md_cell(tier)} | "
+                f"**{verdict.status}** |"
+            )
     lines.append("")
     lines.append("### Verifier findings")
     lines.append("")
