@@ -48,6 +48,12 @@ All edges are **directional**, stored in a node's frontmatter as a list of targe
 | `drives_decision` | Forward pointer — this node drove the target **decision**. | T I D |
 | `synthesizes` | This **insight** fuses the target source nodes into a new understanding. | I |
 | `evidence_base` | The supporting evidence for this **insight**. *(canonical name; was code's `verified_with`)* | I |
+      collides_with — two claims occupy the same evidence envelope without
+                      directly contradicting; each's success structurally
+                      blocks the other's novelty
+      informed_by — records that a T/I/D node was authored while viewing
+                    an AI output (W2 map, extract synthesis); context, not
+                    derivation; not support-bearing 
 
 ### Canonical set per type
 

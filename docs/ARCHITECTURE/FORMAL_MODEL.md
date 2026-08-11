@@ -16,7 +16,7 @@ Let $\mathcal{G} = (V, E, \tau, \sigma, \lambda, \preceq)$ where:
   - $S_h = \{\mathtt{W1}, \mathtt{W2}\}$ (harness-artifact sort)
 - $\sigma: V \to \{\mathtt{candidate}, \mathtt{staged}, \mathtt{committed}, \mathtt{stale}\}$
   is the *lifecycle status*
-- $\lambda: E \to \{\mathtt{derives\_from}, \mathtt{supersedes}, \mathtt{contradicts}, \mathtt{dead\_ends}, \mathtt{drives\_decision}, \mathtt{synthesizes}, \mathtt{evidence\_base}, \mathtt{collides\_with}\}$ is the *edge label function*
+- $\lambda: E \to \{\mathtt{derives\_from}, \mathtt{supersedes}, \mathtt{contradicts}, \mathtt{dead\_ends}, \mathtt{drives\_decision}, \mathtt{synthesizes}, \mathtt{evidence\_base}, \mathtt{collides\_with}, \mathtt{informed\_by}\}$ is the *edge label function*
 - $\preceq \subseteq V \times V$ is a partial order on nodes induced by provenance
 
 **Support-bearing edges:** monotonicity propagates along $\{\mathtt{evidence\_base}, \mathtt{synthesizes}, \mathtt{derives\_from}\}$.

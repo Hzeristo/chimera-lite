@@ -151,7 +151,8 @@ remains mechanically verifiable.
 **Status vocabulary crosswalk** (abstract ↔ concrete, see NODE_ONTOLOGY.md §7.2):
 - candidate ↔ unverified (scout-tier inbox nodes)
 - staged ↔ PENDING_REVIEW (staging/ and Harness/)
-- committed ↔ active (Knowledge/, Thoughts/, Insights/, Decisions/)
+- committed ↔ active (base state)
+                / cross_verified (I-node substate after advisor confirmation)
 - stale ↔ (not yet implemented; see ENFORCEMENT_DEBT.md)
 
 ### I2.4 — Criteria Externalization
