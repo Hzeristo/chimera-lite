@@ -217,16 +217,16 @@ not rebuild) at the cost of any R1–R6 invariant?* If yes → the invariant win
 | R5 | `TAG_SYSTEM.md §3–§6` (semantics authority); `phase-K.md` red lines |
 | R6 | `THEORETICAL_FRAMEWORK.md §2` Separation Principle; node-creation convention |
 
-## Appendix B — Enforcement-debt register (every ADVISORY gap + the phase that lands it)
+## Appendix B — Enforcement-debt register → **moved**
 
-| Rule | Gap | Lands at |
-|---|---|---|
-| R2 | `ascend_node` "impossible by code constraint" seal not yet verified in-context | L.B.3 seal / L.B.6 end-to-end |
-| R3 | `inbox/` scout non-advancement rests on convention + tier axis, not a dedicated refusal | L.B.6 verification |
-| ~~R5a~~ | ~~`write_result.verdict` is unvalidated `str`~~ — **RESOLVED**: `Literal["V","P","U"]` rejects at the transport boundary | — (discharged) |
-| R5b | Gate-1 monotonicity not enforced — a well-formed `[V]` may still rest on a `[U]` dependency | Phase K (Queued) — K.1 |
-| R6 | No structural gate prevents auto-writing a T/I/D body | Unhomed — next authorship sprint |
+The enforcement-debt register now lives in its own document:
+[`docs/ARCHITECTURE/ENFORCEMENT_DEBT.md`](ENFORCEMENT_DEBT.md).
 
-> An ADVISORY rule is a **promise with no teeth yet**. It is listed here so it cannot be mistaken for
-> a shipped guarantee, and so the debt is discharged deliberately — not quietly dropped when its
-> phase is built.
+It was extracted (2026-08-11) because the canonical cites it directly — `INVARIANTS.md:28`, `:47`,
+`:155` and `FORMAL_MODEL.md:99` — so the compliance record needed a stable address of its own rather
+than an appendix position inside this file. The extraction carried every row forward unchanged and
+added the two debts the canonical names (provenance decay, `stale` status) plus one defect in the
+R5b checker itself.
+
+**Do not restate a debt row here.** One register, one address; a second copy is how a discharged
+gap gets quietly re-asserted, or a live one silently dropped.
