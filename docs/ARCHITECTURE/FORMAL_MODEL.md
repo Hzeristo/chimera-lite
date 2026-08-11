@@ -1,17 +1,27 @@
 # Formal Model
 
+Descriptive mathematical specification of the chimera-lite research artifact
+system. For normative rules (what must not change), see INVARIANTS.md.
+
+---
+
 ## Research Artifact Graph
 
 Let $\mathcal{G} = (V, E, \tau, \sigma, \lambda, \preceq)$ where:
 
 - $V$ is a finite set of *artifact nodes*
 - $E \subseteq V \times V$ is a set of *typed edges*
-- $\tau: V \to \{\mathtt{K}, \mathtt{T}, \mathtt{I}, \mathtt{D}, \mathtt{W1}, \mathtt{W2}\}$
-  is the *node type function*
+- $\tau: V \to S_c \cup S_h$ is the *node type function*, where:
+  - $S_c = \{\mathtt{K}, \mathtt{T}, \mathtt{I}, \mathtt{D}\}$ (committed-node sort)
+  - $S_h = \{\mathtt{W1}, \mathtt{W2}\}$ (harness-artifact sort)
 - $\sigma: V \to \{\mathtt{candidate}, \mathtt{staged}, \mathtt{committed}, \mathtt{stale}\}$
   is the *lifecycle status*
-- $\lambda: E \to \{\mathtt{derives\_from}, \mathtt{depends\_on}, \mathtt{collides\_with}, \mathtt{contradicts}, \mathtt{supersedes}\}$ is the *edge label function*
+- $\lambda: E \to \{\mathtt{derives\_from}, \mathtt{supersedes}, \mathtt{contradicts}, \mathtt{dead\_ends}, \mathtt{drives\_decision}, \mathtt{synthesizes}, \mathtt{evidence\_base}, \mathtt{collides\_with}\}$ is the *edge label function*
 - $\preceq \subseteq V \times V$ is a partial order on nodes induced by provenance
+
+**Support-bearing edges:** monotonicity propagates along $\{\mathtt{evidence\_base}, \mathtt{synthesizes}, \mathtt{derives\_from}\}$.
+
+---
 
 ## Evidence Tiers
 
@@ -19,13 +29,18 @@ Evidence sources are stratified into three tiers:
 
 $$
 \begin{aligned}
-\text{Tier}_1 &= \{\text{table entries, equation definitions, arXiv metadata}\} \\
-\text{Tier}_2 &= \{\text{method descriptions, result statements with context}\} \\
+\text{Tier}_1 &= \{\text{table entries, equation definitions, figures, reported numbers,} \\
+              &\quad \text{ablation rows, measured cost/latency, citation counts, arXiv metadata}\} \\
+\text{Tier}_2 &= \{\text{method descriptions, result statements with context,} \\
+              &\quad \text{external primary artifacts (repo/README, another paper's Tier-1 data,} \\
+              &\quad \text{benchmark spec)}\} \\
 \text{Tier}_3 &= \{\text{author claims in intro/conclusion}\}
 \end{aligned}
 $$
 
 with epistemic warrant ordering $\text{Tier}_1 \succ \text{Tier}_2 \succ \text{Tier}_3$.
+
+---
 
 ## Verification Tags
 
@@ -48,12 +63,15 @@ $$
   \land \text{cited}(q, c) \\
 \mathtt{P}(c) &\triangleq \exists q.\ q \rightharpoonup c
   \land (\text{confounded}(q) \lor q \in \text{Tier}_3) \\
-\mathtt{U}(c) &\triangleq \neg \exists q \in \text{checked sources}.\
-  q \vdash c \lor q \rightharpoonup c
+\mathtt{U}(c) &\triangleq (\neg \exists q \in \text{checked sources}.\
+  q \vdash c \lor q \rightharpoonup c) \lor (c \notin \text{scope}(\text{checked sources}))
 \end{aligned}
 $$
 
-where $q \vdash c$ denotes entailment and $q \rightharpoonup c$ denotes partial support.
+where $q \vdash c$ denotes entailment, $q \rightharpoonup c$ denotes partial support,
+and the out-of-scope clause handles claims beyond what the checked sources assert.
+
+---
 
 ## State Transitions
 
@@ -78,23 +96,27 @@ $$
       \sigma'(v) = \mathtt{committed}}
 $$
 
-**Provenance monotonicity** (structural gate):
+**Provenance monotonicity** (structural gate — MUST BE enforced, see ENFORCEMENT_DEBT.md R5b):
 
 $$
 \forall v \in V.\ \sigma(v) = \mathtt{committed} \implies
   \llbracket \text{tag}(v) \rrbracket \leq
-  \min_{u \in \text{deps}(v)} \llbracket \text{tag}(u) \rrbracket
+  \min_{u \in \text{support}(v)} \llbracket \text{tag}(u) \rrbracket
 $$
 
-where $\text{deps}(v) = \{u \mid (u,v) \in E, \lambda(u,v) = \mathtt{depends\_on}\}$.
+where $\text{support}(v) = \{u \mid (u,v) \in E, \lambda(u,v) \in \{\mathtt{evidence\_base}, \mathtt{synthesizes}, \mathtt{derives\_from}\}\}$.
+
+Monotonicity propagates along support-bearing edges, not a specific edge name.
 
 **Provenance decay** (temporal propagation):
 
 $$
-\frac{(u,v) \in E, \lambda(u,v) = \mathtt{derives\_from},
+\frac{(u,v) \in E, \lambda(u,v) \in \{\mathtt{derives\_from}, \mathtt{supersedes}\},
       \sigma(u) \xrightarrow{t} \mathtt{stale}}
      {\sigma(v) \xrightarrow{t} \mathtt{stale}}
 $$
+
+---
 
 ## System Invariants
 
@@ -122,6 +144,10 @@ $$
 
 A committed node either traces to Tier-1 evidence or explicitly admits weakness.
 
+For I-nodes: well-formed support requires verified T-node groups. An I-node's
+synthesis must rest on a set of T-nodes, each grounded (per I2) and confirmed
+(per I0.1 human commit).
+
 **I4. Append-only with supersession:**
 
 $$
@@ -130,6 +156,8 @@ $$
 $$
 
 Committed nodes are never deleted, only superseded and marked stale.
+
+---
 
 ## Phase Locus Colligo: Reduction Operations
 
@@ -149,13 +177,13 @@ $$
       \langle c_n, s_n, q_n \rangle\}}
 $$
 
-**R3. Provenance commit** (verdict $\Rightarrow$ depends-on edge):
+**R3. Provenance commit** (verdict $\Rightarrow$ support-edge auto-write):
 
 $$
 \frac{\text{promote}(\langle c, s, q \rangle) = v_{\text{claim}},
       \text{source}(q) = v_{\text{evidence}}}
      {E' = E \cup \{(v_{\text{evidence}}, v_{\text{claim}})\},
-      \lambda(v_{\text{evidence}}, v_{\text{claim}}) = \mathtt{depends\_on}}
+      \lambda(v_{\text{evidence}}, v_{\text{claim}}) = \mathtt{evidence\_base}}
 $$
 
 **R4. Stream mode** (online term rewriting):
