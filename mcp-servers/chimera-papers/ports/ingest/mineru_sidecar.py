@@ -1,0 +1,401 @@
+"""Supervisor for a persistent MinerU parse server (the "sidecar").
+
+WHAT THIS IS NOT: a server. MinerU ships its own FastAPI service (`mineru.cli.fast_api`,
+the `mineru-api` entry point) and its CLI already knows how to talk to one via `--api-url`.
+This module only **supervises** that process — start it, prove it is healthy, stop it.
+Nothing here serves HTTP, and no inference runs in this process.
+
+WHY: every `MineruClient.convert` currently spawns a throwaway MinerU service and reloads
+every model. Measured on a pipeline convert: 3.1s server spawn + full model load against
+15.8s of actual parsing, inside a 32.4s wall — roughly half the wall clock is setup that a
+resident server pays once. See docs/logs/friction-260810.md.
+
+## Statelessness — the design constraint
+
+The MCP server is a thin, restartable adapter; it must not hold a server handle in memory.
+So the sidecar's state lives in the OS, not in this process:
+
+- **A fixed port is the discovery mechanism.** No singleton, no module global. Two MCP
+  server instances (e.g. after an `/mcp` reconnect) converge on the same sidecar instead of
+  racing to spawn two.
+- **The health probe is the ONLY liveness truth.** The runfile is a *kill handle*, never
+  evidence that anything is alive. This repo already has one bug of that shape —
+  `TaskService.has_active_long_task` trusts disk status, so a crashed task reads as "busy"
+  until cleared (CLAUDE.md, known deferred issues). Not repeating it here.
+- **The probe validates that the thing answering is MinerU**, so a foreign process that
+  grabbed the port cannot be mistaken for the sidecar.
+
+## Blast radius
+
+`ensure_running()` NEVER raises and never blocks conversion. If the sidecar cannot start,
+`MineruClient.convert` simply omits `--api-url` and MinerU spawns its own per-run service
+exactly as before. The worst case is *slow*, never *broken* — the sidecar is an
+optimization, not a dependency.
+
+Spawn discipline follows chimera-mcp-taste: the venv interpreter via `sys.executable`
+(never a bare PATH lookup), `CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP` with
+`stdin=DEVNULL` for the headless parent, and stdout sunk to a FILE rather than a pipe.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.request
+from dataclasses import dataclass, asdict
+from datetime import datetime, timezone
+from pathlib import Path
+
+from core.platform import get_project_root
+
+logger = logging.getLogger(__name__)
+
+SIDECAR_HOST = "127.0.0.1"
+# Fixed by configuration, not chosen at random: the port IS how a stateless caller finds
+# the sidecar. A random port would need a registry, and a registry would need to be trusted.
+SIDECAR_PORT = int(os.getenv("CHIMERA_MINERU_SIDECAR_PORT", "8765"))
+SIDECAR_ENABLED = os.getenv("CHIMERA_MINERU_SIDECAR", "1").lower() not in {"0", "false", "off"}
+
+STARTUP_TIMEOUT_SECONDS = float(os.getenv("CHIMERA_MINERU_SIDECAR_STARTUP", "300"))
+POLL_INTERVAL_SECONDS = 2.0
+PROBE_TIMEOUT_SECONDS = 5.0
+SHUTDOWN_GRACE_SECONDS = 30
+
+HEALTH_ENDPOINT = "/health"
+# Keys MinerU's /health payload carries (mineru/cli/fast_api.py). Used as an identity check:
+# something else listening on our port will not answer with this shape.
+REQUIRED_HEALTH_KEYS = (
+    "status",
+    "protocol_version",
+    "max_concurrent_requests",
+    "processing_window_size",
+)
+
+
+@dataclass(frozen=True)
+class SidecarStatus:
+    running: bool
+    base_url: str
+    port: int
+    pid: int | None
+    detail: str
+    queued_tasks: int | None = None
+    processing_tasks: int | None = None
+    mineru_version: str | None = None
+
+    def as_dict(self) -> dict:
+        return asdict(self)
+
+
+def base_url() -> str:
+    return f"http://{SIDECAR_HOST}:{SIDECAR_PORT}"
+
+
+def _state_dir() -> Path:
+    # .chimera/ is already gitignored — runtime state, never a repo artifact.
+    path = get_project_root() / ".chimera" / "mineru-sidecar"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def _runfile() -> Path:
+    return _state_dir() / "sidecar.json"
+
+
+def log_path() -> Path:
+    return _state_dir() / "sidecar.log"
+
+
+# --------------------------------------------------------------------------- liveness
+
+
+def probe(timeout: float = PROBE_TIMEOUT_SECONDS) -> dict | None:
+    """Return MinerU's /health payload, or None. Never raises.
+
+    This is the single source of truth for "is the sidecar up". A payload that does not
+    carry MinerU's health shape is rejected — the port may be held by something else.
+    """
+    url = f"{base_url()}{HEALTH_ENDPOINT}"
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as response:  # noqa: S310 — fixed localhost URL
+            if response.status != 200:
+                return None
+            payload = json.loads(response.read().decode("utf-8", errors="replace"))
+    except (urllib.error.URLError, OSError, ValueError, json.JSONDecodeError):
+        return None
+
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("status") != "healthy":
+        return None
+    if any(key not in payload for key in REQUIRED_HEALTH_KEYS):
+        logger.warning(
+            "[Sidecar] Something is listening on %s but it is not a MinerU service", base_url()
+        )
+        return None
+    return payload
+
+
+def _read_runfile() -> dict | None:
+    """The recorded pid — a KILL HANDLE ONLY. Never treat its existence as liveness."""
+    try:
+        return json.loads(_runfile().read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def _write_runfile(pid: int) -> None:
+    payload = {
+        "pid": pid,
+        "port": SIDECAR_PORT,
+        "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+    try:
+        _runfile().write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    except OSError as exc:
+        # A missing runfile costs us the kill handle, not correctness — probe() still works.
+        logger.warning("[Sidecar] Could not write runfile: %s", exc)
+
+
+def status() -> SidecarStatus:
+    payload = probe()
+    record = _read_runfile()
+    pid = record.get("pid") if record else None
+    if payload is None:
+        return SidecarStatus(
+            running=False,
+            base_url=base_url(),
+            port=SIDECAR_PORT,
+            pid=pid,
+            detail=(
+                "not running"
+                if record is None
+                else f"not running (stale runfile records pid {pid})"
+            ),
+        )
+    return SidecarStatus(
+        running=True,
+        base_url=base_url(),
+        port=SIDECAR_PORT,
+        pid=pid,
+        detail="healthy",
+        queued_tasks=payload.get("queued_tasks"),
+        processing_tasks=payload.get("processing_tasks"),
+        mineru_version=payload.get("version"),
+    )
+
+
+# --------------------------------------------------------------------------- lifecycle
+
+
+def _build_env() -> dict[str, str]:
+    """The sidecar does the INFERENCE, so the device pin must land in its environment.
+
+    With `--api-url`, the client process only uploads a PDF and downloads a zip — pinning
+    the device on the client would configure the wrong process entirely.
+    """
+    # Lazy, and deliberately one-directional: paper2md imports this module only from inside
+    # a function, so there is no module-level cycle.
+    from ports.ingest.paper2md import MINERU_DEVICE, MINERU_TASK_BUDGET_SECONDS
+
+    env = os.environ.copy()
+    if MINERU_DEVICE:
+        env.setdefault("MINERU_DEVICE_MODE", MINERU_DEVICE)
+    env["MINERU_API_OUTPUT_ROOT"] = str(_state_dir() / "output")
+    # One GPU, 8 GB: concurrent parses would OOM. Same reasoning as the single-worker
+    # convert queue in mineru_pipeline.convert_queue_worker.
+    env["MINERU_API_MAX_CONCURRENT_REQUESTS"] = "1"
+    env["MINERU_API_DISABLE_ACCESS_LOG"] = "1"
+    env.setdefault("MINERU_TASK_RESULT_TIMEOUT_SECONDS", str(MINERU_TASK_BUDGET_SECONDS))
+    # MUST NOT be set: it makes the service exit on stdin EOF. The sidecar is detached and
+    # has no stdin owner, so that watcher would shut it down immediately.
+    env.pop("MINERU_API_SHUTDOWN_ON_STDIN_EOF", None)
+    return env
+
+
+def _spawn() -> subprocess.Popen | None:
+    """Launch mineru-api detached from this (possibly headless) process. Never raises."""
+    command = [
+        sys.executable,  # the venv interpreter — never a bare PATH lookup (mcp-taste rule 1)
+        "-m",
+        "mineru.cli.fast_api",
+        "--host",
+        SIDECAR_HOST,
+        "--port",
+        str(SIDECAR_PORT),
+    ]
+    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(
+        subprocess, "CREATE_NEW_PROCESS_GROUP", 0
+    )
+    try:
+        # Truncate on start: a resident uvicorn would otherwise grow this file without
+        # bound. Access logging is disabled in _build_env to keep it small.
+        logf = log_path().open("w", encoding="utf-8", errors="replace")
+    except OSError as exc:
+        logger.error("[Sidecar] Cannot open the sidecar log: %s", exc)
+        return None
+
+    try:
+        proc = subprocess.Popen(
+            command,
+            stdin=subprocess.DEVNULL,
+            stdout=logf,
+            stderr=subprocess.STDOUT,
+            creationflags=flags,
+            env=_build_env(),
+            cwd=str(get_project_root()),
+        )
+    except OSError as exc:
+        logger.error("[Sidecar] Failed to spawn mineru-api: %s", exc)
+        logf.close()
+        return None
+    finally:
+        # The child holds its own duplicated handle; this process does not need ours.
+        logf.close()
+
+    logger.info("[Sidecar] Spawned mineru-api pid=%s on %s", proc.pid, base_url())
+    return proc
+
+
+def api_url_if_healthy() -> str | None:
+    """Base URL iff a sidecar is ALREADY serving. Never starts anything.
+
+    This — not ``ensure_running`` — is what the convert path calls. Starting is an explicit,
+    batch-level act: if ``convert`` tried to start the sidecar, a service that cannot start
+    would cost every single convert the full startup timeout before falling back, turning an
+    accelerator into a large regression. Probing costs a failed localhost connect (sub-ms)
+    when nothing is listening.
+    """
+    if not SIDECAR_ENABLED:
+        return None
+    return base_url() if probe() is not None else None
+
+
+def ensure_running(timeout: float = STARTUP_TIMEOUT_SECONDS) -> str | None:
+    """Return the sidecar's base URL, starting it if needed. NEVER raises.
+
+    Returning None is a valid, non-fatal outcome: the caller falls back to MinerU's own
+    per-run service. That is the blast-radius contract — a broken sidecar costs speed only.
+    """
+    if not SIDECAR_ENABLED:
+        return None
+
+    if probe() is not None:
+        return base_url()
+
+    proc = _spawn()
+    if proc is None:
+        return None
+
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if proc.poll() is not None:
+            logger.error(
+                "[Sidecar] mineru-api exited with code %s before becoming healthy; see %s",
+                proc.returncode,
+                log_path(),
+            )
+            return None
+        if probe() is not None:
+            _write_runfile(proc.pid)
+            logger.info("[Sidecar] Healthy at %s (pid=%s)", base_url(), proc.pid)
+            return base_url()
+        time.sleep(POLL_INTERVAL_SECONDS)
+
+    logger.error("[Sidecar] mineru-api did not become healthy within %ss; stopping it", timeout)
+    _kill_tree(proc.pid)
+    return None
+
+
+def _kill_tree(pid: int) -> None:
+    if sys.platform == "win32":
+        try:
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(pid)],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=60,
+                check=False,
+            )
+        except (OSError, subprocess.SubprocessError) as exc:
+            logger.error("[Sidecar] taskkill failed for pid %s: %s", pid, exc)
+        return
+    try:
+        os.kill(pid, 9)
+    except OSError as exc:
+        logger.error("[Sidecar] kill failed for pid %s: %s", pid, exc)
+
+
+def stop(force: bool = False) -> SidecarStatus:
+    """Stop the sidecar and free its VRAM.
+
+    Refuses while the service reports in-flight work unless ``force`` — killing mid-parse
+    loses that conversion, and the caller usually does not know a batch is still running.
+    """
+    payload = probe()
+    if payload is None:
+        _runfile().unlink(missing_ok=True)
+        return SidecarStatus(
+            running=False,
+            base_url=base_url(),
+            port=SIDECAR_PORT,
+            pid=None,
+            detail="already stopped (runfile cleared)",
+        )
+
+    in_flight = int(payload.get("queued_tasks") or 0) + int(payload.get("processing_tasks") or 0)
+    if in_flight and not force:
+        return SidecarStatus(
+            running=True,
+            base_url=base_url(),
+            port=SIDECAR_PORT,
+            pid=(_read_runfile() or {}).get("pid"),
+            detail=f"refused: {in_flight} task(s) in flight — pass force=True to kill anyway",
+            queued_tasks=payload.get("queued_tasks"),
+            processing_tasks=payload.get("processing_tasks"),
+            mineru_version=payload.get("version"),
+        )
+
+    record = _read_runfile()
+    pid = record.get("pid") if record else None
+    if pid is None:
+        # Healthy but unowned — this process never started it and holds no kill handle.
+        return SidecarStatus(
+            running=True,
+            base_url=base_url(),
+            port=SIDECAR_PORT,
+            pid=None,
+            detail="running but no runfile pid — stop it manually (no kill handle recorded)",
+            queued_tasks=payload.get("queued_tasks"),
+            processing_tasks=payload.get("processing_tasks"),
+            mineru_version=payload.get("version"),
+        )
+
+    _kill_tree(pid)
+    deadline = time.monotonic() + SHUTDOWN_GRACE_SECONDS
+    while time.monotonic() < deadline:
+        if probe() is None:
+            _runfile().unlink(missing_ok=True)
+            logger.info("[Sidecar] Stopped (pid=%s)", pid)
+            return SidecarStatus(
+                running=False,
+                base_url=base_url(),
+                port=SIDECAR_PORT,
+                pid=pid,
+                detail="stopped",
+            )
+        time.sleep(1.0)
+
+    return SidecarStatus(
+        running=True,
+        base_url=base_url(),
+        port=SIDECAR_PORT,
+        pid=pid,
+        detail="kill issued but the port is still answering — inspect manually",
+    )

@@ -56,6 +56,26 @@ def _log_mineru_streams(
     logger.error("[Ingest] MinerU %s | %s | stderr:\n%s", reason, pdf_name, err)
 
 
+def _sidecar_api_url() -> str | None:
+    """Base URL of an ALREADY-RUNNING MinerU service, or None to run standalone.
+
+    Deliberately a probe, never a start. Starting the sidecar from here would make a service
+    that cannot start cost EVERY convert its full startup timeout before falling back — an
+    accelerator that becomes a large regression the moment it breaks. Starting is explicit
+    (the ``mineru_sidecar`` tool, or batch-level wiring); this only opportunistically reuses.
+
+    Imported lazily and wrapped: no failure in the optional path may take down a convert that
+    would otherwise succeed.
+    """
+    try:
+        from ports.ingest import mineru_sidecar
+
+        return mineru_sidecar.api_url_if_healthy()
+    except Exception as exc:  # noqa: BLE001 — optional path; degrade to standalone
+        logger.warning("[Ingest] Sidecar probe failed (%s); converting standalone", exc)
+        return None
+
+
 def _resolve_output_markdown(target_dir: Path, stem: str) -> Path | None:
     """Locate the converted markdown inside MinerU's output folder for one paper.
 
@@ -204,6 +224,14 @@ class MineruClient:
             "-b",
             MINERU_BACKEND,
         ]
+
+        # Reuse a resident MinerU service if one is up, so this convert skips the ~3s
+        # service spawn AND the full model reload. Strictly optional: a None here means we
+        # run exactly as before, with MinerU spawning its own per-run service. The sidecar
+        # can only make conversion faster, never impossible.
+        api_url = _sidecar_api_url()
+        if api_url:
+            cmd += ["--api-url", api_url]
 
         # Device and deadlines travel in the ENV, not argv — that is where MinerU reads
         # them. An operator-set value wins, so a debug session can override without a

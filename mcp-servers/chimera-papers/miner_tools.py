@@ -342,3 +342,40 @@ async def check_task_status(task_id: str) -> str:
         return "[Task Pending] Waiting to start..."
     label = str(task.status.value).upper()
     return f"[Task {label}] Progress: {task.progress * 100:.0f}%"
+
+
+async def mineru_sidecar(action: str = "status", force: bool = False) -> str:
+    """Start / inspect / stop the resident MinerU parse service. No LLM, no vault write.
+
+    Delegates to ``ports.ingest.mineru_sidecar``; this function only renders. ``start`` is
+    idempotent — a healthy sidecar is reused rather than duplicated, because discovery is by
+    fixed port, not by a handle held in this process.
+    """
+    verb = (action or "status").strip().lower()
+    if verb not in {"status", "start", "stop"}:
+        return f"[Tool Error]: mineru_sidecar action must be status|start|stop, got {action!r}"
+
+    # Lazy: keeps the sidecar module (and core.platform) off the server's import path.
+    from ports.ingest import mineru_sidecar as sidecar
+
+    if verb == "start":
+        url = await asyncio.to_thread(sidecar.ensure_running)
+        if url is None:
+            return (
+                "[Sidecar] Could not start — converts will run standalone (slower, still "
+                f"correct). See {sidecar.log_path()}"
+            )
+        state = await asyncio.to_thread(sidecar.status)
+        return f"[✔] Sidecar healthy at {url} (pid={state.pid}, mineru {state.mineru_version})"
+
+    if verb == "stop":
+        state = await asyncio.to_thread(sidecar.stop, force)
+        return f"[Sidecar] {state.detail} ({state.base_url})"
+
+    state = await asyncio.to_thread(sidecar.status)
+    if not state.running:
+        return f"[Sidecar] {state.detail} — port {state.port} idle; converts run standalone"
+    return (
+        f"[Sidecar] healthy at {state.base_url} (pid={state.pid}, mineru {state.mineru_version}, "
+        f"queued={state.queued_tasks}, processing={state.processing_tasks})"
+    )

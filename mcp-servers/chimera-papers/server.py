@@ -180,6 +180,25 @@ async def convert_pdf_to_md(pdf_path: str | None = None, arxiv_id: str | None = 
 
 
 @mcp.tool()
+async def mineru_sidecar(action: str = "status", force: bool = False) -> str:
+    """Start / inspect / stop the resident MinerU parse service; writes NO vault node.
+
+    WHEN: before a multi-paper ingest, to keep MinerU's models loaded across converts instead
+    of reloading them per paper (~half the wall clock of a single convert is that setup); and
+    after one, to hand the VRAM back. WHAT: supervises MinerU's own `mineru-api` service —
+    this tool starts no server of its own and runs no inference. Purely an accelerator:
+    converts work identically with the sidecar down, only slower, so a failure here never
+    blocks ingest. `start` is idempotent (discovery is by fixed port, so a healthy service is
+    reused, never duplicated). `stop` refuses while parses are in flight unless `force`.
+
+    Args:
+        action: "status" (default), "start", or "stop".
+        force: with action="stop", kill even if the service reports queued/processing tasks.
+    """
+    return await miner_tools.mineru_sidecar(action=action, force=force)
+
+
+@mcp.tool()
 async def get_paper_markdown(paper_id: str) -> str:
     """Return the path to ONE already-ingested paper's converted Markdown (no MinerU) — a bare
     read primitive for a judgment skill to consume.
