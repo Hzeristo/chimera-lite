@@ -5,6 +5,50 @@ followed by a Bad/Good pair. Every example is a **real** Phase M / M.5 incident 
 `docs/audits/post-migration-pipeline-incidents.md` and `docs/incidents/`), not invented.
 Proof procedures and symptom→fix anti-patterns live in `verification.md`.
 
+**Rule 0 outranks every rule in this file.** `no_llm_in_server` below is invariant **R1** in
+`docs/ARCHITECTURE/ARCHITECTURE_RULES.md`, which is the level above this one (ARCHITECTURE >
+SPRINT > STYLE). On any conflict, R1 wins and this file yields.
+
+## no_llm_in_server (ARCHITECTURE R1 — reference, not restatement)
+**Statement:** No MCP server process may call any LLM — any vendor, any model, any wrapper,
+any purpose, *including* "cheap extraction". The prohibition binds `server.py` **and every
+module it imports at runtime**, so pushing an LLM client down into the service or port layer
+does not escape it. MCP provides only non-LLM primitives: fetch, convert, read, query,
+deterministic transform, write. All LLM judgment lives in Claude Code Task subagents,
+reached through a skill — never through an MCP tool. **Exception policy: NONE.**
+
+Authoritative text, violation class, and enforcement status: `ARCHITECTURE_RULES.md` R1.
+Do not paraphrase it here — this section exists so the rule is *visible at this altitude*,
+not to become a second source of truth.
+
+*(Why it is stated here at all: `thin_adapter` below sanctions business logic in the service
+layer. That is correct for orchestration and wrong for judgment — an `anthropic`/`openai`/
+deepseek client added one layer down satisfies every other rule in this file and still
+violates R1. The silence was the gap; ARCHITECTURE_RULES.md R1 names closing it as an
+explicit update requirement.)*
+
+**Bad:**
+```python
+# service or port layer — passes thin_adapter, still an R1 violation
+from anthropic import Anthropic
+
+async def triage_paper(md_path: Path) -> dict:
+    client = Anthropic()                       # an LLM call inside the server process
+    return json.loads(client.messages.create(...).content[0].text)
+```
+
+**Good:**
+```python
+# MCP exposes the primitive; judgment happens in a subagent the skill spawns
+@mcp.tool()
+async def get_paper_markdown(paper_id: str) -> str:
+    """Return the path to an already-converted paper's markdown (no LLM, no judgment)."""
+    return await miner_tools.get_paper_markdown(paper_id)
+```
+
+**Check before writing any tool:** does this module — or anything it imports at runtime —
+construct a model client or send a prompt? If yes, stop; it belongs in a subagent.
+
 ## interpreter_resolution
 **Statement:** A subprocess that must run in the project's venv resolves its executable from `sys.executable`'s directory, never a bare PATH lookup. An MCP server inherits the *launcher's* PATH (Claude Code / anaconda / system), not your activated-venv PATH — so `which` finds the wrong python (wrong torch) or nothing.
 
@@ -176,6 +220,11 @@ home = C:\Users\<you>\AppData\Roaming\uv\python\cpython-3.13-windows-x86_64-none
 
 ## thin_adapter
 **Statement:** The MCP server module is a thin adapter (<200 lines): it declares tool contracts (names, args, docstrings) and delegates to the service/port layer. Business logic never lives in `server.py`. The single sanctioned exception is the concurrency guard — the check-and-start lock that rejects a second long task (Phase M red line).
+
+> **Bounded by `no_llm_in_server` (R1).** "Delegate to the service layer" licenses
+> *orchestration*, never *judgment*. The service and port layers are inside the MCP server
+> process, so an LLM client placed there is still an R1 violation — delegation moves code,
+> not the prohibition.
 
 *(chimera-papers `server.py` is 94 lines: three `@mcp.tool`s that delegate to `miner_tools`, plus `_start_lock` + `has_active_long_task`.)*
 

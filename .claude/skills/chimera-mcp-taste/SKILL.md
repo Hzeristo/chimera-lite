@@ -37,6 +37,10 @@ The instinct to rewrite the (correct) domain logic is the trap. The fix is at th
 </the_thesis>
 
 <core_principles>
+0. **No LLM in the server (ARCHITECTURE R1)** — no MCP server process may call any LLM, any
+   vendor, any purpose; the ban binds `server.py` *and every module it imports*, so the
+   service layer is not an escape hatch. Judgment goes to a Task subagent via a skill.
+   Authority: `docs/ARCHITECTURE/ARCHITECTURE_RULES.md` R1 — it outranks this file.
 1. **Interpreter resolution** — resolve venv executables from `sys.executable`, never a bare PATH lookup.
 2. **Env-var binding** — an env var only counts if it maps to a real config field; prove it with a NON-DEFAULT value.
 3. **Progress observability** — a captured/non-TTY child hides tqdm; emit stage-level stderr logs, accept per-page loss.
@@ -86,6 +90,7 @@ How to PROVE each (and the anti-patterns): `references/verification.md`.
 - Keep the server module a thin adapter; lazy-import heavy deps.
 
 **Quick do-not:**
+- Construct a model client (anthropic / openai / deepseek) anywhere the server imports — R1, no exceptions.
 - `shutil.which("tool")` with no venv-sibling fallback.
 - Assume an env var bound because "it runs" (default == intended hides the no-op).
 - `subprocess.run(..., capture_output=True)` on a uvicorn/tqdm child.
