@@ -20,7 +20,7 @@ open problems (§7), not as satisfied requirements.
 
 ---
 
-## 0. How to read this document
+## How to read this document
 
 This document states **what an L2 auto-research harness must guarantee, what it must never claim,
 and how it characteristically fails.** It is written to be readable by anyone building such a
@@ -38,6 +38,66 @@ of knowledge, and is worse than its own absence. This document is subject to tha
 first revision failed it — recording requirement RE-1 as *satisfied* by a mechanism that the same
 tables recorded as *unbuilt*, and issuing verdicts (`PASS`, `Verified`, `Implemented`) with no
 source anchor or date. §1 exists so that failure is structurally unavailable.
+
+---
+
+## 0. Foundational Claims
+
+The ten claims this document's requirements rest on. Architect-authored, stated verbatim. They are
+the middle layer of a three-layer disclosure: **operational rules (§5 P, §6 RE/RO, §8 T) →
+foundational claims (this section) → formal definitions (`FORMAL_MODEL.md`)**. A P, T, or RE entry
+that cannot be traced to a claim here is unmotivated; a claim that no entry invokes is inert.
+
+**Claim 1 — Computable change ≠ epistemic truth.**
+Persistent representation changes (d(K_t, K_{t+1})) are computable but do not confer external truth.
+External truth requires p(e|θ), which L2 systems lack. L2 has provenance (anchors to sources), not
+posteriors.
+
+**Claim 2 — No universal verifier.**
+No single verifier simultaneously assesses truth, novelty, and importance. Each requires a different
+independence grade: factual truth (verbatim grounding, medium independence), novelty (bounded witness
+search, low independence), significance (human judgment, no independent verifier exists).
+
+**Claim 3 — Novelty is ontology-relative.**
+N(c; timeborder, Doc, ontology, claim-equiv, budget) is well-defined only given fixed parameters.
+Research changes the ontology while measuring novelty against it. Any system claiming NOVEL=true
+conflates measurement with theory revision. The correct output is witness-bounded: {prior_found,
+no_prior_in_budget, inconclusive}.
+
+**Claim 4 — No p(e|θ) = no Bayesian gain.**
+A distance d(K_t, Update(K_t,c)) in representation space is change. Bayesian information gain
+KL(p(θ|e) ∥ p(θ)) requires an external likelihood p(e|θ). L2 systems lack this; they have provenance,
+not posterior updates.
+
+**Claim 5 — Fixed-ontology search = recombination, not invention.**
+Search over a fixed {node types, edge types, representation language} produces internal
+recombinations. It cannot discover concepts outside the type system. The ontology's expansion is
+human-driven (Phase-driven in chimera-lite).
+
+**Claim 6 — Generator self-verify = permission boundary.**
+A generator verifying its own output is endogenous closure: the same optimization pressure shaping
+the claim shapes the verdict. The prohibition is on permission (whose verdict counts), not
+capability.
+
+**Claim 7 — Compaction defines operational ontology.**
+What survives session-boundary compression defines what the system can reason about. Fields absent
+from the compacted context are outside the operational ontology, regardless of their presence in the
+full artifact.
+
+**Claim 8 — Capability = foundation ∘ policy.**
+Auto-research effective capability is the composition of the foundation model and the epistemic
+state-transition policy (when to verify, when to stop, when to call external verifiers). Neither
+alone defines the capability.
+
+**Claim 9 — Compaction inherits four failure modes.**
+Session-boundary compression inherits: premature closure (summary says "done"), salience decoupling
+(HIGH-salience flags compressed away), ontology lock-in (new concepts lost), verifier contamination
+(framing leaks into the next verifier).
+
+**Claim 10 — Verifier independence = raw-material construction.**
+A verifier constructs its judgment from raw evidence (source markdown, original logs, Tier-1 data),
+not from generator narrative (K-node synthesis, abstract). Evidence independence is the load-bearing
+boundary.
 
 ---
 
@@ -88,6 +148,51 @@ instantiation maps its components onto these roles in its Appendix B record.
 | **LENS** | A named analytical pattern selected by artifact type, specifying what evidence would falsify the artifact's central claim. |
 | **SALIENCE LEDGER** | An append-only record of events marked HIGH-salience, required to survive session-boundary compression (P6, RO-4). |
 | **ARCHITECT** | The single human researcher; terminal epistemic authority. |
+
+**A verifier is defined by its function and its evidence independence, never by its substrate.**
+Nothing in this document requires a verifier to be a language model. What makes anything a verifier
+is Claim 10: judgment constructed from raw material rather than from the generator's narrative. The
+substrate only sets the *independence grade* the role can reach.
+
+*Illustrations from outside this instantiation, to fix the point that the role is substrate-free:* a
+proof kernel (a Lean 4 checker deciding whether a proof term inhabits the stated type) in formal
+mathematics; a physical apparatus (a wet-lab protocol executed by embodied agents) in the empirical
+sciences. Both are verifiers, neither emits a token, and both reach an independence grade no model
+can — they share **no optimization pressure** with the generator. **Neither is available here, and
+neither is a chimera-lite mechanism**; they are named only to show that "verifier" does not mean
+"language model."
+
+**The ARCHITECT is not a verifier.** The role table lists the human separately, and Claim 2's third
+clause is explicit that significance has *no independent verifier*. A human assessing all three
+properties is an agent exercising terminal authority, not a verifier role being filled — this is the
+distinction P2 previously blurred.
+
+### The verifier substrate HERE
+
+In chimera-lite every verifier role is filled by **an agent** — there is no kernel, no apparatus, no
+deterministic checker. Two substrates, chosen for different independence grades:
+
+| Substrate | Fills | Built? | Independence grade | Why |
+|---|---|---|---|---|
+| **Isolated Claude subagent** — a forked Task worker that reads the source itself and returns only its verdict | VERBATIM-VERIFIER, BREADTH-MAPPER | **live** | **Context-independent, same-family** | Isolation removes *conversational* contamination: the worker never sees the generator's synthesis (Claim 10, T4). It does not remove *model-family* correlation. |
+| **Zero-shot Codex agent** — a new session, no prior context, different model family | INDEPENDENT-AUDITOR | **NOT BUILT** — designed in `phase-I.md`, Architect-invoked today | **Cross-family** *(by design; unmeasured)* | Deliberately chosen to escape model bias and echo. A same-family auditor agreeing with the generator is weak evidence; a different family agreeing is stronger. Zero-shot is load-bearing: a fresh session inherits no framing (T5d). |
+
+The cross-family auditor is the *intended* answer to P4's endogenous-closure problem — same-family
+isolation alone leaves the shared optimization pressure intact. Two limits, both live:
+
+1. **It is not built.** Until Phase I lands, the only verifier substrate actually running is the
+   same-family Claude subagent, so the endogenous-closure gap P4 names is **currently open** in this
+   instantiation, not closed by a mechanism that exists.
+2. **Even once built, independence stays unmeasured.** P4's caveat is unchanged: cross-model error
+   correlation here is *unmeasured* and filed at §10 Q4. "Different family" is a design argument for
+   decorrelation, never evidence of it. An instantiation stating "independent auditor" in the
+   indicative, absent a correlation measurement, asserts what it has not shown — P4's own words.
+
+> **Enforcement status.** The mandatory zero-shot Codex audit is specified in `phase-I.md`
+> (I.6, `:47`, `:79` — once per dialectic session, new session, no contamination). **Phase I —
+> Isostheneia is Queued, not built** (`THEORETICAL_FRAMEWORK.md:328`). Today the cross-family audit
+> is Architect-invoked, not harness-enforced. Per rule 1a, that is ADVISORY, and this note is the
+> whole of its compliance claim; the instantiation record (Appendix B) carries the rest.
 
 ---
 
@@ -156,19 +261,22 @@ while carrying no verifiable grounding. The characteristic failure is not absent
 *cosmetic* rigor: a provenance flag that is emitted and then ignored downstream, which is worse than
 no flag because it certifies. **Anchor:** dated incident record, 2026-07-12 — an agent flagged claims
 as unverified and then reasoned with them as verified, described in the record as *"worse than not
-flagging, because it performs rigor."* **Requirement:** provenance must be load-bearing (RE-1).
+flagging, because it performs rigor."* **Requirement:** provenance must be load-bearing (RE-1). *(← Claim 1, Claim 4)*
 
 **P2 — Verification conflation.** Truth, novelty, significance, and ontology adequacy are distinct
-properties with distinct evidence bases. The claim here is **not** that no single verifier can assess
-them — competent human reviewers do exactly that. The claim is narrower and defensible: when one
-property is used as a *proxy* for another, the errors become **correlated and unattributable** —
-a wrong verdict cannot be localized to the property that failed, so it cannot be corrected. A
-verified-true claim silently reads as important; an unfound prior silently reads as significant.
+properties with distinct evidence bases. The claim here is **not** that no single *agent* can assess
+them — a competent human reviewer does exactly that. The claim is narrower and defensible, and is
+scoped to **verifiers as defined in §2**: no constructed verifier role covers all three, because each
+demands a different independence grade. When one property is used as a *proxy* for another, the
+errors become **correlated and unattributable** — a wrong verdict cannot be localized to the property
+that failed, so it cannot be corrected. A verified-true claim silently reads as important; an
+unfound prior silently reads as significant.
 **Requirement:** tier-separated verification with separately recorded verdicts (RE-2, RE-3).
+*(← Claim 2)*
 
 **P3 — Novelty underdetermination.** Per §4, `N` is defined only given fixed parameters, and research
 mutates one of them. **Requirement:** witness-only novelty output with all parameters externalized
-and recorded (RE-2).
+and recorded (RE-2). *(← Claim 3)*
 
 **P4 — Generator self-verification.** A generator assessing its own output is endogenous closure: the
 optimization pressure that shaped the claim also shapes the verdict, so agreement carries little
@@ -177,6 +285,7 @@ information. **Requirement:** the verifier is constructed from raw material, not
 independence is a design goal, **not a measured property**. Cross-model error correlation is
 unmeasured and is filed as an open question (§10 Q4). Any instantiation stating "independent
 auditor" in the indicative, absent a correlation measurement, is asserting what it has not shown.
+*(← Claim 6)*
 
 **P5 — Attractor dynamics (hypothesis, not finding).** *Hypothesis:* a harness that accumulates
 material against a slowly-changing criteria set will tend toward a self-confirming region, and the
@@ -189,13 +298,13 @@ slots. If the extension fraction does not decline monotonically as the corpus gr
 occurring in this instantiation. **Requirement:** the extension fraction is instrumented and
 periodic heterogeneous external input (advisor discussion, cross-field reading) is scheduled
 (RO-5). Both the metric and its threshold are unvalidated; the requirement is to *measure*, not to
-assume the effect.
+assume the effect. *(← Claim 5, Claim 7)*
 
 **P6 — Compaction inheritance.** Session-boundary compression silently resets four distinct
 safeguards: premature closure, salience decoupling, ontology lock-in, and verifier contamination
 (T5a–T5d). Each failure is silent — no error is raised, behavior merely degrades. **Requirement:**
 the salience ledger survives compaction; handoff carries ontological *vocabulary*, not conclusions
-(RO-3, RO-4).
+(RO-3, RO-4). *(← Claim 9)*
 
 ---
 
@@ -226,11 +335,11 @@ compliance value appears here (rule 1c).
 
 | ID | Requirement | Mode demanded | Acceptance criterion |
 |---|---|---|---|
-| **RE-1** | Every committed claim carries a verbatim span from a primary or structural source that entails it. | STRUCTURAL | A synthesis whose recorded dependencies include an unverified claim is **rejected by schema**, not by prompt compliance. Demonstrated by a rejected fixture. |
-| **RE-2** | Novelty output is witness-bounded (§4), never boolean, with `τ, D, Ω, ≈, B` recorded alongside. | STRUCTURAL | The output type admits only the three witness states; the parameter tuple is present in every emitted record. |
+| **RE-1** | Every committed claim carries a verbatim span from a primary or structural source that entails it. | STRUCTURAL | A synthesis whose recorded dependencies include an unverified claim is **rejected by schema**, not by prompt compliance. Demonstrated by a rejected fixture. *(← Claim 1, Claim 4)* |
+| **RE-2** | Novelty output is witness-bounded (§4), never boolean, with `τ, D, Ω, ≈, B` recorded alongside. | STRUCTURAL | The output type admits only the three witness states; the parameter tuple is present in every emitted record. *(← Claim 3)* |
 | **RE-3** | Significance is assessed by the Architect alone; no code path authors a significance judgment. | CONVENTION *(acknowledged debt)* | A gate that refuses machine-authored judgment bodies. **No such gate is specified by this document.** See the note below. |
-| **RE-4** | Belief advances only on human-time (§3, L2 predicate). | STRUCTURAL | Exactly one write path into the committed tier; it requires a human invocation; no other path can reach that tier. |
-| **RE-5** | The verifier is constructed from raw source material, not from generator narrative. | STRUCTURAL | The verifier's input contract admits the source artifact and excludes the generator's synthesis. Demonstrated by the input schema, not by prompt text. |
+| **RE-4** | Belief advances only on human-time (§3, L2 predicate). | STRUCTURAL | Exactly one write path into the committed tier; it requires a human invocation; no other path can reach that tier. *(← Claim 6 — permission boundary)* |
+| **RE-5** | The verifier is constructed from raw source material, not from generator narrative. | STRUCTURAL | The verifier's input contract admits the source artifact and excludes the generator's synthesis. Demonstrated by the input schema, not by prompt text. *(← Claim 10)* |
 
 > **Note on RE-3 — do not upgrade debt into a law.** r1 recorded RE-3 as satisfied because structural
 > enforcement is *"impossible by design."* That is a category error twice over. First, a CONVENTION
@@ -306,6 +415,7 @@ being wrong more than being uninformative biases toward the former.
 is required symmetrically of positive and negative conclusions. A saturation claim without one is
 the defect. *(This document applies the rule to itself at P5.)*
 **Surfaces at.** Breadth mapping; any audit run with an under-specified ontology.
+*(← Claim 3 — novelty output is witness-bounded, so a saturation claim is a novelty claim in disguise)*
 
 ### T2 — Topic-level collapse
 **Mechanism.** "A document exists that touches this topic" is substituted for "this specific claim is
@@ -314,7 +424,7 @@ distinction, so the substitution is invisible rather than wrong.
 **Detection.** Criteria must state claim-level distinctions that a topic match would collapse — e.g.
 distinguishing *a mechanism that updates stored state* from *a mechanism that revises its own update
 rule*, where a topic-level index files both under "memory update."
-**Surfaces at.** Breadth classification; gap assessment.
+**Surfaces at.** Breadth classification; gap assessment. *(← Claim 3, Claim 7)*
 
 ### T3 — Cosmetic rigor
 **Mechanism.** Provenance tags are advisory (an agent may honor them) rather than structural (the
@@ -323,7 +433,7 @@ then ignored, so the record shows diligence that did not occur.
 **Detection.** A synthesis appearing at a stronger provenance status than the minimum of its
 recorded dependencies. Equivalently: an unconstrained verdict type that permits silent upgrade.
 **Surfaces at.** Any system whose provenance field is a free-form string rather than a closed
-enumeration checked at write time.
+enumeration checked at write time. *(← Claim 2 — tier-separation; Claim 10 — evidence independence)*
 
 ### T4 — Evaluator contamination
 **Mechanism.** The verifier reads the generator's framing before the raw evidence. Shared framing
@@ -332,6 +442,7 @@ produces correlated errors, so agreement between generator and verifier stops be
 source artifact and the field vocabulary, and must not receive the generator's synthesis or
 conclusions. A broken source path that silently falls back to the synthesis is the same defect.
 **Surfaces at.** Auditor invocation without vocabulary injection; verifier input resolution failures.
+*(← Claim 10)*
 
 ### T5 — Compaction cascade
 **Mechanism.** Session-boundary compression resets four safeguards at once, silently.
@@ -344,7 +455,7 @@ conclusions. A broken source path that silently falls back to the synthesis is t
 **Detection.** Compare the post-boundary open-item set and salience ledger against the pre-boundary
 state; any silent contraction is a defect.
 **Surfaces at.** Every session boundary, unconditionally. This is the only failure mode with a
-guaranteed trigger.
+guaranteed trigger. *(← Claim 9)*
 
 ---
 
@@ -454,16 +565,18 @@ All system-specific compliance belongs here, and nowhere else in this document. 
 complete anchor is inadmissible; write **UNASSESSED**.
 
 **Role mapping.** Map each §2 role onto the instantiation's component names, so the body's agnostic
-vocabulary resolves.
+vocabulary resolves. **Substrate is recorded** because it bounds the independence grade a verifier
+role can reach (§2): a proof kernel or physical apparatus shares no optimization pressure with the
+generator; a sibling model instance shares a family and cannot be assumed decorrelated (P4, §10 Q4).
 
-| §2 Role | Component in this instantiation |
-|---|---|
-| VERBATIM-VERIFIER | |
-| BREADTH-MAPPER | |
-| INDEPENDENT-AUDITOR | |
-| CRITERIA SET | |
-| LENS | |
-| SALIENCE LEDGER | |
+| §2 Role | Component in this instantiation | Substrate | Independence grade |
+|---|---|---|---|
+| VERBATIM-VERIFIER | | | |
+| BREADTH-MAPPER | | | |
+| INDEPENDENT-AUDITOR | | | |
+| CRITERIA SET | | — | — |
+| LENS | | — | — |
+| SALIENCE LEDGER | | — | — |
 
 **Compliance register.** One row per requirement. `Mode as built` may be weaker than the mode
 demanded in §6 — that gap *is* the enforcement debt, and naming it is the point of the column.
