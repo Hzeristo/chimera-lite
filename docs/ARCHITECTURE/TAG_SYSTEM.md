@@ -10,12 +10,18 @@ two renames).
 **§8 added** for lens-criteria reconciliation Option C (`docs/audits/lens-criteria-reconciliation.md`):
 the doubt-signal → tag bridge is the single source both `prompts/lenses/*.md` and `criteria/**` reference.
 
-> This is the single source of truth for what `[V]`, `[P]`, `[U]` MEAN and how their status
-> propagates. Every consumer — the W1 verifier agent, the vault `criteria/`, `write_result`,
-> Phase K's Gate 1, Phase L's W1 HSC — must **reference** this file, never restate the definition
-> (§8). It is the definitional floor Phase K's Gate 1 makes load-bearing; it must exist and be
-> complete **before** Gate 1 hardens monotonicity over it, or the gate guarantees the propagation
-> of a mis-defined tag (`phase-K.md:25-28`).
+> **Subordinate to the canonical.** `FORMAL_MODEL.md` defines the tag alphabet, the numeric
+> encoding, the evidence tiers, and the monotonicity relation; `INVARIANTS.md` I0.2 states the rule.
+> This file is the **operational elaboration** — what a tier admits in practice, how a compound claim
+> splits, how a lens doubt-signal becomes a tag. On any divergence the canonical wins and this file
+> defers.
+>
+> Within that scope it remains the single reference for what `[V]`, `[P]`, `[U]` mean in practice.
+> Every consumer — the W1 verifier agent, the vault `criteria/`, `write_result`, Phase K's Gate 1,
+> Phase L's W1 HSC — must **reference** this file, never restate the definition (§8). It is the
+> definitional floor Phase K's Gate 1 makes load-bearing; it must exist and be complete **before**
+> Gate 1 hardens monotonicity over it, or the gate guarantees the propagation of a mis-defined tag
+> (`phase-K.md:25-28`).
 
 ---
 
@@ -135,19 +141,32 @@ Under monotonicity (§6), a composite "robust *because* 99.8%→96.8%" = `min([V
 
 ## 6. Monotonicity (Phase K Gate 1's formal basis)
 
-For any synthesis/artifact node `n` with dependency set `D = {d₁, …, dₖ}`:
+> **Authority:** the arithmetic and the quantification domain are `FORMAL_MODEL.md`
+> (Provenance monotonicity) and `INVARIANTS.md` I0.2. This section states what the rule *means* for
+> tag assignment; it is not a second definition.
+
+For any synthesis/artifact node `n`, monotonicity quantifies over `n`'s **support set** — the nodes
+reached by a **support-bearing** edge (`evidence_base`, `synthesizes`, `derives_from`), not over a
+single named edge:
 
 ```
-status(n) ≤ min_{dᵢ ∈ D} status(dᵢ)        where V→2, P→1, U→0
+status(n) ≤ min_{u ∈ support(n)} status(u)        where V→2, P→1, U→0
 ```
 
-*Meaning:* a conclusion's status cannot exceed its **weakest** dependency. Depends on one `[U]` →
-`n` is at most `[U]`. Depends on `[V]` + `[P]` → `n` is at most `[P]`.
+*Meaning:* a conclusion's status cannot exceed its **weakest** support. Supported by one `[U]` →
+`n` is at most `[U]`. Supported by `[V]` + `[P]` → `n` is at most `[P]`.
 
-Phase K's **Gate 1 (K.1)** implements this as a *structural refusal* — a `[U]`-dependent synthesis is
-structurally blocked, a `[P]`-dependent conclusion is force-downgraded (`phase-K.md:52-55, :76`). Gate 1
-**reads the recorded `depends_on`** (Phase L's `write_result` writes it) and never re-infers
-dependencies with an LLM (`phase-K.md:100-101`).
+`informed_by` is **not** support-bearing and never enters this minimum — an AI output that informed a
+node is context, not a dependency (`INVARIANTS.md` I0.5, I2.2).
+
+Phase K's **Gate 1 (K.1)** is to implement this as a *structural refusal* — a `[U]`-supported
+synthesis structurally blocked, a `[P]`-supported conclusion force-downgraded
+(`phase-K.md:52-55, :76`) — reading the **recorded support edges** and never re-inferring them with
+an LLM (`phase-K.md:100-101`).
+
+**Not yet enforced.** I0.2 states monotonicity as a structural *target*; the gate does not exist.
+Current compliance: `ENFORCEMENT_DEBT.md` R5b (OPEN). Do not read this section as a shipped
+guarantee.
 
 ---
 

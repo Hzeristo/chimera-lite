@@ -6,10 +6,18 @@ phases exist; it does **not** redefine the operational objects they enforce.
 **Authored:** 2026-07-18 (ported from the Architect's formal contribution statements).
 **Register:** epistemology (backward of M — see [`docs/phases/CODENAMES.md`](../phases/CODENAMES.md)).
 
+**Relation to the canonical — this doc is subordinate.** `INVARIANTS.md` (what must hold) and
+`FORMAL_MODEL.md` (the formal objects) are the Architect-authored canonical. Every definition below
+that names a graph, a tag, a clock, or a gate is a **restatement for readability**, never a second
+source. Where this document and the canonical disagree, the canonical wins and this document is
+simply wrong. Compliance — how much of any of it the code actually holds — is
+[`ENFORCEMENT_DEBT.md`](ENFORCEMENT_DEBT.md), never asserted here.
+
 **Relation to the operational authorities — this doc is the *why*, they are the enforced *how*:**
 
 | Formal object here | Operational authority (the teeth) |
 |---|---|
+| The artifact graph, tiers, tags, transitions, invariants (§1–§4) | [`FORMAL_MODEL.md`](FORMAL_MODEL.md) + [`INVARIANTS.md`](INVARIANTS.md) — **canonical** |
 | Tags `[V]/[P]/[U]`, tier taxonomy, monotonicity arithmetic (§2, §3) | [`docs/ARCHITECTURE/TAG_SYSTEM.md`](TAG_SYSTEM.md) |
 | Typed edges `derives_from / synthesizes / contradicts / dead_ends / …` (§1) | [`docs/ARCHITECTURE/NODE_ONTOLOGY.md`](NODE_ONTOLOGY.md) |
 | Gate 1 (monotonicity) + Gate 2 (multi-framing) as *structural* refusals (§3) | [`docs/phases/phase-K.md`](../phases/phase-K.md) |
@@ -107,6 +115,13 @@ source-verified evidence, (ii) cross-person verification (I-nodes: advisor discu
 (iii) domain expertise that exceeds W1's scope. Taste verification **cannot be automated**; T and I
 nodes are hand-written.
 
+> **Scope caution.** The canonical (`INVARIANTS.md`, non-invariant list) records the "independent
+> observer" framing of T-nodes as carrying **no protection**: T-nodes are observations, possibly
+> AI-informed, authored by the Architect. Clause (ii) above therefore describes a *practice*, not an
+> invariant — an I-node authored without advisor discussion violates nothing. What *is* invariant is
+> I0.5 (the body is Architect-authored, AI influence recorded as `informed_by`) and I1.3 (an I-node's
+> support chain requires verified T-node groups).
+
 **Separation Principle.** Source-verification (the W1/W2 domain) and taste-verification (the
 Architect's domain) are *structurally* separate. The harness produces source-verified candidate
 material; the Architect settles taste judgments. This separation is not a limitation — it is the
@@ -120,14 +135,22 @@ mechanism by which the system refuses to inherit *authorial framing as knowledge
 
 > `U < P < V` — numeric encoding `U = 0, P = 1, V = 2` (used *only* for the Gate-1 arithmetic).
 
-**Gate 1 (Provenance Monotonicity).** For any synthesis node `n` with dependency set
-`D = {d₁, …, dₖ}`:
+> Defined canonically in [`FORMAL_MODEL.md`](FORMAL_MODEL.md) (Verification Tags); restated here only
+> so §3 reads standalone. On any divergence the canonical wins.
 
-> `status(n) ≤ min_{dᵢ ∈ D} status(dᵢ)`
+**Gate 1 (Provenance Monotonicity).** For any synthesis node `n`, over `n`'s **support set** — the
+nodes reached by a support-bearing edge (`evidence_base`, `synthesizes`, `derives_from`):
 
-A node dependent on a `[U]` claim cannot be `[V]`; a synthesis dependent on a `[P]` claim is at most
-`[P]`. This rule is **structural** (pipeline-enforced), not **advisory** (prompt-suggested). A
-`[U]`-dependent conclusion is rejected by the pipeline schema, not by the agent's discretion.
+> `status(n) ≤ min_{u ∈ support(n)} status(u)`
+
+A node supported by a `[U]` claim cannot be `[V]`; a synthesis supported by a `[P]` claim is at most
+`[P]`. This rule **must be structural** (pipeline-enforced), not **advisory** (prompt-suggested): a
+`[U]`-supported conclusion is to be rejected by the pipeline schema, not by the agent's discretion.
+
+> **Target, not current state.** `INVARIANTS.md` I0.2 states monotonicity as a structural target;
+> the gate is not built. Current compliance: `ENFORCEMENT_DEBT.md` R5b (OPEN). This section describes
+> what Gate 1 *is for*, not what the code *does* — and by this document's own self-suspicion clause
+> (§0), reading it as shipped would be the exact laundering it warns against.
 
 **Motivation — the confession.** The confession
 ([`GPT-confession.txt`](../../GPT-confession.txt), 2026-07-12) recorded an agent that flagged claims

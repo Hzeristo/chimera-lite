@@ -6,11 +6,11 @@ Everything rendered here is DERIVED from source. Nothing about the flow is asser
   - the pinned worker model of every ``.claude/agents/*.md`` subagent (YAML frontmatter);
   - for each declared WRITE SURFACE, the set of MCP tools that actually REACH it, computed by
     walking a reference graph over both server packages;
-  - and the invariant roster (rule ids / titles / self-declared enforcement tiers) parsed from
-    ``ARCHITECTURE_RULES.md``.
+  - and the invariant roster (I-ids / titles / mutability tiers) parsed from the canonical
+    ``INVARIANTS.md``.
 
 The map is PARTIAL and renders its own coverage first (``COVERAGE_LAYERS``): layer 1 (dataflow)
-is verified, layer 2 (R1-R6 conformance) is listed but NOT checked, layer 3 (the skill/context
+is verified, layer 2 (I0.x/I1.x conformance) is listed but NOT checked, layer 3 (the skill/context
 call graph) is absent. Stating the frontier is load-bearing — an artifact that looks complete
 while covering a third is the same lie as a literal that reproduces while being false.
 
@@ -46,7 +46,7 @@ SERVERS = {
     "chimera-papers": REPO_ROOT / "mcp-servers" / "chimera-papers" / "server.py",
     "chimera-vault": REPO_ROOT / "mcp-servers" / "chimera-vault" / "server.py",
 }
-RULES_DOC = REPO_ROOT / "docs" / "ARCHITECTURE" / "ARCHITECTURE_RULES.md"
+RULES_DOC = REPO_ROOT / "docs" / "ARCHITECTURE" / "INVARIANTS.md"
 SKILLS_DIR = REPO_ROOT / ".claude" / "skills"
 AGENTS_DIR = REPO_ROOT / ".claude" / "agents"
 
@@ -62,11 +62,12 @@ COVERAGE_LAYERS = [
         ),
     ),
     (
-        "2. Invariant conformance (R1-R6)",
+        "2. Invariant conformance (canonical I-ids)",
         "VERIFIED",
         (
-            "Each rule in the SOT is adjudicated by a mechanical verifier below. A rule with no "
-            "possible mechanical check reports UNCHECKABLE with the reason, never a silent pass."
+            "Each invariant in the canonical is adjudicated by a mechanical verifier below. An "
+            "invariant with no possible mechanical check reports UNCHECKABLE with the reason, "
+            "never a silent pass. Compliance detail: ENFORCEMENT_DEBT.md."
         ),
     ),
     (
@@ -81,9 +82,12 @@ COVERAGE_LAYERS = [
     ),
 ]
 
-RULE_HEADING_RE = re.compile(r"^## (R\d+) — (.+)$", re.MULTILINE)
-ENFORCEMENT_RE = re.compile(r"\*\*Enforcement:\*\*\s*(.+?)(?=\n\s*\n|\n---|\Z)", re.DOTALL)
-ENFORCEMENT_TIER_RE = re.compile(r"\b(STRUCTURAL|ADVISORY|CONVENTION)\b")
+# The canonical states invariants as `### I<n>.<m> — <title>` under `## Tier N — ...`
+# mutability headings. The `declared` column is that MUTABILITY tier (the canonical's own claim
+# about how changeable a rule is) — NOT an enforcement claim. The canonical deliberately carries no
+# enforcement axis; compliance lives in ENFORCEMENT_DEBT.md and is never inferred here.
+RULE_HEADING_RE = re.compile(r"^### (I\d+\.\d+) — (.+)$", re.MULTILINE)
+MUTABILITY_HEADING_RE = re.compile(r"^## (Tier \d+)\b", re.MULTILINE)
 SERVER_PKGS = [
     REPO_ROOT / "mcp-servers" / "chimera-papers",
     REPO_ROOT / "mcp-servers" / "chimera-vault",
@@ -155,7 +159,7 @@ WRITE_SURFACES = [
 
 
 def parse_rules() -> list[tuple[str, str, str]]:
-    """Read (rule_id, title, self-declared enforcement tier) from the human-authored invariant SSOT.
+    """Read (invariant_id, title, mutability tier) from the Architect-authored canonical.
 
     The rules are the Architect's to write; this script may only ever implement VERIFIERS against
     them (CLAUDE.md: reference the rule SOT, never restate or override it). So this is a re-parse on
@@ -166,28 +170,19 @@ def parse_rules() -> list[tuple[str, str, str]]:
     layer 2), and renders UNCHECKED rather than implying otherwise.
     """
     if not RULES_DOC.is_file():
-        raise SystemExit(f"[dataflow] invariant SOT missing: {RULES_DOC}")
+        raise SystemExit(f"[dataflow] canonical missing: {RULES_DOC}")
     text = RULES_DOC.read_text(encoding="utf-8")
     matches = list(RULE_HEADING_RE.finditer(text))
     if not matches:
-        raise SystemExit("[dataflow] no `## R<n> — <title>` rule headings found in the invariant SOT")
+        raise SystemExit(
+            "[dataflow] no `### I<n>.<m> — <title>` invariant headings found in the canonical"
+        )
 
     rules: list[tuple[str, str, str]] = []
-    for index, match in enumerate(matches):
-        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
-        section = text[match.start() : end]
-        enforcement = ENFORCEMENT_RE.search(section)
-        tier = "UNDECLARED"
-        if enforcement:
-            tiers = ENFORCEMENT_TIER_RE.findall(enforcement.group(1))
-            if tiers:
-                # A rule may name several tiers (R3 splits per write path); keep them in order,
-                # deduped, so a mixed-enforcement rule is not flattened into a false single claim.
-                seen: list[str] = []
-                for entry in tiers:
-                    if entry not in seen:
-                        seen.append(entry)
-                tier = "/".join(seen)
+    for match in matches:
+        # The mutability tier is the nearest `## Tier N` heading ABOVE this invariant.
+        preceding = [m for m in MUTABILITY_HEADING_RE.finditer(text) if m.start() < match.start()]
+        tier = preceding[-1].group(1) if preceding else "UNDECLARED"
         rules.append((match.group(1), match.group(2).strip(), tier))
     return rules
 
@@ -436,10 +431,10 @@ def _verify_r1(tools_by_server: dict[str, list[str]], graph: dict[str, set[str]]
         "registered MCP tool via the reference graph."
     )
     if live:
-        return RuleVerdict("R1", "VIOLATED", checked, "LIVE: " + "; ".join(live))
+        return RuleVerdict("I1.1", "VIOLATED", checked, "LIVE: " + "; ".join(live))
     if dead:
         return RuleVerdict(
-            "R1",
+            "I1.1",
             "PASS",
             checked,
             (
@@ -447,7 +442,7 @@ def _verify_r1(tools_by_server: dict[str, list[str]], graph: dict[str, set[str]]
                 f"unreachable (dead code): {'; '.join(dead)}."
             ),
         )
-    return RuleVerdict("R1", "PASS", checked, "No LLM call identifiers present in either package.")
+    return RuleVerdict("I1.1", "PASS", checked, "No LLM call identifiers present in either package.")
 
 
 def _verify_r2(tools_by_server: dict[str, list[str]], graph: dict[str, set[str]]) -> RuleVerdict:
@@ -465,10 +460,10 @@ def _verify_r2(tools_by_server: dict[str, list[str]], graph: dict[str, set[str]]
     )
     if background:
         return RuleVerdict(
-            "R2", "VIOLATED", checked, f"Non-human entry reaches the committed tier: {background}"
+            "I0.1", "VIOLATED", checked, f"Non-human entry reaches the committed tier: {background}"
         )
     return RuleVerdict(
-        "R2",
+        "I0.1",
         "PASS",
         checked,
         (
@@ -491,7 +486,7 @@ def _verify_r3() -> RuleVerdict:
     ascend_guards = "deep_read" in ascend and "raise" in ascend
     if promote_guards and ascend_guards:
         return RuleVerdict(
-            "R3",
+            "I1.2",
             "PASS",
             checked,
             (
@@ -504,7 +499,7 @@ def _verify_r3() -> RuleVerdict:
         for name, ok in (("promote_node refusal", promote_guards), ("ascend_node gate", ascend_guards))
         if not ok
     ]
-    return RuleVerdict("R3", "VIOLATED", checked, f"Missing guard(s): {', '.join(missing)}")
+    return RuleVerdict("I1.2", "VIOLATED", checked, f"Missing guard(s): {', '.join(missing)}")
 
 
 def _verify_r4() -> RuleVerdict:
@@ -520,7 +515,7 @@ def _verify_r4() -> RuleVerdict:
     )
     if defaults_line and "knowledge" not in defaults_line:
         return RuleVerdict(
-            "R4",
+            "I1.5",
             "PASS",
             checked,
             (
@@ -530,7 +525,7 @@ def _verify_r4() -> RuleVerdict:
             ),
         )
     return RuleVerdict(
-        "R4",
+        "I1.5",
         "VIOLATED" if defaults_line else "UNCHECKABLE",
         checked,
         (
@@ -544,7 +539,7 @@ def _verify_r4() -> RuleVerdict:
 def _verify_r5() -> list[RuleVerdict]:
     """R5 — provenance load-bearing. TWO independent halves, adjudicated separately.
 
-    The SOT (`ARCHITECTURE_RULES.md` R5) splits this rule because its halves sit at different
+    The canonical splits this rule (I0.2) because its halves sit at different
     maturities, and a single verdict over both would launder the unenforced half under the
     enforced one: a `[V]` can be perfectly well-formed and still be unearned. R5a is a property
     of source and is checkable; R5b is a graph property with no implementation to check.
@@ -564,7 +559,7 @@ def _verify_r5a() -> RuleVerdict:
     verdict_line = next((ln for ln in source.splitlines() if ln.strip().startswith("verdict")), "")
     if "Literal" in verdict_line:
         return RuleVerdict(
-            "R5a",
+            "I0.2a",
             "PASS",
             checked,
             (
@@ -574,7 +569,7 @@ def _verify_r5a() -> RuleVerdict:
             ),
         )
     return RuleVerdict(
-        "R5a",
+        "I0.2a",
         "VIOLATED",
         checked,
         (
@@ -585,12 +580,20 @@ def _verify_r5a() -> RuleVerdict:
     )
 
 
+# The support-bearing edge set monotonicity quantifies over. Canonical: `FORMAL_MODEL.md`
+# (`support(v)`) + `INVARIANTS.md` I2.2. `depends_on` was RETIRED by canonical r2 — checking it
+# would make this verifier return VIOLATED even after the gate is correctly built (debt R5b-v).
+# `informed_by` is deliberately excluded: it records tool context, not a dependency.
+SUPPORT_BEARING_EDGES = ("evidence_base", "synthesizes", "derives_from")
+
+
 def _verify_r5b() -> RuleVerdict:
-    """R5b — monotonicity propagation: is Gate 1 (`status(n) ≤ min(depends_on)`) enforced?"""
+    """R5b — monotonicity propagation: is Gate 1 (`status(n) ≤ min over support(v)`) enforced?"""
     checked = (
-        "Traced every use of `depends_on` across both server packages and tested whether ANY code "
-        "path reads a dependency's status and constrains the artifact's verdict against it "
-        "(Gate 1 monotonicity), rather than merely recording the dependency list."
+        "Traced every use of the support-bearing edges "
+        f"({', '.join('`' + e + '`' for e in SUPPORT_BEARING_EDGES)}) across both server packages "
+        "and tested whether ANY code path reads a support node's status and constrains the "
+        "artifact's verdict against it (Gate 1 monotonicity), rather than merely recording edges."
     )
     readers: list[str] = []
     for module in _server_python_files():
@@ -600,26 +603,26 @@ def _verify_r5b() -> RuleVerdict:
             continue
         for lineno, line in enumerate(source.splitlines(), start=1):
             stripped = line.strip()
-            if "depends_on" not in stripped or stripped.startswith("#"):
+            if stripped.startswith("#") or not any(e in stripped for e in SUPPORT_BEARING_EDGES):
                 continue
             # A gate must COMPARE, not just store. Assignment/record/param-declaration is not a gate.
             if any(op in stripped for op in ("<=", ">=", " < ", " > ", "min(", "max(")):
                 readers.append(f"{module.relative_to(REPO_ROOT).as_posix()}:{lineno}")
     if readers:
         return RuleVerdict(
-            "R5b",
+            "I0.2b",
             "PASS",
             checked,
-            f"A monotonicity comparison over `depends_on` exists at: {', '.join(readers)}.",
+            f"A monotonicity comparison over a support-bearing edge exists at: {', '.join(readers)}.",
         )
     return RuleVerdict(
-        "R5b",
+        "I0.2b",
         "VIOLATED",
         checked,
         (
-            "No enforcement exists. `depends_on` is WRITTEN into artifact frontmatter "
+            "No enforcement exists. Support edges are WRITTEN into node frontmatter "
             "(`chimera-vault/server.py` `write_result`) and never read back for a comparison — no "
-            "code path computes `min` over dependency statuses or refuses a verdict that exceeds "
+            "code path computes `min` over support-node statuses or refuses a verdict that exceeds "
             "one. A well-formed `[V]` resting on a `[U]` dependency is accepted today. The "
             "machinery is ABSENT rather than broken (the SOT declares R5b ADVISORY and homes it at "
             "Phase K.1, Queued) — but absence is reported as VIOLATED, not as a softer 'missing', "
@@ -641,7 +644,7 @@ def _verify_r6(tools_by_server: dict[str, list[str]], graph: dict[str, set[str]]
     r1 = _verify_r1(tools_by_server, graph)
     if body_is_param and r1.status == "PASS":
         return RuleVerdict(
-            "R6",
+            "I0.5",
             "PARTIAL",
             checked,
             (
@@ -653,7 +656,7 @@ def _verify_r6(tools_by_server: dict[str, list[str]], graph: dict[str, set[str]]
             ),
         )
     return RuleVerdict(
-        "R6",
+        "I0.5",
         "VIOLATED" if not body_is_param else "PARTIAL",
         checked,
         "A server path can supply T/I/D body content without a human action.",
@@ -673,18 +676,20 @@ def verify_rules(
     """
     verdicts: list[RuleVerdict] = []
     for rule_id, _title, _tier in rules:
-        if rule_id == "R1":
+        # Legacy R-ids map onto canonical I-ids (ARCHITECTURE_RULES.md pointer table):
+        # R1→I1.1 · R2→I0.1 · R3→I1.2 · R4→I1.5 · R5→I0.2 (split a/b) · R6→I0.5.
+        if rule_id == "I1.1":
             verdicts.append(_verify_r1(tools_by_server, graph))
-        elif rule_id == "R2":
+        elif rule_id == "I0.1":
             verdicts.append(_verify_r2(tools_by_server, graph))
-        elif rule_id == "R3":
+        elif rule_id == "I1.2":
             verdicts.append(_verify_r3())
-        elif rule_id == "R4":
+        elif rule_id == "I1.5":
             verdicts.append(_verify_r4())
-        elif rule_id == "R5":
-            # R5 is adjudicated as two sub-rules (R5a / R5b); see `_verify_r5`.
+        elif rule_id == "I0.2":
+            # I0.2 is adjudicated as two sub-rules (well-formedness / monotonicity).
             verdicts.extend(_verify_r5())
-        elif rule_id == "R6":
+        elif rule_id == "I0.5":
             verdicts.append(_verify_r6(tools_by_server, graph))
         else:
             verdicts.append(
@@ -832,7 +837,7 @@ def render(
     lines.append(f"## Layer 2 — invariant conformance ({tally})")
     lines.append("")
     lines.append(
-        "The invariants are a HUMAN-AUTHORED SSOT: `docs/ARCHITECTURE/ARCHITECTURE_RULES.md` owns "
+        "The invariants are a HUMAN-AUTHORED SSOT: `docs/ARCHITECTURE/INVARIANTS.md` owns "
         "them, and this generator may only ever implement VERIFIERS against it — never author, "
         "restate, or override a rule (CLAUDE.md drift rule). Rule ids, titles, and declared tiers "
         "are re-parsed from that file on every run, so those columns are a pointer that cannot "

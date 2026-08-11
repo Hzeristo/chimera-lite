@@ -207,6 +207,23 @@ compliance value appears here (rule 1c).
 
 ### 6.1 R-Epistemic — fundamental; not tradeable against operational convenience
 
+> **Instantiation crosswalk.** This document is system-agnostic: it states what a *conforming* L2
+> harness must require. In this repository those requirements are instantiated by the canonical
+> invariants, and the mapping is recorded here so the two registers cannot drift into a second
+> source of truth (the `RA-1..6` failure of r1, §6.2):
+>
+> | requirement | instantiated by |
+> |---|---|
+> | RE-1 | `INVARIANTS.md` **I0.2** (provenance load-bearing) |
+> | RE-2 | `INVARIANTS.md` **I0.3** (novelty via bounded witness search) |
+> | RE-3 | `INVARIANTS.md` **I0.3** + **I0.5** (significance is human-only; judgment authorship) |
+> | RE-4 | `INVARIANTS.md` **I0.1** (human-time supremacy) |
+> | RE-5 | `INVARIANTS.md` **I0.3** (verification tier-separation) |
+> | RO-1 | `INVARIANTS.md` **I2.4** (criteria externalization) |
+>
+> Compliance for this instantiation is **not** recorded here — see `ENFORCEMENT_DEBT.md`, and
+> Appendix B below for the record template.
+
 | ID | Requirement | Mode demanded | Acceptance criterion |
 |---|---|---|---|
 | **RE-1** | Every committed claim carries a verbatim span from a primary or structural source that entails it. | STRUCTURAL | A synthesis whose recorded dependencies include an unverified claim is **rejected by schema**, not by prompt compliance. Demonstrated by a rejected fixture. |

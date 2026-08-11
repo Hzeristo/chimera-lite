@@ -48,22 +48,29 @@ All edges are **directional**, stored in a node's frontmatter as a list of targe
 | `drives_decision` | Forward pointer — this node drove the target **decision**. | T I D |
 | `synthesizes` | This **insight** fuses the target source nodes into a new understanding. | I |
 | `evidence_base` | The supporting evidence for this **insight**. *(canonical name; was code's `verified_with`)* | I |
-      collides_with — two claims occupy the same evidence envelope without
-                      directly contradicting; each's success structurally
-                      blocks the other's novelty
-      informed_by — records that a T/I/D node was authored while viewing
-                    an AI output (W2 map, extract synthesis); context, not
-                    derivation; not support-bearing 
+| `collides_with` | Two claims occupy the same evidence envelope without directly contradicting; each's success structurally blocks the other's novelty. *(Distinct from `contradicts`, which is a conflict of content.)* | K T I D |
+| `informed_by` | Records that a T/I/D node was authored **while viewing** an AI output (W2 map, extract synthesis). Context, not derivation — it documents the tool used and never transfers authorship (`INVARIANTS.md` I0.5). | T I D |
+
+**Support-bearing subset.** Monotonicity (`INVARIANTS.md` I0.2) propagates along
+`evidence_base`, `synthesizes`, `derives_from` — and **only** those. `informed_by` is explicitly
+**not** support-bearing: an AI output that informed a node is not a dependency of it. Authority for
+the subset is `FORMAL_MODEL.md` (`support(v)`); this file does not restate it.
 
 ### Canonical set per type
 
-- **K (knowledge)** — `derives_from`, `supersedes`, `contradicts`
-- **T (thought)** — `derives_from`, `supersedes`, `contradicts`, `dead_ends`, `drives_decision`
-- **I (insight)** — `synthesizes`, `evidence_base`, `derives_from`, `drives_decision`, `supersedes`, `contradicts`
-- **D (decision)** — `derives_from`, `drives_decision`, `dead_ends`, `supersedes`, `contradicts`
+- **K (knowledge)** — `derives_from`, `supersedes`, `contradicts`, `collides_with`
+- **T (thought)** — `derives_from`, `supersedes`, `contradicts`, `dead_ends`, `drives_decision`, `collides_with`, `informed_by`
+- **I (insight)** — `synthesizes`, `evidence_base`, `derives_from`, `drives_decision`, `supersedes`, `contradicts`, `collides_with`, `informed_by`
+- **D (decision)** — `derives_from`, `drives_decision`, `dead_ends`, `supersedes`, `contradicts`, `collides_with`, `informed_by`
 
 The three universal edges (`derives_from`, `supersedes`, `contradicts`) are present on **all four** types so
-`deep_recall` has a type-agnostic backbone to traverse.
+`deep_recall` has a type-agnostic backbone to traverse. `collides_with` joins them as a fourth
+universal edge (any two claims can share an evidence envelope); `informed_by` is T/I/D-only, because
+I0.5 scopes it to judgment-type nodes whose bodies are Architect-authored.
+
+> **Code sync owed.** `StagingService._TYPE_EDGES` (`staging_service.py:14-17`) still implements the
+> pre-r2 seven-edge set. Adding `collides_with` / `informed_by` there is a code change, tracked as
+> its own item — this file defines the vocabulary; §4 below records what the code must mirror.
 
 ---
 
