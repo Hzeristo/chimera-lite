@@ -301,7 +301,7 @@ async def write_result(
     body: str,
     verdict: Literal["V", "P", "U"] | None = None,
     depends_on: list[str] | None = None,
-    mode: Literal["supersede", "merge", "reject", "mark_stale"] = "supersede",
+    mode: Literal["supersede", "merge", "promote", "reject", "mark_stale"] = "supersede",
 ) -> str:
     """Write a research-harness result artifact into the vault for the Architect's review.
 
@@ -316,7 +316,8 @@ async def write_result(
     - ``merge`` (W2 breadth map): a re-run UNIONS the map by paper key — ADDS new papers, PRESERVES
       the Architect's in-Obsidian annotations verbatim. W2 renders each paper as a keyed block
       ``<!-- w2:paper=<id> -->`` so the merge can key on it. Merge never clobbers.
-    - ``reject`` / ``mark_stale``: status transition on an EXISTING artifact (body untouched).
+    - ``promote`` / ``reject`` / ``mark_stale``: status transition on an EXISTING artifact
+      (body untouched) — ``PROMOTED`` / ``REJECTED`` / ``STALE`` respectively.
 
     Returns a JSON object ``{"path", "merged_added", "merged_skipped", "total"}``. The counts
     matter on ``merge``: a re-run whose papers are all already mapped reports
@@ -333,7 +334,7 @@ async def write_result(
             malformed tag is rejected at the JSON-RPC boundary before this body runs
             (invariant R5a, tag well-formedness — do NOT widen back to ``str``).
         depends_on: The claim / quote ids the verdict rests on (C1 — recorded, not just the verdict).
-        mode: ``supersede`` | ``merge`` | ``reject`` | ``mark_stale``.
+        mode: ``supersede`` | ``merge`` | ``promote`` | ``reject`` | ``mark_stale``.
     """
     from core.config import get_config
     from result_service import ResultService
