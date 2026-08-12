@@ -74,7 +74,7 @@ construction. Judgment lives in skills orchestrating subagents.
 system exists to hold.
 
 ### I1.2 — Staging Gate Universality
-AI-authored Knowledge node enters a staging buffer 
+AI-authored Knowledge node enters a staging buffer
 before any committed tier. Promotion into the committed tier passes through a
 single gate (ascend_node), which is the sole writer of the committed tier.
 
@@ -140,7 +140,7 @@ synthesizes, derives_from) must remain structural (auto-written, traversable) pe
 **Changes** documented in NODE_ONTOLOGY.md.
 
 **Support-bearing edges:** monotonicity (I0.2) propagates along these. informed_by
-is not support-bearing — it records a tool context, not a dep`endency.
+is not support-bearing — it records a tool context, not a dependency.
 
 ### I2.3 — Dual-Clock Implementation
 The current implementation (docs/staging/ and vault/Harness/ as machine-time
