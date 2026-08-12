@@ -1,3 +1,35 @@
+> ## ⛔ SUPERSEDED — this record's seal claim was wrong
+>
+> **Overridden 2026-08-12 by `docs/audits/phase-L.B-seal-review.md`.** Everything below is
+> preserved verbatim as the execution record of 2026-07-21; only its **verdict** is retracted.
+>
+> This record concludes "Seal: L.B.6 complete" with all five paths ✅. They were not. Its own
+> **Finding 1** states the cause and then under-weighs it: the live MCP servers resolved to the
+> main checkout, so Paths 2 and 5 were driven by importing worktree code in-process. The live
+> client — the thing an operator actually uses — was never exercised. What that hid:
+>
+> - `chimera-deep-extractor` and `chimera-paper-triager` were **unregistered and unspawnable**
+>   from 2026-07-21 until 2026-08-10 (CRLF frontmatter). Paths 1 and 2 had no judgment worker at
+>   all, so the ✅ on both rows describes code that could not run.
+>   → `docs/incidents/2026-08-10-agent-frontmatter-crlf.md`
+> - `get_paper_markdown` could not read a paper that had completed Path 1 triage — the archive
+>   MOVES the clean markdown. Paths 1 and 2 could not compose.
+>   → `docs/incidents/2026-08-10-paper-markdown-unresolvable-after-triage.md`
+> - `stage_deep_read_node` carried the shared-GPU busy guard, so Path 2 could not finish while
+>   Path 1 ran. → `docs/incidents/2026-08-10-stage-deep-read-blocked-by-gpu-guard.md`
+> - The **sole-writer guarantee this sprint certifies was false**: `promote_node` reached
+>   `Knowledge/` for any K node not tiered `deep_read`, and the R3 verifier returned PASS on a
+>   substring test. Fixed `48786a0`, `2b72978`.
+>
+> The lesson is registered as a class, not a list: `docs/logs/friction-260811.md` — a component
+> can exist, be unit-tested, be documented as wired, and be unreachable at runtime. Three
+> instances crossed the escalation threshold.
+>
+> **A seal earned against in-process imports is not a seal.** The replacement verdict rests on
+> live-client execution only.
+
+---
+
 # Modification Summary: L.B.6
 
 **Phase:** L.B — Consolidation

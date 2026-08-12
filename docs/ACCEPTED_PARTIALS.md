@@ -269,4 +269,15 @@ Each entry: phase / sprint, partial description, reason for acceptance.
 
 ---
 
+### L.B.6.1 — MinerU image links dangled in `md_papers/` since repo init
+- **Description:** Promoted markdown carried `![](images/<sha256>.jpg)` links relative to the
+  file, while `extract_and_clean` copied only the `.md` — 101 references across the corpus,
+  none resolving. Fixed during the L.B seal review (`f9afba3`): images are now promoted into a
+  shared `md_papers/images/`, and 471 were backfilled for existing papers.
+- **Reason:** Accepted as a partial rather than a Fail because it is pre-existing (predates the
+  phase), was never in L.B's scope, and broke no L.B acceptance criterion. Recorded because the
+  seal ran a live conversion that depended on it. Corpus now reads 101 refs / 0 unresolved.
+
+---
+
 *Update protocol: Append-only at sprint seal. New entries appended by `chimera-sprint-discipline` phase_review mode under `<state_write_authority>` (auto-apply, no diff).*

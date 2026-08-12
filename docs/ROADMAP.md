@@ -244,6 +244,51 @@ final incident (headless-spawn hang) was fixed and Test 2 ran clean.
 
 ## Just Sealed
 
+### Phase L.B — Integratio: Tier Integrity + Model Migration + Unified Ascension ⚠️ Functionally Sealed 2026-08-12
+
+**Etymology.** Latin *integrātiō*, from *integrāre* — to make whole again, to restore; from
+*integer*, "untouched, intact" (*in-* + *tangere*, to touch). The same root as *integrity*. The
+system arrived at L.B fractured three ways — tier overloaded, judgment split across two
+substrates, `Knowledge/` writable from several paths — and L.B restores it to one piece.
+`chimera_tier` integrity is the word taken literally: a tier marker no path can touch out of band.
+The name earned itself at seal, and precisely: the phase's last act was closing the one remaining
+sideways route into the committed tier.
+
+**Sealed** (`docs/audits/phase-L.B-seal-review.md`): 7 of 7 sprints Pass, all 7 red lines Held,
+all 5 hard sealing conditions met with **no exclusions**. 1 Accepted Partial (L.B.6.1),
+2 Technical Debt items (DEBT-022, DEBT-023).
+
+**This supersedes the 2026-07-21 seal**, which was reported green and was not. That verdict was
+produced against an unmerged worktree via in-process imports, so the live client was never
+exercised; when it finally was, two judgment workers had been dead for three weeks, a resolver
+could not read a paper its own triage had filed, and the verifier guarding the phase's central
+invariant was testing a substring. The retraction is stamped on
+`docs/sprints/phase-L.B/L.B.6.md`; the defect class is `docs/logs/friction-260811.md`.
+
+| Sprint | One-line goal | Status |
+|---|---|---|
+| L.B.0 | Workflow-drift audit (`docs/audits/workflow-drift-audit.md`) | ✅ Complete |
+| L.B.1 | `chimera_tier` origin/depth axis + status lifecycle (fixes C-1) | ✅ Complete (`4616474`) |
+| L.B.2 | Externalize judgment out of the MCP server → pinned subagents | ✅ Complete (`608c1a7`, `37619ca`) |
+| L.B.3 | `ascend_node` — sole structural writer of `Knowledge/` | ✅ Complete (`67cba2c`), **repaired in-review** (`48786a0`, `2b72978`) |
+| L.B.4 | K node lifecycle integration (W1 offer, tier in query results) | ✅ Complete |
+| L.B.5 | Living architecture diagram, generated from source | ✅ Complete (`a37b94d`, `3129b76`) |
+| L.B.6 | Verify + Rebuild: five-path e2e, fix in-sprint before seal | ✅ Complete (`3dd58a8`) — original seal retracted, re-run live 2026-08-10/12 |
+
+**Hard sealing conditions (all met):** (1) scout vs deep_read machine-distinguishable ✅;
+(2) no deepseek in either judgment path — stronger than written, neither module calls any LLM ✅;
+(3) `ascend_node` the only path into `Knowledge/` ✅ *(false at review; repaired, and the R3
+verifier is now negative-controlled — it returns VIOLATED against the pre-fix source)*;
+(4) architecture diagram generated from code and matching reality ✅; (5) five components
+end-to-end on real fixtures, live client, one session ✅.
+
+**Findings carried out of the phase — recorded, not waived:** I0.4 is contradicted by the sealed
+path (`_unlink_superseded` deletes superseded committed nodes; `ENFORCEMENT_DEBT` D-1(b), homed to
+Phase H); three verifiers were found guarding nothing, all returning PASS (R2, R3, R6 — rewritten);
+and server-side changes are invisible to a running MCP server (DEBT-023).
+
+---
+
 ### Phase O — Ousia: Exocortex Write Surface ✅ Sealed 2026-07-08
 
 **Sealed** (`docs/sprints/phase-O/phase-review.md`): `create_node` / `link_nodes` / `apply_link_patch`
@@ -284,7 +329,16 @@ sprints are batch-planned — `chimera-sprint-discipline` enforces audit-before-
 
 ## Active Phase
 
-**None** — Phase N sealed/truncated 2026-07-09. The next phase is pending Architect authorship.
+**None** — Phase L.B functionally sealed 2026-08-12. Next is **Phase L.C — Colligo: Candidate
+Consumption Paths** (`docs/phases/phase-L.C.md`, Queued): binding candidate material (W1/extract
+outputs) into committed artifacts across three equal-friction routes. Breadth at scale is L.C+
+scope by L.B's own definition.
+
+> **Note (2026-08-12):** this file lags the build. Phases L, L.B, Q, K and the codename motif
+> (`docs/phases/CODENAMES.md`) are recorded in their phase docs but not fully reflected here —
+> the ROADMAP-sync item CODENAMES.md lists as open. The L.B entry above is written to the current
+> convention (`Phase X — Codename: subtitle`); earlier entries still use the old descriptive
+> headers.
 
 **Two named blockers** gate any resumed advanced-retrieval work:
 - **Agentic defect** — the vault is absent from the agentic loop; the always-active observer never fires
