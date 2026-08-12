@@ -457,10 +457,12 @@ dependency is currently accepted.
 
 ### Phase I — Isostheneia: Adversarial Dialogue Lifecycle
 **Status:** Queued (after Phase K). Spec: `docs/phases/phase-I.md`.
-**Etymology:** ⚠️ **not yet recorded.** Neither `phase-I.md` nor the CODENAMES ledger states one.
-Proposed, pending Architect confirmation: Greek *isostheneia* — equal force; the Pyrrhonist state
-where opposing arguments are balanced so judgment must be suspended. Fits the backward-arc
-epistemology register and the phase's own mission, but it is a suggestion, not the canonical.
+**Etymology:** ⚠️ **not yet recorded** — verified 2026-08-12 against the whole repo. `phase-I.md`
+has no VISION/"Why Isostheneia" section (unlike K and H, which both have one), and the CODENAMES
+ledger has no I row. The meaning is nonetheless *encoded* in its mission line: opposing framings
+"maintained **at equal force** until the Architect settles" (`phase-I.md:9`) — which is precisely
+Greek *isostheneia*, equal force, the Pyrrhonist balance under which judgment is suspended.
+Proposed on that basis, pending the Architect's own wording at phase open (CODENAMES ritual 1).
 
 Lifecycle-managed adversarial reasoning: opposing framings maintained at equal force until the
 Architect settles. Every round committed to the vault, codex audits every session, the harness
@@ -469,9 +471,14 @@ agent that agrees with whichever side it read last.
 
 ### Phase H — Hypostasis: Structured Primary Evidence
 **Status:** Queued (executes after Phase I). Spec: `docs/phases/phase-H.md`.
-**Etymology:** ⚠️ **not yet recorded.** Neither `phase-H.md` nor the CODENAMES ledger states one.
-Proposed, pending Architect confirmation: Greek *hypostasis* — that which stands beneath; the
-underlying substance. Suggestion, not the canonical.
+**Etymology** (recorded — `phase-H.md:30-33`): *Hypostasis* (ὑπόστασις, **Neoplatonist**) — the
+concrete substrate that gives abstract logos its specific existence. **A table number is the
+hypostasis of the claim "method X achieves Y"** — the concrete realization without which the claim
+is mere abstraction. That analogy is the phase: MinerU produces prose, W1 verifies claims against
+prose, and the Tier-1 warrant the framework promises (table entries, equation variable
+definitions, arXiv metadata) does not yet exist as machine-readable structured data — it exists as
+strings like `"60.353.468.0"`, where three numbers lost their column context. Phase H materializes
+Tier 1.
 
 The substrate: reliable extraction of table-level primary evidence. **Dependency tension recorded
 in its own spec** — H is substrate *to* K, since K's monotonicity guarantees rest on W1 verdicts
