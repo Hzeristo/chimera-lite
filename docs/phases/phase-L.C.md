@@ -74,7 +74,7 @@ Constraints:
 | C.2 | 🟢 | Registration reachability: ONE assertion over `@mcp.tool` names and `.claude/agents/*.md` | ✅ `4f980a9` |
 | C.3a | 🟡 | The `promote` transition — the `PENDING_REVIEW → PROMOTED` lifecycle the spec declares and no code provided | ✅ `40508af` |
 | C.3b | 🟡 | `evidence_base` extended to K, canonical and code together | ✅ `eb0f1d2` |
-| C.3c | 🟡 | Route 3 collapse: pending `[V]` verdicts → one structured decision → promote, support edge staged | ▶ next |
+| C.3c | 🟡 | Route 3 collapse: pending `[V]` verdicts → one structured decision → promote, support edge staged | ✅ `aeaa860`, verified live `45d9d4a` |
 | C.4 | 🟡 | Boundary bridge: close D-3, then propose an `informed_by` edge onto a hand-authored node | ▶ ready |
 | C.5 | 🔴 | Mid-read verification: queue a claim on a native background task; probe-first, may end at its probe | ▶ needs per-sprint approval |
 | C.6 | 🟢 | W2 handoff: a promote-candidate becomes a runnable extract carrying its gap sentence | ▶ ready |
