@@ -37,10 +37,13 @@ So the sidecar's state lives in the OS, not in this process:
 ## Disk
 
 The log APPENDS across runs — truncate-on-start destroyed exactly the evidence needed to
-diagnose a convert that failed earlier — and rolls to `.log.1` past `LOG_MAX_BYTES`. The
-service's `MINERU_API_OUTPUT_ROOT` is pruned at spawn and after stop: every parse leaves a
-task-uuid directory holding a full duplicate of the paper, whose authoritative copy lives in
-`papers/md_papers_raw/<id>/`. Nothing used to remove it (60 MB across 7 parses).
+diagnose a convert that failed earlier — and rolls to `.log.1` past `LOG_MAX_BYTES`.
+
+`MINERU_API_OUTPUT_ROOT` grows by one task-uuid directory per parse (60 MB across 7) and is
+**not** pruned automatically. It is not the pure duplicate it looks like: under `--api-url`
+the client keeps only the clean markdown, so a paper's extracted `images/` exist only here.
+`prune_output()` is available for an explicit reclaim; see its docstring for the fix that
+would make it safe to automate.
 
 ## Blast radius
 
@@ -229,11 +232,19 @@ def _kill_handle() -> int | None:
 def prune_output(reason: str = "") -> int:
     """Delete the sidecar's server-side output tree. Returns bytes reclaimed. Never raises.
 
-    `MINERU_API_OUTPUT_ROOT` accumulates one task-uuid directory per parse, each holding a
-    FULL duplicate of the paper (origin.pdf, middle.json, the markdown, images) — a second
-    copy of material whose authoritative home is `papers/md_papers_raw/<id>/`. Nothing used
-    to remove it; it had already reached 60 MB across 7 parses. Safe to call only when no
-    parse is in flight: at spawn (before the service exists) and after it has stopped.
+    **EXPLICIT ONLY — deliberately not called automatically.** It was wired into spawn and
+    stop on the assumption that this tree is a pure duplicate of
+    `papers/md_papers_raw/<id>/`. That is false for sidecar-parsed papers: with `--api-url`
+    the client keeps only the clean markdown, so the extracted `images/` exist ONLY here.
+    Verified 2026-08-11 — `2608.08883.md` came back referencing
+    `images/c94ea…jpg`, and after the automatic prune that file existed nowhere on disk.
+
+    Growth is real (60 MB across 7 parses) but it is a nuisance; deleting the only copy of a
+    paper's figures is data loss. The right fix is for the convert path to place `images/`
+    beside the clean markdown — that lives in `paper2md`, outside this module — after which
+    this can safely become automatic again.
+
+    Call it by hand when reclaiming space, and only when no parse is in flight.
     """
     root = _state_dir() / "output"
     if not root.is_dir():
@@ -359,10 +370,6 @@ def _spawn() -> subprocess.Popen | None:
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(
         subprocess, "CREATE_NEW_PROCESS_GROUP", 0
     )
-    # No parse can be in flight — the service does not exist yet — so this is the safe
-    # moment to drop the previous run's duplicate output.
-    prune_output(reason="spawn")
-
     try:
         # APPEND, not truncate. Truncate-on-start destroyed the evidence of every previous
         # run, which is exactly what was needed to diagnose a failed convert after the fact.
@@ -541,16 +548,12 @@ def stop(force: bool = False) -> SidecarStatus:
     payload = probe()
     if payload is None:
         _runfile().unlink(missing_ok=True)
-        freed = prune_output(reason="stop (already down)")
-        detail = "already stopped (runfile cleared)"
-        if freed:
-            detail += f"; pruned {freed / (1024 * 1024):.1f} MB of duplicate parse output"
         return SidecarStatus(
             running=False,
             base_url=base_url(),
             port=SIDECAR_PORT,
             pid=None,
-            detail=detail,
+            detail="already stopped (runfile cleared)",
         )
 
     in_flight = int(payload.get("queued_tasks") or 0) + int(payload.get("processing_tasks") or 0)
@@ -589,18 +592,15 @@ def stop(force: bool = False) -> SidecarStatus:
     while time.monotonic() < deadline:
         if probe() is None:
             _runfile().unlink(missing_ok=True)
-            # The service is down, so nothing can be mid-parse — safe to reclaim its scratch.
-            freed = prune_output(reason="stop")
+            # NOT pruning here: the parse output holds the only copy of a paper's extracted
+            # images (see prune_output). Reclaim space explicitly instead.
             logger.info("[Sidecar] Stopped (pid=%s)", pid)
-            detail = "stopped"
-            if freed:
-                detail += f"; pruned {freed / (1024 * 1024):.1f} MB of duplicate parse output"
             return SidecarStatus(
                 running=False,
                 base_url=base_url(),
                 port=SIDECAR_PORT,
                 pid=pid,
-                detail=detail,
+                detail="stopped",
             )
         time.sleep(1.0)
 
