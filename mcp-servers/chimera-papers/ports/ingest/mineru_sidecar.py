@@ -8,7 +8,8 @@ Nothing here serves HTTP, and no inference runs in this process.
 WHY: every `MineruClient.convert` currently spawns a throwaway MinerU service and reloads
 every model. Measured on a pipeline convert: 3.1s server spawn + full model load against
 15.8s of actual parsing, inside a 32.4s wall — roughly half the wall clock is setup that a
-resident server pays once. See docs/logs/friction-260810.md.
+resident server pays once. Measurements and the lifecycle defects found later:
+docs/incidents/2026-08-11-sidecar-orphaned-vram-and-lost-race.md.
 
 ## Statelessness — the design constraint
 

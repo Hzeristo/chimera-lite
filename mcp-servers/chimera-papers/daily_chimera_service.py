@@ -219,7 +219,8 @@ async def _run_pipelined_async(
 
     # Batch-scoped sidecar: hold MinerU's models in one resident service for the whole
     # batch instead of reloading them per paper (~half of a convert's wall clock is that
-    # setup — friction-260810). Started here, stopped in the finally, and only if WE
+    # setup — docs/incidents/2026-08-11-sidecar-orphaned-vram-and-lost-race.md). Started
+    # here, stopped in the finally, and only if WE
     # started it: a sidecar the operator brought up by hand outlives the batch.
     sidecar_started_here = await asyncio.to_thread(mineru_sidecar.start_for_batch)
     try:
