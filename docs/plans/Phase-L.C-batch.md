@@ -363,6 +363,17 @@ body.
 - **Detection probe (D7).** `Monitor` can watch the vault's judgment folders, one event per new
   file, session-scoped — which covers route 2 exactly, since route 2 means a session is open. It
   does not cover authoring outside a session: a stated limitation, not a bug.
+- **`apply_link_patch` does not become redundant — it becomes the load-bearing half.** Without a
+  separate apply, `link_nodes` would write directly and propose-and-commit would collapse into one
+  machine act. Two tool calls are what make the Architect's order structural rather than
+  conventional. **Known weakness, recorded not fixed here:** the patch is consumed on apply
+  (`staging_service.py:294,301`), so the gate is enforced at the moment and leaves **no durable
+  record** — a later observer cannot distinguish a proposed-and-ordered edge from a hand-typed one.
+  **Consequence for this phase:** D2's composition-drift measure goes partly blind on the surface
+  C.4 opens, since machine-proposed edges become indistinguishable from hand-written ones. This
+  cannot be fixed by stamping the edge: D-7 ruled that an edge carries no identity or provenance of
+  its own, which is precisely why a tool may write one. Any such record must live at the node level
+  or out of band — **Phase K's concern** (provenance load-bearing), not L.C's. Do not attempt it here.
 
 ### Task scope
 1. `mcp-servers/chimera-papers/staging_service.py` — **close D-3**: `_TYPE_EDGES` gains
