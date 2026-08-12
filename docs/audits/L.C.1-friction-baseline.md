@@ -121,6 +121,27 @@ which is why the missing terminal operation survived two phase specs unnoticed.
 Verdict distribution across the 4 W1 artifacts: 1 `V`, 2 `P`, 1 `U`. The single `[V]`
 (`Harness/w1_verdict__2606.16353.md`) is C.3c's acceptance fixture.
 
+#### Route 3 re-measured after C.3a + C.3c (2026-08-12)
+
+Live run of `chimera-w1-review` against the same vault, 4 pending verdicts.
+
+| Register | Before | After |
+|---|---|---|
+| Invocations | **N** (one `chimera-w1-verify` per claim) + the promote that did not exist | **1** |
+| Context switches | ≥1, then the route dead-ended | **0** |
+| Manual transcription | every support edge hand-written as YAML | **0** |
+| Completes? | **No** — no `promote` mode existed | **Yes** |
+
+Observed: 4 verdicts rendered with their grounding quotes, 1 selected, 1 promoted
+(`PENDING_REVIEW → PROMOTED`), 3 left untouched, both W2 maps correctly out of scope, body
+byte-intact, no patch staged (the `[V]`'s paper has no committed K node).
+
+**This was the first promotion in the vault's history.** Before it, all 6 harness artifacts had
+sat at `PENDING_REVIEW` since they were written, because the transition did not exist.
+
+The register that matters is the last row. Route 3's friction was never really "N invocations" —
+it was infinite, because the route had no end.
+
 ### Route 2 — AI-assisted authoring — **PARTIAL**
 
 | Register | Count | Status |

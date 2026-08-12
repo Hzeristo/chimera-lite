@@ -4,7 +4,7 @@
 **Plan:** `docs/plans/Phase-L.C-batch.md` · **Baseline:** `docs/audits/L.C.1-friction-baseline.md`
 **Executed by:** Opus main session (skill authoring is reasoning-shaped — L.1b precedent, not
 delegated).
-**Outcome:** ⚠️ **Built and mechanically verified; live acceptance blocked on an MCP restart.**
+**Outcome:** ✅ **Pass — verified live through the MCP client after a server restart.**
 
 ## What was built
 
@@ -44,15 +44,40 @@ and its data source was doing precisely that. Built on the unfixed tool, the rev
 have hidden four verdicts from a review whose entire purpose is that nothing is hidden — and it
 would have looked correct while doing it.
 
-## Live acceptance — blocked, not skipped
+## Live acceptance — run through the MCP client, 2026-08-12
 
-The running MCP server still holds the pre-fix `vault_query` (**DEBT-023**: server-side changes
-are invisible to a running server). So the live run cannot yet enumerate correctly, and driving
-the workflow off my own direct file reads would verify nothing about the skill — that is the
-in-process-import shortcut that produced L.B's false seal.
+The first attempt was correctly **deferred**, not faked: the running server still held the pre-fix
+`vault_query` (**DEBT-023**), and driving the workflow off direct file reads would have verified
+nothing about the skill — the in-process-import shortcut behind L.B's false seal. The Architect
+restarted both servers; the run then proceeded end to end.
 
-**Owed at restart:** run `chimera-w1-review`, confirm 4 verdicts render (not 2), each with its
-grounding quote; select a subset; confirm promotion and `[V]`-only edge staging.
+| Step | Observed |
+|---|---|
+| Enumerate | `vault_query(status="PENDING_REVIEW")` → **6** matches (**2** before the fix); filtered to **4** `w1_verdict`, both W2 maps correctly excluded |
+| Read | all 4 read via `read_vault_file` |
+| Resolve target | `search_vault_attribute(arxiv_id=2606.16353)` → **0 hits**; no edge possible, reported rather than invented |
+| Render | 4 rows, each with its verbatim grounding quote and location |
+| Ask | one `AskUserQuestion` multi-select, no default, no bulk option |
+| Promote | Architect selected the `[V]` only → `PENDING_REVIEW → PROMOTED` |
+| Untouched | the 3 unselected verdicts and both W2 maps unchanged |
+| Body integrity | promoted artifact keeps its quotes and `depends_on`; 27 lines |
+| Staging | empty — no patch written, correct with no K node |
+
+**This was the first promotion in the vault's history.** All six harness artifacts had sat at
+`PENDING_REVIEW` since they were written, because the transition did not exist until C.3a.
+
+**Architect ruling during the run:** a missing K node is acceptable in L.C — "R&D nodes are cheap,
+K node missing is allowed. dev, not prod." So the unresolvable edge is not a blocker; the support
+chain becomes traceable when papers earn committed nodes.
+
+## Refinement surfaced by the live run
+
+The skill required a grounding quote per row and rendered `MISSING` when none existed. But `[U]`
+verdicts legitimately have no *supporting* quote — W1's red line forbids fabricating one — while
+they do record what **refutes** the claim. `2501.05510` proved it: the paper states the opposite of
+the claim (human 92.81 vs best model 63.00). Rendering that as `MISSING` would understate a
+*refuted* claim as merely unproven. The skill now requires the refuting evidence to be shown and
+labelled, reserving `MISSING` for a `[U]` that records nothing at all.
 
 ## Findings carried out
 
@@ -76,8 +101,10 @@ grounding quote; select a subset; confirm promotion and `[V]`-only edge staging.
 - [x] `[P]`/`[U]` promote if selected but stage no support edge (I1.3)
 - [x] No bulk-approve affordance; no default selection
 - [x] The skill never calls `apply_link_patch`
-- [ ] **Live end-to-end run** — blocked on MCP restart (DEBT-023)
-- [ ] Route-3 friction re-measured against the C.1 baseline — follows the live run
+- [x] **Live end-to-end run** through the MCP client, post-restart
+- [x] Route-3 friction re-measured: N invocations + a dead end → **1 invocation, 0 context
+      switches, 0 manual transcription, and the route completes.** Recorded in
+      `docs/audits/L.C.1-friction-baseline.md` §4
 
 ## Red lines
 

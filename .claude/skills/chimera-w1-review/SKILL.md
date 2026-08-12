@@ -52,6 +52,14 @@ not yours.
    the Architect cannot review, and it is rendered as `quote: MISSING — inspect <path> directly`,
    never omitted and never summarised in your own words.
 
+   **`[U]` carries refuting evidence, not supporting quotes.** W1's red line forbids a fabricated
+   supporting quote for an unverified claim, so a `[U]` verdict legitimately has none — but it
+   usually records what *contradicts* the claim. Show that, labelled as refuting: `quote: no
+   supporting quote by rubric. Refuting evidence: "<verbatim>" ← <location>`. Only a `[U]` that
+   records nothing at all renders as `MISSING`. Reporting a refuted claim as merely "unverified"
+   understates it — the Architect is promoting a record that the claim is *wrong*, not just
+   unproven.
+
 5. **Ask once.** Present the rows as a single `AskUserQuestion` with `multiSelect: true`, one
    option per verdict. Do not add an "all of them" option; there is no bulk approve. If there are
    more rows than the question tool accepts, ask in batches — never silently truncate the list, and
