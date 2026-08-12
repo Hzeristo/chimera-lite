@@ -55,6 +55,29 @@ def test_stage_link_patch_rejects_edge_wrong_for_type(tmp_path: Path) -> None:
         )
 
 
+def test_stage_link_patch_accepts_evidence_base_for_knowledge(tmp_path: Path) -> None:
+    """L.C.3b: `evidence_base` was extended to K (NODE_ONTOLOGY.md, 2026-08-12) — a
+    W1 verdict is now legally the supporting evidence for the knowledge node it verifies."""
+    svc = StagingService(tmp_path / "staging", tmp_path / "vault")
+    patch = svc.stage_link_patch(
+        from_stem="Paper", from_path=tmp_path / "vault" / "Knowledge" / "Paper.md",
+        from_type="knowledge", edge_type="evidence_base", to_stem="W1 Verdict",
+    )
+    fm = _read_frontmatter(patch)
+    assert fm["edge_type"] == "evidence_base"
+    assert fm["from_type"] == "knowledge"
+
+
+def test_stage_link_patch_rejects_evidence_base_for_thought(tmp_path: Path) -> None:
+    """`evidence_base` is K/I-only — a thought still cannot carry it."""
+    svc = StagingService(tmp_path / "staging", tmp_path / "vault")
+    with pytest.raises(ValueError, match="Invalid edge"):
+        svc.stage_link_patch(
+            from_stem="a", from_path=tmp_path / "a.md", from_type="thought",
+            edge_type="evidence_base", to_stem="b",
+        )
+
+
 def test_stage_link_patch_rejects_unknown_type(tmp_path: Path) -> None:
     svc = StagingService(tmp_path / "staging", tmp_path / "vault")
     with pytest.raises(ValueError, match="Unknown node type"):

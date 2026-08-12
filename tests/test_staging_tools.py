@@ -21,7 +21,9 @@ from staging_service import StagingService, _TYPE_DEST, _TYPE_EDGES  # noqa: E40
 
 # The canonical sets from docs/ARCHITECTURE/NODE_ONTOLOGY.md §2 (post-ratification).
 CANONICAL = {
-    "knowledge": {"derives_from", "supersedes", "contradicts"},
+    # `evidence_base` extended to K by Architect ratification 2026-08-12 (Phase L.C, C.3b) —
+    # a W1 verdict is the supporting evidence for a claim living in a Knowledge node.
+    "knowledge": {"derives_from", "supersedes", "contradicts", "evidence_base"},
     "thought": {"derives_from", "supersedes", "contradicts", "dead_ends", "drives_decision"},
     "insight": {"synthesizes", "evidence_base", "derives_from", "drives_decision", "supersedes", "contradicts"},
     "decision": {"derives_from", "drives_decision", "dead_ends", "supersedes", "contradicts"},

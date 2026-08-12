@@ -55,9 +55,18 @@ All edges are **directional**, stored in a node's frontmatter as a list of targe
 | `dead_ends` | Abandonment — this node records a path/approach that was tried and dropped. | T D |
 | `drives_decision` | Forward pointer — this node drove the target **decision**. | T I D |
 | `synthesizes` | This **insight** fuses the target source nodes into a new understanding. | I |
-| `evidence_base` | The supporting evidence for this **insight**. *(canonical name; was code's `verified_with`)* | I |
+| `evidence_base` | The supporting evidence for this **insight** or **knowledge** node. *(canonical name; was code's `verified_with`)* | K I |
 | `collides_with` | Two claims occupy the same evidence envelope without directly contradicting; each's success structurally blocks the other's novelty. *(Distinct from `contradicts`, which is a conflict of content.)* | K T I D |
 | `informed_by` | Records that a T/I/D node was authored **while viewing** an AI output (W2 map, extract synthesis). Context, not derivation — it documents the tool used and never transfers authorship (`INVARIANTS.md` I0.5). | T I D |
+
+> **`evidence_base` extended to K** (Architect ratification, 2026-08-12 — Phase L.C sprint C.3b).
+> W1 verifies a claim that usually lives in a Knowledge node, and its verdict artifact is that
+> claim's supporting evidence — with no legal K edge to express "supported by this verdict," the
+> phase Mission (every committed node's support chain is traceable) was unreachable. I2.2 (Tier 2)
+> states the edge vocabulary is mutable, so this is a documented evolution, not a canonical breach.
+> `evidence_base` is support-bearing (below), so it must stay auto-written and traversable per
+> **I0.2**, and closing this gap is what makes a K node's chain traceable to Tier-1 evidence per
+> **I1.3** — Phase K's monotonicity gate will read this edge on Knowledge nodes.
 
 **Support-bearing subset.** Monotonicity (`INVARIANTS.md` I0.2) propagates along
 `evidence_base`, `synthesizes`, `derives_from` — and **only** those. `informed_by` is explicitly
@@ -66,7 +75,7 @@ the subset is `FORMAL_MODEL.md` (`support(v)`); this file does not restate it.
 
 ### Canonical set per type
 
-- **K (knowledge)** — `derives_from`, `supersedes`, `contradicts`, `collides_with`
+- **K (knowledge)** — `derives_from`, `supersedes`, `contradicts`, `evidence_base`, `collides_with`
 - **T (thought)** — `derives_from`, `supersedes`, `contradicts`, `dead_ends`, `drives_decision`, `collides_with`, `informed_by`
 - **I (insight)** — `synthesizes`, `evidence_base`, `derives_from`, `drives_decision`, `supersedes`, `contradicts`, `collides_with`, `informed_by`
 - **D (decision)** — `derives_from`, `drives_decision`, `dead_ends`, `supersedes`, `contradicts`, `collides_with`, `informed_by`
