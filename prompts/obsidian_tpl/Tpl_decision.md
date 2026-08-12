@@ -11,6 +11,7 @@ graph_edges:
   dead_ends: []
   drives_decision: []
   supersedes: []
+  informed_by: []
 ---
 
 # {{title}}

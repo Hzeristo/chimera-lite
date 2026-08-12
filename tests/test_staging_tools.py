@@ -23,10 +23,12 @@ from staging_service import StagingService, _TYPE_DEST, _TYPE_EDGES  # noqa: E40
 CANONICAL = {
     # `evidence_base` extended to K by Architect ratification 2026-08-12 (Phase L.C, C.3b) —
     # a W1 verdict is the supporting evidence for a claim living in a Knowledge node.
-    "knowledge": {"derives_from", "supersedes", "contradicts", "evidence_base"},
-    "thought": {"derives_from", "supersedes", "contradicts", "dead_ends", "drives_decision"},
-    "insight": {"synthesizes", "evidence_base", "derives_from", "drives_decision", "supersedes", "contradicts"},
-    "decision": {"derives_from", "drives_decision", "dead_ends", "supersedes", "contradicts"},
+    # `collides_with` (all four types) and `informed_by` (T/I/D only) closed D-3
+    # (Phase L.C, C.4a) — the vocabulary NODE_ONTOLOGY.md §2 ratified in r2.
+    "knowledge": {"derives_from", "supersedes", "contradicts", "evidence_base", "collides_with"},
+    "thought": {"derives_from", "supersedes", "contradicts", "dead_ends", "drives_decision", "collides_with", "informed_by"},
+    "insight": {"synthesizes", "evidence_base", "derives_from", "drives_decision", "supersedes", "contradicts", "collides_with", "informed_by"},
+    "decision": {"derives_from", "drives_decision", "dead_ends", "supersedes", "contradicts", "collides_with", "informed_by"},
 }
 
 

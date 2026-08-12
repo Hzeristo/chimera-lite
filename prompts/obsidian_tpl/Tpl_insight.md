@@ -14,6 +14,7 @@ graph_edges:
   drives_decision: []
   supersedes: []
   contradicts: []
+  informed_by: []
 ---
 
 # {{title}}

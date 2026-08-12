@@ -78,6 +78,30 @@ def test_stage_link_patch_rejects_evidence_base_for_thought(tmp_path: Path) -> N
         )
 
 
+def test_stage_link_patch_accepts_informed_by_for_thought(tmp_path: Path) -> None:
+    """L.C.4a (D-3): `informed_by` closes the code/canonical gap — I0.5's provenance
+    mandate for AI-informed T/I/D nodes now has a mechanism."""
+    svc = StagingService(tmp_path / "staging", tmp_path / "vault")
+    patch = svc.stage_link_patch(
+        from_stem="a", from_path=tmp_path / "vault" / "Thoughts" / "a.md",
+        from_type="thought", edge_type="informed_by", to_stem="W2 Map",
+    )
+    fm = _read_frontmatter(patch)
+    assert fm["edge_type"] == "informed_by"
+    assert fm["from_type"] == "thought"
+
+
+def test_stage_link_patch_rejects_informed_by_for_knowledge(tmp_path: Path) -> None:
+    """`informed_by` is T/I/D-only (I0.5 scopes it to judgment-type nodes) — a knowledge
+    node must still be refused."""
+    svc = StagingService(tmp_path / "staging", tmp_path / "vault")
+    with pytest.raises(ValueError, match="Invalid edge"):
+        svc.stage_link_patch(
+            from_stem="a", from_path=tmp_path / "vault" / "Knowledge" / "a.md",
+            from_type="knowledge", edge_type="informed_by", to_stem="b",
+        )
+
+
 def test_stage_link_patch_rejects_unknown_type(tmp_path: Path) -> None:
     svc = StagingService(tmp_path / "staging", tmp_path / "vault")
     with pytest.raises(ValueError, match="Unknown node type"):

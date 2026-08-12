@@ -85,9 +85,11 @@ The three universal edges (`derives_from`, `supersedes`, `contradicts`) are pres
 universal edge (any two claims can share an evidence envelope); `informed_by` is T/I/D-only, because
 I0.5 scopes it to judgment-type nodes whose bodies are Architect-authored.
 
-> **Code sync owed.** `StagingService._TYPE_EDGES` (`staging_service.py:14-17`) still implements the
-> pre-r2 seven-edge set. Adding `collides_with` / `informed_by` there is a code change, tracked as
-> its own item — this file defines the vocabulary; §4 below records what the code must mirror.
+> **Code sync complete** (2026-08-12, Phase L.C sprint C.4a). `StagingService._TYPE_EDGES`
+> (`staging_service.py:13-18`) now mirrors the sets above exactly — `collides_with` on all four
+> types, `informed_by` on T/I/D only. `ENFORCEMENT_DEBT.md` **D-3 is discharged**. The mirror is
+> guarded by `tests/test_staging_tools.py::test_ontology_mirrors_node_ontology_doc`, which asserts
+> against this file's sets rather than against the code's own.
 
 ---
 
@@ -132,6 +134,12 @@ _TYPE_EDGES = {
 
 *(K's destination subfolder `"Knowledge"` is a placeholder — confirm the actual vault K folder name in O.1b.)*
 
+> **Superseded snapshot.** The block above is the **O.1b-era** target and is kept as the record of
+> what that sprint changed. It no longer matches the code: `evidence_base` was extended to K
+> (C.3b) and `collides_with` / `informed_by` were added (C.4a). **§2 is the authority** — read it,
+> not this snippet, and `tests/test_staging_tools.py::test_ontology_mirrors_node_ontology_doc`
+> asserts the code against §2.
+
 ---
 
 ## 5. Recommended vault-template updates (USER work — I must not touch `templates/`)
@@ -141,6 +149,14 @@ The repo authority is this file; Obsidian renders whatever frontmatter a note ca
 
 - `templates/Tpl_thought.md` — add `dead_ends: []`
 - `templates/Tpl_decision.md` — add `contradicts: []`
+
+**Added 2026-08-12 (C.4a), and this one matters more than the two above.** The repo sources
+`prompts/obsidian_tpl/Tpl_{thought,insight,decision}.md` gained `informed_by: []`. Syncing it into
+the vault's own templates is what makes the field present at the moment a judgment node is
+authored — the point at which the Architect is demonstrably *not* filling edges by hand
+(`docs/audits/L.C.1-friction-baseline.md` §5: *"no links"*, `informed_by` skipped entirely). A
+tool can now propose the edge either way, but a node whose template lacks the key starts life
+without a slot for its own provenance.
 
 (K and I vault templates already match the canonical set — no change.)
 

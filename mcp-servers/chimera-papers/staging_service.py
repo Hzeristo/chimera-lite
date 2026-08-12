@@ -11,10 +11,10 @@ import yaml
 # K/T/I/D typed-edge vocabulary — mirrors docs/ARCHITECTURE/NODE_ONTOLOGY.md (the authority).
 _TYPE_DEST = {"knowledge": "Knowledge", "thought": "Thoughts", "insight": "Insight", "decision": "Decision"}
 _TYPE_EDGES: dict[str, dict[str, list]] = {
-    "knowledge": {"derives_from": [], "supersedes": [], "contradicts": [], "evidence_base": []},
-    "thought":   {"derives_from": [], "supersedes": [], "contradicts": [], "dead_ends": [], "drives_decision": []},
-    "insight":   {"synthesizes": [], "evidence_base": [], "derives_from": [], "drives_decision": [], "supersedes": [], "contradicts": []},
-    "decision":  {"derives_from": [], "drives_decision": [], "dead_ends": [], "supersedes": [], "contradicts": []},
+    "knowledge": {"derives_from": [], "supersedes": [], "contradicts": [], "evidence_base": [], "collides_with": []},
+    "thought":   {"derives_from": [], "supersedes": [], "contradicts": [], "dead_ends": [], "drives_decision": [], "collides_with": [], "informed_by": []},
+    "insight":   {"synthesizes": [], "evidence_base": [], "derives_from": [], "drives_decision": [], "supersedes": [], "contradicts": [], "collides_with": [], "informed_by": []},
+    "decision":  {"derives_from": [], "drives_decision": [], "dead_ends": [], "supersedes": [], "contradicts": [], "collides_with": [], "informed_by": []},
 }
 _SLUG_RE = re.compile(r'[\\/:*?"<>|\s]+')
 
