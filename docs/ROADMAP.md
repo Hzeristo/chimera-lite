@@ -423,6 +423,65 @@ re-decided then. Batch-planning of N.B is **held** until then.
 
 ## Queued
 
+**Execution order: L.C → K → I → H.** These four are the backward arc — refactors that reach
+back and restructure the foundation rather than adding capability, which is why their letters
+descend from the M pivot. Register is epistemology throughout: *is what we hold faithfully
+held?* Naming grammar and the full ledger: `docs/phases/CODENAMES.md`.
+
+### Phase L.C — Colligo: Candidate Consumption Paths ▶ Next
+**Status:** Queued (after L.B seal — unblocked 2026-08-12). Spec: `docs/phases/phase-L.C.md`.
+**Etymology:** Latin *colligō* — to bind together, to infer. Whewell's term for the cognitive
+moment scattered observations bind into a principle. Here: binding candidate material (W1 /
+extract outputs) into committed artifacts.
+
+Research is not batch. A claim spotted mid-read wants immediate verification, and the verdict
+shapes the rest of the read. L builds the generators; L.C builds the glue that makes their
+outputs immediately consumable — no context switch, no manual wiring, **no route privileged over
+another** (I1.4). The three consumption routes must carry equal friction: (1) read a paper, write
+a T-node, zero AI; (2) read original + AI outputs, author T/I informed by both; (3) review [V]
+claims, batch-promote. Also establishes proof-graph normal form. Breadth at scale is L.C+ scope
+per L.B's seal definition.
+
+### Phase K — Katalepsis: Structural Provenance
+**Status:** Queued (builds on Phase L outputs; executes after L.C). Spec: `docs/phases/phase-K.md`.
+**Etymology:** the Stoic *kataleptic impression* — a grasp whose structure guarantees its truth;
+the criterion dividing knowledge from opinion.
+
+Makes provenance **load-bearing rather than advisory**. Driving frictions are two confessions:
+the agent flagged claims `[U]` and then reasoned with them as `[V]` ("worse than not flagging,
+because it performs rigor"), and it inherited the authors' framing of a number it had already
+doubted. Every provenance layer built so far — `ai-suggested`, `[V]/[P]/[U]`, `grounded` — assumes
+the agent respects its own flags. Directly owns **ENFORCEMENT_DEBT R5b**: monotonicity (I0.2) is a
+stated target whose enforcing code does not exist, so a well-formed `[V]` resting on a `[U]`
+dependency is currently accepted.
+
+### Phase I — Isostheneia: Adversarial Dialogue Lifecycle
+**Status:** Queued (after Phase K). Spec: `docs/phases/phase-I.md`.
+**Etymology:** ⚠️ **not yet recorded.** Neither `phase-I.md` nor the CODENAMES ledger states one.
+Proposed, pending Architect confirmation: Greek *isostheneia* — equal force; the Pyrrhonist state
+where opposing arguments are balanced so judgment must be suspended. Fits the backward-arc
+epistemology register and the phase's own mission, but it is a suggestion, not the canonical.
+
+Lifecycle-managed adversarial reasoning: opposing framings maintained at equal force until the
+Architect settles. Every round committed to the vault, codex audits every session, the harness
+monitors collapse — but humans decide when to stop. The structural answer to a single-framing
+agent that agrees with whichever side it read last.
+
+### Phase H — Hypostasis: Structured Primary Evidence
+**Status:** Queued (executes after Phase I). Spec: `docs/phases/phase-H.md`.
+**Etymology:** ⚠️ **not yet recorded.** Neither `phase-H.md` nor the CODENAMES ledger states one.
+Proposed, pending Architect confirmation: Greek *hypostasis* — that which stands beneath; the
+underlying substance. Suggestion, not the canonical.
+
+The substrate: reliable extraction of table-level primary evidence. **Dependency tension recorded
+in its own spec** — H is substrate *to* K, since K's monotonicity guarantees rest on W1 verdicts
+whose `[V]` tags anchor on table evidence. Running K first risks katalepsis over akataleptic
+input, the precise failure K exists to prevent; the order was chosen anyway because K needs codex
+(acquisition-gated). Also the unhomed owner of **ENFORCEMENT_DEBT D-1** — provenance decay (I0.4)
+unimplemented, and supersession currently implemented as deletion, which I0.4 forbids outright.
+
+---
+
 ### Phase V — Exocortex & Memory
 - K/T/I/D node ontology (Knowledge / Thought / Insight / Decision)
 - PaperMiner → Knowledge Node automation (via Lens output → vault note write)
