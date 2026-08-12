@@ -39,6 +39,14 @@ Evidence: `staging_service.py:12-16`; `{thought,insight,decision,knowledge,deep_
 All edges are **directional**, stored in a node's frontmatter as a list of target wikilink stems, pointing
 **from this node → the target(s)**. An empty list (`[]`) means "no such edge yet."
 
+> **An edge is metadata, not an object** (Architect ruling, 2026-08-12). Unlike a KG proper, an edge
+> here has no independent identity, no provenance of its own, and no existence apart from the
+> frontmatter list it sits in. The consequence is scope, not convenience: appending an edge to a
+> committed node does **not** modify that node's committed **content**, so it does not engage
+> `INVARIANTS.md` I1.2's writer clause. `ascend_node` is the sole writer of *new committed nodes*;
+> `apply_link_patch` mutating an existing node's `graph_edges` is a distinct, human-invoked path and
+> needs no tier guard. Recorded as `ENFORCEMENT_DEBT.md` **D-7**.
+
 | Edge | Meaning (this node → target) | Applies to |
 |---|---|---|
 | `derives_from` | Provenance / lineage — this node was built from the target(s). | K T I D |
