@@ -3,6 +3,100 @@
 **Status:** Queued (after Phase K)
 **Predecessor:** Phase K (Katalepsis)
 
+## VISION — Why Isostheneia
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Isostheneia (ἰσοσθένεια, Pyrrhonist): EQUAL FORCE. Two opposed arguments │
+│ held at strengths so evenly matched that assent cannot be compelled —    │
+│ the condition under which judgment is suspended rather than settled by   │
+│ fatigue, turn order, or authority.                                       │
+│                                                                          │
+│ Chimera does not want permanent suspension. It wants suspension to be    │
+│ the DEFAULT STATE that only evidence — and only the Architect (I0.1) —   │
+│ is permitted to end.                                                     │
+│                                                                          │
+│ Phase K makes a single verdict structurally honest. Phase I makes the    │
+│ DIALOGUE structurally honest: it measures whether two framings were ever │
+│ actually at equal force, and refuses to let a settlement pass as earned  │
+│ when nothing earned it.                                                  │
+│                                                                          │
+│ Success metric: a settled position arrives carrying the round it settled │
+│ at, the evidence that settled it, and the losing framing intact — and a  │
+│ re-run with the Architect's apparent preference INVERTED settles the     │
+│ same way.                                                                │
+└──────────────────────────────────────────────────────────────────────────┘
+
+### The failure taxonomy
+
+Isostheneia is not a mood, it is a measurable property of a dialogue, and it fails in
+exactly four ways. One is a precondition; three are breakages, and two of those are
+*opposite* errors.
+
+**0. Deviation / pass@k is the PRECONDITION.** Two positions cannot be held at equal force
+if the generator can only produce one. If k independent samples collapse to a single
+framing, the "debate" is one position rehearsed twice and isostheneia is unreachable **by
+construction, not merely unachieved** — the same distinction `criteria/field/streaming-video-memory.md`
+draws when a system's memory is fed whole into context: the capability is excluded by the
+architecture, so no experiment can test it. Diversity is not a quality knob here. It is the
+entry condition, and a harness that never measures it is asserting its own premise.
+
+**1. Entropy collapse = LOSS of isostheneia.** One side beats the other *too early*: the mass
+over positions sharpens before the evidence warrants it. Note what is and is not wrong —
+collapse is not wrong because it picks a side. Dialogues are supposed to end. It is wrong
+because it picks **before**, and the resulting settlement records a winner without recording
+a reason.
+
+**2. Premature stopping = FAKE isostheneia.** Balance that was never contested. From outside
+it is indistinguishable from the real thing: two positions, no winner, an honest-looking
+suspension. But nothing pushed. This is the theater form, and by the north star it is
+**negative value** — worse than an openly one-sided read, because it launders *"we did not
+check"* into *"the evidence was balanced."* An unexamined tie is not a tie.
+
+**3. Sycophancy / instruction-following = isostheneia broken TOWARD THE ARCHITECT.** The
+third party in a two-party dialogue. Here the balance breaks not between advocate and
+skeptic but toward whoever holds the session: the operator's apparent preference acts as an
+unmeasured weight on one pan. This is the most dangerous of the three because it is
+invisible to both debaters and to the Architect — who then reads their own framing back as
+independent confirmation. It is the confession's framing-bias failure (`phase-K.md`) with a
+human as the source of the frame instead of the paper's authors.
+
+**(1) and (2) are opposite errors, and that is the point.** Isostheneia is neither "maximize
+disagreement" nor "reach consensus". It is: *hold force equal until evidence — not fatigue,
+not turn order, not deference — settles it.* A harness tuned only against collapse will stop
+too late and call exhaustion balance; one tuned only against stalling will collapse and call
+speed decisiveness. Both must be instrumented, or optimizing either produces the other.
+
+### Falsifiability
+
+Per `.claude/skills/_shared/falsifiability.md`, each failure needs a measurement or it is
+decoration:
+
+| Failure | Signal | Settling measurement |
+|---|---|---|
+| 0 — no deviation | semantic spread across k sampled framings | spread ≈ 0 → report "isostheneia unreachable" and do NOT run the debate; a one-voice debate must fail loudly, not produce a tidy transcript |
+| 1 — entropy collapse | position mass per round vs **new evidence** introduced that round | a sharp drop in a round that introduced no new evidence is collapse, not convergence |
+| 2 — premature stopping | evidence introduced in the FINAL round | zero → the settlement is unearned; flag the *verdict*, not the position |
+| 3 — sycophancy | preference-swap re-run | invert the Architect's apparent preference; if the settlement follows the operator rather than the evidence, the harness is measuring deference |
+
+The preference-swap probe is the phase's sharpest instrument and its own success metric. It
+is also the only one of the four that can catch a failure the Architect cannot see unaided.
+
+### Why this generalizes
+
+These are not Chimera's failures; they are the failure modes of automated research harnesses
+as a class. Multi-agent debate, self-consistency voting, and LLM-as-judge ensembles all
+**assume a diversity they never measure** (failure 0) and **date a convergence they never
+justify** (failures 1 and 2), while every one of them runs inside a session whose operator has
+a visible preference (failure 3). A debate framework that reports only its final answer has
+discarded precisely the evidence needed to know whether the answer was earned.
+
+The same shape appeared in this repository on 2026-08-12, in the verification domain rather
+than the dialogue one: three verifiers returned PASS — one testing a substring, one aimed at
+the wrong actor, one chained to a symbol that had been renamed — and each was a check that
+stopped before it could fail. Premature stopping wearing a green light. That is failure 2
+with no debate anywhere in sight, which is the argument that this taxonomy is about
+inquiry itself and not about dialogue mechanics.
+
 ## Mission
 
 Lifecycle-managed adversarial reasoning where opposing framings are maintained

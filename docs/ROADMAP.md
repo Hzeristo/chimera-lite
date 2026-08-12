@@ -457,12 +457,24 @@ dependency is currently accepted.
 
 ### Phase I — Isostheneia: Adversarial Dialogue Lifecycle
 **Status:** Queued (after Phase K). Spec: `docs/phases/phase-I.md`.
-**Etymology:** ⚠️ **not yet recorded** — verified 2026-08-12 against the whole repo. `phase-I.md`
-has no VISION/"Why Isostheneia" section (unlike K and H, which both have one), and the CODENAMES
-ledger has no I row. The meaning is nonetheless *encoded* in its mission line: opposing framings
-"maintained **at equal force** until the Architect settles" (`phase-I.md:9`) — which is precisely
-Greek *isostheneia*, equal force, the Pyrrhonist balance under which judgment is suspended.
-Proposed on that basis, pending the Architect's own wording at phase open (CODENAMES ritual 1).
+**Etymology** (recorded 2026-08-12 — `phase-I.md` VISION, Architect-directed): *Isostheneia*
+(ἰσοσθένεια, **Pyrrhonist**) — equal force. Two opposed arguments held at strengths so evenly
+matched that assent cannot be compelled. Chimera does not want permanent suspension; it wants
+suspension to be the **default state that only evidence, and only the Architect (I0.1), may end**.
+
+**The failure taxonomy** — one precondition, three breakages, two of them opposite errors:
+deviation/pass@k is the *precondition* (no sampling diversity → isostheneia unreachable **by
+construction**); **entropy collapse** is its loss (one side beats the other before the evidence
+warrants); **premature stopping** is its counterfeit (balance that was never contested — the
+theater form, and by the north star negative value); **sycophancy** breaks it *toward the
+Architect*, the third party whose preference weights one pan invisibly. Collapse and stalling are
+opposite failures, so instrumenting only one produces the other. Sharpest probe: a
+**preference-swap re-run** — invert the Architect's apparent preference and see whether the
+settlement follows the operator or the evidence.
+
+These are general auto-research-harness failures, not Chimera's: multi-agent debate,
+self-consistency, and LLM-as-judge ensembles all assume a diversity they never measure and date a
+convergence they never justify.
 
 Lifecycle-managed adversarial reasoning: opposing framings maintained at equal force until the
 Architect settles. Every round committed to the vault, codex audits every session, the harness
