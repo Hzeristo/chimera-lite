@@ -55,6 +55,13 @@ _SKILL_REQUIRED_TOOLS = {
     "chimera-mcp-taste": [],
     "chimera-sprint-discipline": [],
     "chimera-triage-paper": ["analyze_paper_data", "load_criteria", "write_scout_card"],
+    "chimera-w1-review": [
+        "vault_query",
+        "read_vault_file",
+        "search_vault_attribute",
+        "write_result",
+        "link_nodes",
+    ],
     "chimera-w1-verify": [
         "fetch_paper",
         "convert_pdf_to_md",
