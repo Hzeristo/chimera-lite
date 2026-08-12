@@ -162,8 +162,8 @@ The invariants are a HUMAN-AUTHORED SSOT: `docs/ARCHITECTURE/INVARIANTS.md` owns
 
 **I1.2 — PASS**
 
-- *Checked:* AST-extracted `promote_node` / `ascend_node` and tested for the tier guards that make the sole-writer guarantee structural rather than conventional.
-- *Finding:* `promote_node` refuses `chimera_tier=deep_read` and `ascend_node` requires it (`mcp-servers/chimera-papers/staging_service.py`), so `ascend_node` is structurally the sole `Knowledge/` writer.
+- *Checked:* AST-extracted `_promote_write` / `promote_node` / `ascend_node` and tested that the `Knowledge/` refusal sits in the shared writer keyed on the DESTINATION, that only `ascend_node` unlocks it, and that `promote_node` does not.
+- *Finding:* `_promote_write` refuses any write whose destination is `Knowledge/` unless the caller passes `allow_knowledge=True`; only `ascend_node` does (`mcp-servers/chimera-papers/staging_service.py`). The gate is on the destination at the single shared chokepoint, so `promote_node` cannot reach the committed tier at any tier value.
 
 **I1.3 — UNCHECKABLE**
 

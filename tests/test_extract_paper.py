@@ -358,7 +358,15 @@ async def test_stage_deep_read_node_reports_progress(tmp_path: Path) -> None:
     assert any("Grounding" in m for _, m in seen)
 
 
-def test_promote_unlinks_superseded(tmp_path: Path) -> None:
+def test_ascend_unlinks_superseded(tmp_path: Path) -> None:
+    """Supersede-unlinking, exercised through the route a K node is actually allowed to take.
+
+    This test used to drive a knowledge node through `promote_node` with no tier — which is
+    precisely the I1.2 hole (`Knowledge/` reachable without `ascend_node`), so the test was
+    asserting real behaviour over an illegal path. `_unlink_superseded` is shared by both
+    callers via `_promote_write`, so ascending a deep_read node covers the same mechanics
+    without depending on the defect.
+    """
     vault = _make_vault(tmp_path)
     old = vault / "inbox" / "Skim" / "2305.16291-VOYAGER.md"
     _k_node(old)
@@ -368,7 +376,8 @@ def test_promote_unlinks_superseded(tmp_path: Path) -> None:
         title="2305.16291",
         body="b",
         edges={"supersedes": ["2305.16291-VOYAGER"]},
+        chimera_tier="deep_read",
     )
     assert old.exists()
-    staging.promote_node(staged)
-    assert not old.exists()  # the superseded node is unlinked on promotion
+    staging.ascend_node(staged)
+    assert not old.exists()  # the superseded node is unlinked on ascension

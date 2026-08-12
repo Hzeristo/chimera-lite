@@ -114,12 +114,31 @@ class StagingService:
         path.write_text(content, encoding="utf-8")
         return path
 
-    def _promote_write(self, fm: dict, body: str, staging_path: Path) -> Path:
+    def _promote_write(
+        self, fm: dict, body: str, staging_path: Path, *, allow_knowledge: bool = False
+    ) -> Path:
         """Shared write mechanics for promote_node / ascend_node: status→active, write to
         the node type's committed subfolder (_TYPE_DEST), delete the staging file, and
-        unlink any superseded prior. No tier logic here — callers gate before calling."""
+        unlink any superseded prior.
+
+        The `Knowledge/` gate lives HERE, not in the callers. I1.2 is a claim about a
+        DESTINATION — "ascend_node is the sole writer of the committed tier" — so it must be
+        enforced where the destination is chosen. L.B.3 gated the callers instead
+        (`promote_node` refuses `chimera_tier == "deep_read"`), which left the invariant true
+        only by coincidence: a `type: knowledge` node whose tier is absent or `scout` passes
+        that refusal and lands in `Knowledge/` anyway. `create_staging_node` deliberately
+        never defaults a K node's tier, so that artifact is routine, not exotic.
+        Only `ascend_node` may pass `allow_knowledge=True`.
+        """
         node_type = fm.get("type", "thought")
         dest_sub = _TYPE_DEST.get(node_type, "Thoughts")
+        if dest_sub == "Knowledge" and not allow_knowledge:
+            raise ValueError(
+                "Knowledge/ is written ONLY by ascend_node (I1.2). Refusing a "
+                f"type={node_type!r} node with chimera_tier={fm.get('chimera_tier')!r}: "
+                "promote_node handles T/I/D; a K node reaches the committed tier by review "
+                "and ascend_node, never by promotion."
+            )
         fm["status"] = "active"
         slug = _SLUG_RE.sub("_", fm.get("title", "untitled"))[:60].rstrip("_")
         dest_dir = self.vault_root / dest_sub
@@ -159,7 +178,7 @@ class StagingService:
             )
         # Grounding verification deferred to DEBT-018 (docs/TECHNICAL_DEBT.md): human
         # staging-review is the current check; ascend does not silently pass a grounding claim.
-        return self._promote_write(fm, body, staging_path)
+        return self._promote_write(fm, body, staging_path, allow_knowledge=True)
 
     def _unlink_superseded(self, fm: dict, *, keep: Path) -> None:
         """D1 supersede: a promoted node replaces the prior node(s) named in its

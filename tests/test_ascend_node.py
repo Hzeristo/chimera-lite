@@ -73,6 +73,32 @@ def test_promote_node_refuses_deep_read_node_structurally(tmp_path: Path) -> Non
     assert staged.exists()  # refused — staging file untouched
 
 
+@pytest.mark.parametrize("tier", ["scout", "synthesis", None])
+def test_promote_node_refuses_any_knowledge_node_whatever_its_tier(
+    tmp_path: Path, tier: str | None
+) -> None:
+    """THE cell this file used to leave untested — and the hole it hid.
+
+    The suite checked `promote_node(deep_read)` and `ascend_node(non-deep_read)`, so the
+    remaining combination — `promote_node` on a knowledge node that is NOT deep_read — was
+    never exercised. It landed in `Knowledge/`: L.B.3 gated the callers on the TIER, while
+    I1.2 is a claim about the DESTINATION, and `create_staging_node` deliberately never
+    defaults a K node's tier, so an untiered K node is routine rather than exotic.
+    Demonstrated by execution 2026-08-11; the gate now lives in `_promote_write`.
+    """
+    vault = tmp_path / "vault"
+    svc = StagingService(tmp_path / "staging", vault)
+    staged = svc.create_staging_node(
+        type="knowledge", title="Sneaks Past The Tier Guard", body="b", chimera_tier=tier
+    )
+
+    with pytest.raises(ValueError, match="ascend_node"):
+        svc.promote_node(staged)
+
+    assert not (vault / "Knowledge").exists() or not list((vault / "Knowledge").glob("*.md"))
+    assert staged.exists()  # refused — staging file untouched
+
+
 @pytest.mark.parametrize(
     "node_type,dest_sub",
     [("thought", "Thoughts"), ("insight", "Insight"), ("decision", "Decision")],

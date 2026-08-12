@@ -474,32 +474,57 @@ def _verify_r2(tools_by_server: dict[str, list[str]], graph: dict[str, set[str]]
 
 
 def _verify_r3() -> RuleVerdict:
-    """R3 — ascend_node is the sole writer of Knowledge/, enforced by promote_node's refusal."""
+    """R3 — ascend_node is the sole writer of Knowledge/.
+
+    I1.2 is a claim about a DESTINATION, so the check must be about the destination. The
+    previous version tested `"deep_read" in promote_node and "raise" in promote_node` and
+    concluded sole-writership from it — a substring test that cannot support that conclusion,
+    and which returned PASS while a `type: knowledge` node with an absent or `scout` tier
+    reached `Knowledge/` through `promote_node` (demonstrated by execution, 2026-08-11).
+
+    What actually makes it structural: the refusal lives in `_promote_write`, the ONE
+    function both callers funnel through, keyed on the destination folder, and opened only
+    by a parameter `ascend_node` alone passes. Then no present or future caller can reach
+    the committed tier by another route.
+    """
     module = "mcp-servers/chimera-papers/staging_service.py"
+    writer = _function_source(module, "_promote_write")
     promote = _function_source(module, "promote_node")
     ascend = _function_source(module, "ascend_node")
     checked = (
-        "AST-extracted `promote_node` / `ascend_node` and tested for the tier guards that make "
-        "the sole-writer guarantee structural rather than conventional."
+        "AST-extracted `_promote_write` / `promote_node` / `ascend_node` and tested that the "
+        "`Knowledge/` refusal sits in the shared writer keyed on the DESTINATION, that only "
+        "`ascend_node` unlocks it, and that `promote_node` does not."
     )
-    promote_guards = "deep_read" in promote and "raise" in promote
-    ascend_guards = "deep_read" in ascend and "raise" in ascend
-    if promote_guards and ascend_guards:
-        return RuleVerdict(
-            "I1.2",
-            "PASS",
-            checked,
-            (
-                f"`promote_node` refuses `chimera_tier=deep_read` and `ascend_node` requires it "
-                f"(`{module}`), so `ascend_node` is structurally the sole `Knowledge/` writer."
-            ),
-        )
-    missing = [
+
+    gate_at_chokepoint = 'dest_sub == "Knowledge"' in writer and "raise" in writer
+    gate_is_opt_in = "allow_knowledge" in writer
+    ascend_unlocks = "allow_knowledge=True" in ascend
+    promote_does_not = "allow_knowledge" not in promote
+
+    failures = [
         name
-        for name, ok in (("promote_node refusal", promote_guards), ("ascend_node gate", ascend_guards))
+        for name, ok in (
+            ("destination refusal inside _promote_write", gate_at_chokepoint),
+            ("refusal is opt-in via allow_knowledge", gate_is_opt_in),
+            ("ascend_node passes allow_knowledge=True", ascend_unlocks),
+            ("promote_node never passes allow_knowledge", promote_does_not),
+        )
         if not ok
     ]
-    return RuleVerdict("I1.2", "VIOLATED", checked, f"Missing guard(s): {', '.join(missing)}")
+    if failures:
+        return RuleVerdict("I1.2", "VIOLATED", checked, f"Missing: {'; '.join(failures)}")
+    return RuleVerdict(
+        "I1.2",
+        "PASS",
+        checked,
+        (
+            f"`_promote_write` refuses any write whose destination is `Knowledge/` unless the "
+            f"caller passes `allow_knowledge=True`; only `ascend_node` does (`{module}`). The "
+            f"gate is on the destination at the single shared chokepoint, so `promote_node` "
+            f"cannot reach the committed tier at any tier value."
+        ),
+    )
 
 
 def _verify_r4() -> RuleVerdict:
