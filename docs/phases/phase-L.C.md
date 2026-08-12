@@ -5,6 +5,17 @@
 **Etymology:** Latin *colligō* — to bind together, to infer. Whewell's term for
 the cognitive moment scattered observations bind into a principle. Here: binding
 candidate material (W1/extract outputs) into committed artifacts (K/T/I nodes).
+**Audit:** `docs/audits/L.C.0.md` (C.0, complete). Sprint detail belongs in the batch plan,
+not here.
+
+**Driving frictions:**
+- Research is not batch — a claim spotted mid-read wants verification now, and the verdict
+  shapes the rest of the read.
+- Route friction is unequal and unmeasured. I1.4 is one of eight canonical invariants with no
+  mechanical verifier (`ENFORCEMENT_DEBT` D-5), so the phase named for it could seal on an
+  impression.
+- `friction-260811-01` (OPEN) — "registered" is an untested surface; three instances, no phase
+  home. Every L.C sprint ships a registered thing.
 
 ---
 
@@ -24,21 +35,34 @@ None should feel against the grain. L2 is augmentation, not replacement.
 
 ---
 
+## The obstacle
+
+Routes 1 and 2 terminate **in Obsidian**. Route 3 terminates **in the vault via MCP**.
+
+Claude Code has no reach into Obsidian: no hook fires when a note is opened, no event announces
+that a T-node was written. Route 3 is fully instrumented; the other two are not reachable at all.
+
+This is structural, and it is the phase's centre of difficulty. It also means I1.4 cannot be
+satisfied by making route 3 frictionless — that maximises the imbalance. The vault filesystem is
+the one surface both sides share: Claude cannot watch Obsidian, but it can read what Obsidian
+wrote. That is where the bridge goes.
+
+---
+
 ## Mission
 
-Bind candidate material to committed artifacts with zero manual wiring and equal
-support for all three routes. Establish proof-graph normal form: every committed
-node's support chain is traceable (strong [V] or documented-weak [P]/[U]); no
-candidate orphaned beyond a review threshold.
+Bind candidate material to committed artifacts by wiring the harness's existing affordances to
+Chimera's invariants, and make "equal friction" a **measured** property rather than an assessed
+impression. Establish proof-graph normal form: every committed node's support chain is traceable
+(strong `[V]`, or documented-weak `[P]`/`[U]`).
 
-Three constraints from architectural reconciliation:
-1. **T-nodes are observations, not AI audits.** Authorship is the Architect's.
-   AI outputs may inform; provenance records `informed_by`, never `derives_from`.
-2. **W2 consumption stays thin.** W2 may become an incremental gap-finder or merge
-   into field-ingestion (Phase L.D). L.C does NOT build thick W2-consumption paths.
-   The W2→extract link is interface-only, agnostic to map-vs-query.
-3. **Seal on real fixtures, not scale.** 3-4 real papers suffice. 20+ papers /
-   3+ subfields is future work.
+Constraints:
+1. **T/I/D nodes are Architect-authored.** AI may inform; provenance records `informed_by`,
+   never `derives_from`. Authorship is non-transferable (I0.5).
+2. **W2 consumption stays thin.** W2's artifact form carries no protection; the link must
+   survive its reshaping in L.D.
+3. **Seal on real fixtures, not scale.** 3-4 real papers suffice.
+4. **Measure before smoothing.** No friction-changing sprint lands before the instrument exists.
 
 ---
 
@@ -46,110 +70,131 @@ Three constraints from architectural reconciliation:
 
 | Sprint | Risk | One-line goal |
 |--------|------|---------------|
-| C.0 | — | Audit: current handoff gaps (K→W1, extract→W1, provenance automation surface); confirm W2's uncertain future to scope C.2 minimally |
-| C.1 | 🟡 | K-node claims → W1 batch offer: extract completion surfaces "verify these N claims" one-click |
-| C.2 | 🟢 | W2 recommendation → extract: thin interface only — "a paper recommendation triggers extract," agnostic to map-vs-query. Minimal by design (W2 may die) |
-| C.3 | 🟡 | W1 verdict → depends_on auto-edge: promote writes the edge, no hand-editing |
-| C.4 | 🟡 | Informed_by provenance: authoring T/I while viewing AI material auto-records `informed_by` (not `derives_from`) |
-| C.5 | 🔴 | Stream-mode W1: queue + background + inline verdict. Heavy; defer to L.D if over one sprint |
-| seal | — | phase_review: three consumption routes run on real fixtures with equal friction |
+| C.0 | — | ✅ Complete — `docs/audits/L.C.0.md` |
+| C.1 | 🟢 | Friction instrument: define the metric, baseline all three routes + composition drift |
+| C.2 | 🟢 | Registration reachability: ONE assertion over `@mcp.tool` names and `.claude/agents/*.md`. Homes `friction-260811-01` |
+| C.3a | 🟡 | The `promote` transition: implement the `PENDING_REVIEW → PROMOTED` lifecycle the artifact spec declares and no code has ever provided |
+| C.3b | 🟡 | `evidence_base` extended to K, canonical and code together (D4) |
+| C.3c | 🟡 | Route 3 collapse: pending `[V]` verdicts → one structured decision → promote; the `evidence_base` patch is staged, not hand-written |
+| C.4 | 🟡 | Boundary bridge: detect a hand-authored T/I/D node, offer its `informed_by` from what the session consulted. No tool writes the node |
+| C.5 | 🟡 | Mid-read verification: queue a claim on a native background task, verdict returns by notification. Probe-first; may end at its probe |
+| C.6 | 🟢 | W2 handoff: a promote-candidate becomes a runnable extract carrying its gap sentence. Interface only |
+| seal | — | phase_review: three routes measured, not asserted |
 
-**Dependencies:** C.0 precedes all. C.1/C.3/C.4 parallel-eligible after C.0.
-C.2 is thin, independent. C.5 depends on C.1+C.3. Seal requires C.1/C.3/C.4;
-C.2 is minimal; C.5 may defer to L.D.
+**Dependencies:** C.1 gates C.3a/b/c, C.4, C.5 — the sprints that change friction. C.3a and C.3b
+both precede C.3c and are parallel-eligible with each other. C.2 and C.6 are independent. Seal
+requires C.1/C.2/C.3a/C.3b/C.3c/C.4. Sprint detail: `docs/plans/Phase-L.C-batch.md`.
+
+---
+
+## Design Decisions
+
+**D1 — Friction is measured in Architect actions.** Per route, per committed artifact, in three
+registers: **invocations**, **context switches** (crossings of the Claude Code ↔ Obsidian
+boundary), and **manual transcription** (characters retyped that a machine already held).
+Deliberately crude: a crude observable beats an eloquent impression, and today there is none.
+
+**D2 — The nudge is composition drift, not an action-count cap.** What I1.4 protects is
+longitudinal: if promoted K nodes accumulate while hand-authored T/I nodes stop appearing, the
+vault has become a record of what the pipeline found rather than of the Architect's thinking.
+Measured from the vault itself (`vault_query` by type and `chimera_tier`). **Corollary — the
+design rule:** where a route is against the grain, fix *that* route; never handicap another to
+restore parity.
+
+**D3 — `informed_by` is offered, never written.** No tool writes, stages, pre-fills, or scaffolds
+a T/I/D node. C.4 detects that one was authored and offers the value it can honestly compute; the
+Architect pastes or ignores it (I0.5).
+
+**D4 — The support edge is `evidence_base`, extended to K.** `depends_on` was retired in Phase O
+and again by canonical r2; it survives only as `write_result`'s parameter, pinned to a coordinated
+rename with K.1 (`ENFORCEMENT_DEBT` D-4) — **this phase does not touch it**. Extending
+`evidence_base` to K is a Tier-2 amendment under I2.2, ratified 2026-08-12, documented in
+`NODE_ONTOLOGY.md`, justified against I0.2 and I1.3. C.3 carries it as its first task.
+
+**D5 — Staging is machine-time; applying is human-time.** `link_nodes` stages a patch;
+`apply_link_patch` applies it. C.3 automates the staging only; the apply call is the commit (I0.1).
+
+**D6 — C.5's substrate is the harness, not the repo.** W1's judgment must run in a subagent and
+MCP cannot spawn subagents, so `TaskService` can never host a backgrounded W1 at any budget. The
+mechanism that works is Claude Code's native background Task. The risk is therefore dependency on
+harness behaviour no test here can pin — hence probe-first, and a sprint permitted to end at its
+probe with a recorded finding.
+
+**D7 — Prefer invoking an affordance over building one.** Background tasks, structured
+multi-select decisions, skill invocation by description, completion notification — the harness
+supplies these. A sprint building a queue, a picker, or a scheduler should stop and check whether
+it is rebuilding the harness. `chimera-dependency-veto`'s logic, pointed inward.
 
 ---
 
 ## Cross-Sprint Red Lines
 
-- ❌ **T/I nodes are Architect-authored.** No "W2 map → T-node" auto-conversion.
-  Provenance records `informed_by` at most. Authorship is non-transferable.
-- ❌ **W2 consumption stays thin.** C.2 is an interface, not a workflow. Do not
-  build map-parsing, candidate-ranking, or persistent-map logic — W2's artifact
-  form is uncertain (Phase L.D). The link survives whether W2 outputs a map or a
-  query result.
-- ❌ **No privileging of routes.** Any feature smoothing one route must not add
-  ceremony to the others.
-- ❌ **Provenance is structural.** Auto-edges (C.3) and informed_by (C.4) live in
-  frontmatter, not comments.
-- ❌ **Stream-mode does not replace batch.** Both W1 modes coexist (C.5).
-- ❌ **No new MCP server.** Skills orchestrate existing primitives.
+- ❌ **No tool authors a T/I/D node** — no writer, no staging path, no body-filler, no
+  frontmatter-only scaffold (I0.5).
+- ❌ **No friction-changing sprint lands before C.1.** A route whose before-state was never
+  recorded cannot be shown to have kept parity.
+- ❌ **No route privileged.** Where a route is against the grain, fix that route — never
+  handicap another (D2).
+- ❌ **Nothing auto-commits.** Machine-time stages; human-time applies and promotes (I0.1).
+- ❌ **Nothing ships unregistered.** Covered by C.2, and the seal exercises new components
+  through the **live client** — never in-process imports (`friction-260811-01`).
+- ❌ **Do not rename `write_result`'s `depends_on` parameter** — pinned to Phase K.1.
+- ❌ **W2 consumption stays thin** — no map parsing, ranking, or persistent-map dependency.
+- ❌ **No new MCP server**; `.mcp.json` stays two.
 - ❌ No opportunistic refactoring.
 
 ---
 
 ## Hard Sealing Conditions
 
-1. **(C.1)** extract completion surfaces "verify N claims" one-click; triggering
-   queues all N to W1. Verified on a real extract (e.g., PyraVid, 3-5 claims).
+1. **(C.1)** The metric is defined and all three routes carry a recorded baseline in D1's three
+   registers, plus a composition-drift baseline (D2), before any of C.3/C.4/C.5 executes.
 
-2. **(C.2)** A W2 paper recommendation (map entry OR query result — interface
-   handles both) triggers extract with the gap-context carried into metadata.
-   Thin: no persistent-map dependency. Verified on a real W2 run.
+2. **(C.2)** One assertion covers `@mcp.tool` names and `.claude/agents/*.md`; every skill is
+   covered and every agent parses. Verified by `pytest` **plus a manual negative control that the
+   check can be made to fail.**
 
-3. **(C.3)** Promoting a W1 verdict writes the `depends_on` edge in the target's
-   frontmatter automatically. No manual YAML. Verified: promote a [V], inspect edge.
+3. **(C.3a+b+c)** Pending `[V]` verdicts are reviewed and promoted in one structured decision, and
+   the `evidence_base` patch is staged automatically with correct type and direction. No manual
+   YAML, no `depends_on`. Requires the `promote` transition to exist at all — it does not today
+   (`result_service.py:56`), which is C.3a.
 
-4. **(C.4)** Authoring a T/I node while viewing a W2 map or extract K-node
-   auto-fills `informed_by`. Architect may amend. Verified on a real authoring session.
+4. **(C.4)** A T/I/D node hand-authored in Obsidian is detected and its `informed_by` offered from
+   what the session consulted — with **no tool having written the node**.
 
-5. **(C.5 — deferrable)** Queue a claim mid-read; W1 runs background; verdict
-   appears inline without blocking. If heavier than one sprint, defer to L.D;
-   seal on C.1/C.3/C.4.
+5. **(C.5 — may end at its probe)** A claim queued mid-read returns its verdict without blocking,
+   and both W1 modes coexist. Or the probe's failure is recorded as the sprint's finding.
 
-6. **(VISION gate — Architect-assessed)** Three sessions — pure observation /
-   AI-assisted / batch promote — run with equal friction and honest provenance.
-   No route against the grain.
+6. **(C.6)** A W2 promote-candidate triggers extract with its gap context, with no dependency on
+   the map's persistence.
+
+7. **(VISION gate — Architect-assessed)** Three sessions run with seal-time friction numbers
+   recorded beside the baseline, and no route reported as against the grain. If a route got worse,
+   this condition does not seal green regardless of how the sessions felt. Composition drift is
+   longitudinal: L.C delivers the baseline; a widening trend later is a re-opening trigger, not a
+   seal blocker.
 
 ---
 
-## Design Decisions
+## Settled Questions
 
-**D1 — Informed_by, not derives_from.** T/I authored while viewing AI material
-carry `informed_by` (context, not derivation). `derives_from` is reserved for
-machine-synthesized edges. Human observation informed by a tool is not derivation.
-
-**D2 — W2 consumption is interface-only (thinning decision).** C.2 does not parse
-maps or rank candidates. It exposes one action — "recommend this paper → extract"
-— that works whether the recommendation is a persistent map entry or a fresh query
-result. W2's artifact may die in L.D; C.2 must not depend on its form. This is the
-primary thinning: no thick investment in a possibly-dying node.
-
-**D3 — Auto-wiring is heuristic with override.** C.3/C.4 use recency/open-pane/
-explicit-action heuristics. The Architect always amends. Defaults, not locks.
-
-**D4 — Equal-friction principle.** Every operation tested against: "does this
-smooth route X while taxing route Y?" If yes, redesign. L2 augments; it does not
-nudge toward AI-dependence or away from it.
-
-**D5 — Stream-mode async, splittable.** C.5 queues claims, returns verdicts async.
-If complex, splits: C.5a (queue+background) seals; C.5b (inline display) defers.
-Batch-offer (C.1) + auto-edge (C.3) already unlock route 3; stream is enhancement.
+- **`evidence_base` extended to K** — ratified 2026-08-12 (D4).
+- **`apply_link_patch` writing committed nodes is NOT an I1.2 violation** — settled by the
+  Architect 2026-08-12 on ontological grounds: an edge here is frontmatter metadata (a list of
+  wikilink stems), not a first-class relation object carrying its own identity and provenance as
+  in a KG. Appending one does not modify the committed node's **content**, which is what I1.2's
+  writer clause governs. **No tier guard is owed.** Recorded in `ENFORCEMENT_DEBT` and
+  `NODE_ONTOLOGY.md §2`; the L.B seal's flat "sole writer" phrasing is annotated there.
 
 ---
 
 ## Out of Scope
 
-- W2 role change itself (Phase L.D). L.C prepares the interface; L.D reshapes W2.
-- Deep Obsidian integration beyond command-palette + frontmatter (Phase S+).
-- 20-paper breadth regime.
-- Novelty three-state operationalization (Phase H/K).
-- Multi-user, deployment.
-
----
-
-## Notes
-
-C.2 is deliberately 🟢 (low-risk, thin). The temptation is to build rich W2-map
-consumption — resist it. W2's artifact form is uncertain (Phase L.D may replace
-maps with incremental queries or merge W2 into field-ingestion). Any thick
-W2-consumption logic built now is work thrown away when W2 reshapes. The interface
-("a recommendation triggers extract") is all that survives the transition.
-
-C.5 weight: stream-mode W1 needs Task backgrounding + async verdict return + queue
-management. Estimate 2-3 sprints if full. Recommend attempting in L.C; if blocked,
-seal on C.1/C.3/C.4 and defer C.5 to L.D. Route 3 is already unlocked by C.1+C.3.
-
-The T-node-authorship clarification (D1) corrects a prior ST error: T-nodes were
-briefly framed as "W2 audit reports." They are observations, possibly AI-informed,
-authored by the Architect. This is load-bearing for human-time supremacy.
+- Inline rendering of verdicts into the reading context → Phase L.D.
+- W2's role change itself → Phase L.D. L.C prepares the interface; L.D reshapes W2.
+- `ENFORCEMENT_DEBT` D-3 (`collides_with` / `informed_by` in `_TYPE_EDGES`) — real, but orthogonal
+  and inert for `informed_by`: those dicts govern writers that reject T/I/D anyway.
+- Deep Obsidian integration beyond the vault filesystem → Phase S+.
+- 20-paper breadth regime; novelty three-state operationalization (→ H/K); multi-user.
+- **Phase L's own seal.** L has six sprint records and no `phase-review.md`; its VISION gate has
+  never been assessed. Recorded so the parent seal is not forgotten under its children.
