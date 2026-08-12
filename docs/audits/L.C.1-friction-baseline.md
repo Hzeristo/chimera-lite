@@ -191,8 +191,31 @@ as such: these are habits, not a timed trial.
 
 ### What these two answers actually establish
 
-Route 1 is not merely low-friction; it is **1 action and zero edges**. Corroborated on disk: all
-six T-nodes carry empty `graph_edges` lists.
+Route 1 is not merely low-friction; it is **1 action and zero edges at authoring time**.
+
+**Correction (2026-08-12, during C.4b).** An earlier revision of this section claimed all six
+T-nodes carry empty `graph_edges`. That is **false**, and the truth is more useful. Measured on
+disk:
+
+| Node | `derives_from` | `informed_by` |
+|---|---|---|
+| Thought-implicit restriction and deep personalization | 0 | key absent |
+| Thought-memory bench-implementation pitfalls | **4** | key absent |
+| Thought-memory bench-mix arch | **2** | key absent |
+| Thought-trajectory-pattern grounding (DR6) | **6** | key absent |
+| Thought-visual memory cellings | **1** | key absent |
+| Thought-visual memory substrates | **2** | key absent |
+
+**Five of six carry edges — 15 `derives_from` links in total**, every one pointing at a deep-read
+node. The Architect demonstrably *does* fill edges by hand; "no links" describes the authoring
+*moment*, not the node's final state. Edges arrive in a later pass.
+
+**What is never filled is `informed_by` — the one key absent from the template.** That is a far
+stronger causal story than "the Architect does not do format work": the edge type present in
+`Tpl_thought.md` gets populated 15 times, and the edge type missing from it gets populated zero
+times. **Template presence predicts edge population**, which makes C.4a's one-line template change
+the intervention most likely to move the number, and makes the vault-template sync
+(`NODE_ONTOLOGY.md` §5) the Architect's highest-leverage action rather than housekeeping.
 
 `informed_by` is not typed, not pasted — **not recorded at all**. So I0.5's mandated provenance
 record is not merely mechanism-less (`ENFORCEMENT_DEBT` D-3); it is **unused**. That moves C.4

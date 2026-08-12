@@ -53,6 +53,7 @@ _SKILL_REQUIRED_TOOLS = {
     "chimera-lens-state-collision": [],
     "chimera-lens-thermodynamic-decay": [],
     "chimera-mcp-taste": [],
+    "chimera-propose-links": ["vault_query", "read_vault_file", "link_nodes"],
     "chimera-sprint-discipline": [],
     "chimera-triage-paper": ["analyze_paper_data", "load_criteria", "write_scout_card"],
     "chimera-w1-review": [

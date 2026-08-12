@@ -108,8 +108,13 @@ node, opens one, or writes prose into one.
 This matters because **edges are format work.** Filling `informed_by` correctly means knowing the
 exact key, the exact wikilink stem, and the exact list syntax — machine work, not judgment, and
 not the work being done at the moment a thought is written. The route-1 datum: *"create a T node
-via keyboard shortcut, fill the contents, no links."* `informed_by` is skipped entirely, and all
-six vault T-nodes carry empty edge lists.
+via keyboard shortcut, fill the contents, no links."*
+
+The vault sharpens this rather than merely confirming it. Five of six T-nodes carry
+`derives_from` edges — 15 links, all to deep-read nodes — so the Architect **does** fill edges,
+in a later pass. What is never filled is `informed_by`, the one key absent from the template.
+**Template presence predicts edge population**, which is why C.4's deliverable is a template slot
+plus a proposal, not a better way to type YAML.
 
 The mechanism already exists — `link_nodes` stages a patch, the Architect applies it (D5). Only
 the vocabulary entry is missing (`ENFORCEMENT_DEBT` D-3), which C.4 closes.

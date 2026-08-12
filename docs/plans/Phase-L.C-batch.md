@@ -353,11 +353,12 @@ body.
 - **I0.5 reserves the *body*.** D-7 settles that an edge is metadata, not content, so a tool
   appending `informed_by` to a hand-authored T-node authors no judgment. No node is ever created
   by a tool and no body is ever opened.
-- **Edges are format work, and the Architect does not do format work.** Route-1 datum:
-  *"create a T node via keyboard shortcut, fill the contents, **no links**."* `informed_by` is
-  **skipped entirely**; all six vault T-nodes carry empty edge lists. The barrier is not typing
-  convenience — filling a structured edge is simply not the work being done at that moment, which
-  is why the deliverable is a proposed patch rather than an easier way to type one.
+- **Edges are format work, and the template decides which get filled.** Route-1 datum:
+  *"create a T node via keyboard shortcut, fill the contents, **no links**."* But the vault shows
+  edges *do* arrive later: **5 of 6 T-nodes carry `derives_from`, 15 links in total**, all to
+  deep-read nodes. What is populated **zero** times is `informed_by` — the one key absent from
+  `Tpl_thought.md`. Template presence predicts edge population, so the deliverable is the template
+  slot plus a proposal, not an easier way to type YAML.
 - **Propose, never auto-apply.** Claude proposes on a node found unlinked; the Architect
   **explicitly orders** the apply — not inferred, not defaulted, not batched by convenience. D-7
   makes the edge legal to write; it does not license the machine to decide the edge should exist.
