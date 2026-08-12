@@ -6,9 +6,9 @@
 invariants with no mechanical verifier (`ENFORCEMENT_DEBT` D-5). This document is the observable.
 Every friction-changing sprint in this phase (C.3a/b/c, C.4, C.5) is gated on it existing first.
 
-**Status:** ⚠️ **PARTIAL — two registers are Architect-blocked by construction.** Routes 1 and 2
-terminate in Obsidian, which no tool here can observe, so their counts must come from the
-Architect walking them. What is measured below is measured; what is not is marked, not estimated.
+**Status:** ✅ **COMPLETE (2026-08-12).** Routes 1 and 2 terminate in Obsidian, which no tool here
+can observe, so their registers were supplied by the Architect (§5) rather than measured from the
+repo. Route 3 and the composition census are measured directly. Nothing is estimated.
 
 ---
 
@@ -148,19 +148,51 @@ for I1.4.
 
 ---
 
-## 5. Owed from the Architect
+## 5. Architect-supplied registers (2026-08-12) — **RECEIVED**
 
-C.1 cannot close on repo evidence alone. To complete the baseline, one datum each:
+Reported by the Architect as a description of normal practice, not a staged walk-through. Recorded
+as such: these are habits, not a timed trial.
 
-1. **Route 1** — author one T-node in Obsidian as you normally would. Report: how many distinct
-   actions before the note exists and is linked (template application, frontmatter fill, any
-   lookup of a node you had to go find).
-2. **Route 2** — do the same having just read an extract, and report specifically how you got the
-   `informed_by` value in: retyped from screen, copy-paste, or skipped entirely.
+### Route 1 — pure observation
 
-"Skipped entirely" is a legitimate and important answer — it would mean I0.5's mandated
-provenance record is not merely mechanism-less (D-3) but unused, which changes C.4's target from
-ergonomics to adoption.
+> *"Create a T node via keyboard shortcut, fill the contents, and no links."*
+
+| Register | Count | Reading |
+|---|---|---|
+| Invocations | **1** (an Obsidian keyboard shortcut) | Never enters Claude Code |
+| Context switches | **0** | Never leaves the editor |
+| Manual transcription | **0** | The contents are the work, not retyped machine output |
+| **Edges filled** | **0** | The decisive datum — see below |
+
+### Route 2 — AI-assisted
+
+> `informed_by` is **skipped entirely.**
+
+### What these two answers actually establish
+
+Route 1 is not merely low-friction; it is **1 action and zero edges**. Corroborated on disk: all
+six T-nodes carry empty `graph_edges` lists.
+
+`informed_by` is not typed, not pasted — **not recorded at all**. So I0.5's mandated provenance
+record is not merely mechanism-less (`ENFORCEMENT_DEBT` D-3); it is **unused**. That moves C.4
+from an ergonomics problem to an adoption one, exactly as anticipated.
+
+And the Architect's framing names the cause: **edges are format work — they are not "machine/AI
+free."** Filling `informed_by` correctly requires the exact key, the exact wikilink stem, and the
+exact list syntax. That is machine work, not judgment, and it is not the work being done at the
+moment a thought is written. The metric's third register was built to protect the Architect's
+prose from being counted as friction; this datum shows the converse also holds — **structured edge
+entry is friction that a human should never have been paying.**
+
+**Consequence beyond this sprint.** I0.5 reserves the *body*; D-7 settled that an edge is
+metadata, not content. So a tool may write judgment-node edges, and `stage_link_patch` /
+`apply_link_patch` have been able to do so since Phase O — the vocabulary simply excluded
+`informed_by`. This is a candidate root cause for the typed graph being empty for months
+(`friction-260708-01`, the Phase N.B cancellation), and a better one than "the write path was
+missing": the write path existed and its vocabulary did not reach the judgment side.
+
+Constraint the Architect attached, carried into C.4's red lines: **propose, never auto-apply.**
+Claude proposes the edge on an unlinked node; the Architect explicitly orders the apply.
 
 ---
 

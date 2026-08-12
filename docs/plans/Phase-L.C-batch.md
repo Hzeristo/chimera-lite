@@ -242,7 +242,9 @@ Make `evidence_base` a legal edge on Knowledge nodes, in the canonical and in co
 
 ### Red lines
 - ❌ Extend **only** `evidence_base`, **only** to K. `collides_with` / `informed_by`
-  (`ENFORCEMENT_DEBT` D-3) are explicitly out of scope and inert for T/I/D anyway.
+  (`ENFORCEMENT_DEBT` D-3) are explicitly out of scope **for this sprint** — they are C.4's, and
+  they are not inert (a 2026-08-12 correction: `_TYPE_EDGES` also gates the patch functions, which
+  edit existing hand-written T/I/D nodes).
 - ❌ Do not touch `INVARIANTS.md` — it is FROZEN; I2.2 already permits this and the change is
   documented in `NODE_ONTOLOGY.md`.
 - ❌ No opportunistic refactoring.
@@ -328,53 +330,79 @@ judgment nodes; `ENFORCEMENT_DEBT` D-3 records that the invariant has **no mecha
 **Predecessor assumptions:**
 - **C.1 complete.** Independent of C.3*.
 
-**Risk level:** 🟡 MED (3 template files + 2 skill files + one probe)
+**Risk level:** 🟡 MED — but the widest file scope in the batch after the 2026-08-12 revision
+(1 domain file + 2 test files + 3 templates + 2 skills + 1 arch doc + a probe). If it does not
+fit one sprint cleanly, split C.4a (close D-3: tasks 1-3, 5) / C.4b (the proposal path: tasks
+4, 6, 7) rather than widening it.
 
 ### Objective
-Give `informed_by` a real mechanism on the only surface where T/I/D nodes are authored — the
-Architect's hands — without any tool writing the node.
+Give `informed_by` a real mechanism by closing D-3, then **proposing** the edge onto a
+hand-authored node the Architect explicitly orders applied — the tool writing the edge, never the
+body.
 
-### Design notes (audit-derived)
-- **No tool authors T/I/D**, at two enforced layers with three regressions (`2b72978`;
-  `staging_service.py:82-96`; `tests/test_ascend_node.py:70-81`) — audit Q6. This sprint does not
-  change that and must not appear to.
-- Fixing D-3 would **not** help: adding `informed_by` to `_TYPE_EDGES` adds a key to dicts used
-  only by writers that reject T/I/D. Orthogonal; out of scope.
+### Design notes — **REVISED 2026-08-12** (the prior premise was wrong)
+- **Withdrawn:** "fixing D-3 would not help — `_TYPE_EDGES` serves only writers that reject
+  T/I/D." **False.** `_TYPE_EDGES` has three consumers: `staging_service.py:104`
+  (`create_staging_node`, which does reject T/I/D) and `:225-230` / `:279-284`
+  (`stage_link_patch` / `apply_link_patch`), which operate on **existing** vault nodes of any
+  K/T/I/D type — routinely hand-written Thoughts. `tests/test_staging_tools.py:51` says so outright.
+- **I0.5 reserves the *body*.** D-7 settled that an edge is metadata, not content, so a tool
+  appending `informed_by` to a hand-authored T-node authors no judgment. No node is ever created
+  by a tool and no body is ever opened.
+- **Edges are format work, and the Architect does not do format work.** Route-1 datum
+  (2026-08-12): *"create a T node via keyboard shortcut, fill the contents, **no links**."*
+  `informed_by` is **skipped entirely**; all six vault T-nodes carry empty edge lists. A
+  paste-ready block was therefore the wrong deliverable — the barrier was never typing
+  convenience, it is that filling a structured edge is not the work being done at that moment.
+- **Propose, never auto-apply (Architect constraint, 2026-08-12).** Claude proposes on a node
+  found unlinked; the Architect **explicitly orders** the apply — not inferred, not defaulted, not
+  batched by convenience. D-7 makes the edge legal to write; it does not license the machine to
+  decide the edge should exist.
 - `Tpl_thought.md:8-12` carries `graph_edges` with four keys and no `informed_by`. Repo templates
   are the source; vault copies are **user-synced** (CLAUDE.md) — edit the repo, the Architect syncs.
-- **Detection probe (D7).** `Monitor` can watch the vault's judgment folders and emit one event
-  per new file, session-scoped. That covers route 2 exactly — route 2 means a session is open. It
-  does **not** cover authoring outside a session, which is a real and stated limitation, not a bug.
+- **Detection probe (D7).** `Monitor` can watch the vault's judgment folders, one event per new
+  file, session-scoped — which covers route 2 exactly, since route 2 means a session is open. It
+  does not cover authoring outside a session: a stated limitation, not a bug.
 
 ### Task scope
-1. `prompts/obsidian_tpl/Tpl_{thought,insight,decision}.md` — add `informed_by: []` to
-   `graph_edges` (1 line each).
-2. `.claude/skills/chimera-deep-extract/SKILL.md` — completion report emits a paste-ready
-   `informed_by: ["[[<staged node stem>]]"]` block, labelled for a T/I/D node authored from this
-   material (~6 lines).
-3. `.claude/skills/chimera-w2-map/SKILL.md` — same, naming the map artifact stem (~6 lines).
-4. **Probe:** a persistent `Monitor` over the vault's judgment folders, emitting one event per new
-   file; on an event, offer the `informed_by` value from what the session consulted. Record whether
-   it fires reliably on this machine. **If it does not, ship tasks 1-3 and record the finding** —
-   Architect-initiated bridging ("bridge my T node") always works and is the fallback.
-5. `docs/ARCHITECTURE/ENFORCEMENT_DEBT.md` — amend D-3 to record that the `_TYPE_EDGES` remedy is
-   inert for `informed_by`, and that the live mechanism is template + paste (~4 lines).
+1. `mcp-servers/chimera-papers/staging_service.py` — **close D-3**: `_TYPE_EDGES` gains
+   `informed_by` for `thought` / `insight` / `decision` and `collides_with` for all four types,
+   mirroring `NODE_ONTOLOGY.md` §2 exactly (~4 lines).
+2. `tests/test_staging_tools.py` — update `CANONICAL` to the true §2 sets. It currently mirrors
+   the *code* rather than the doc, which is why it did not already fail (~4 lines).
+3. `prompts/obsidian_tpl/Tpl_{thought,insight,decision}.md` — add `informed_by: []` so a
+   hand-filled node and a patched one carry the same shape (1 line each).
+4. `.claude/skills/chimera-deep-extract/SKILL.md` and `chimera-w2-map/SKILL.md` — on completion,
+   **propose** an `informed_by` edge naming the artifact just produced, stage it via `link_nodes`,
+   and state that applying requires an explicit order. Never call `apply_link_patch` (~8 lines each).
+5. `tests/test_link_tools.py` — `informed_by` accepted for `thought`, still refused for
+   `knowledge` (I0.5 scopes it to judgment types) (~15 lines).
+6. **Probe:** a persistent `Monitor` over the vault's judgment folders; on a new unlinked node,
+   surface the proposal. Record whether it fires reliably. **If not, ship tasks 1-5 and record the
+   finding** — Architect-initiated ("propose links for this node") always works.
+7. `docs/ARCHITECTURE/ENFORCEMENT_DEBT.md` — mark **D-3 discharged**: the gap was the vocabulary
+   entry, and I0.5's provenance mandate now has a mechanism.
 
 ### Acceptance
-- A real authoring session: the Architect creates a T node from the template with the field
-  present, pastes the offered block, amends freely — **and no tool wrote the node.**
+- A real authoring session: the Architect writes a T node by hand and leaves it unlinked (the
+  observed default); a proposal appears; the Architect orders it; the edge lands via
+  `apply_link_patch` — **and no tool wrote the body, and nothing applied without the order.**
+- `informed_by` is stageable for `thought` and refused for `knowledge`.
 - `rg "informed_by" prompts/obsidian_tpl/` returns all three templates.
 - The Monitor probe's result is recorded either way.
 - Route-2 friction re-measured against the C.1 baseline.
+- Negative control: revert the `_TYPE_EDGES` entry → the `informed_by` staging test must FAIL.
 
 ### Red lines
-- ❌ **No tool writes, stages, pre-fills, or scaffolds a T/I/D node body** — including a
-  "frontmatter-only" scaffold (I0.5). If a task starts to look like "just write the frontmatter for
-  them," it has failed.
+- ❌ **No tool writes, stages, pre-fills, or scaffolds a T/I/D node BODY**, and no tool creates a
+  judgment node (I0.5). Writing an *edge* on an existing hand-authored node is permitted; the line
+  is the body.
+- ❌ **Nothing auto-applies.** Propose and stage only; `apply_link_patch` is the Architect's
+  explicit order. Never call it from a skill.
 - ❌ `informed_by` is never support-bearing — it must not enter any monotonicity or support-chain
   computation (I2.2).
+- ❌ `informed_by` stays T/I/D-only — do not extend it to `knowledge` (I0.5 scopes it to judgment).
 - ❌ Do not edit the vault's `templates/` copies — repo sources only (CLAUDE.md).
-- ❌ Do not widen `_TYPE_EDGES` here (out of scope, and inert).
 - ❌ No opportunistic refactoring.
 
 ### Output locations
@@ -499,7 +527,8 @@ Violation in any sprint halts the batch:
 - ❌ **No friction-changing sprint lands before C.1.**
 - ❌ **No route privileged.** Where a route is against the grain, fix that route — never handicap
   another to restore parity.
-- ❌ **Nothing auto-commits.** Machine-time stages; human-time applies and promotes (I0.1).
+- ❌ **Nothing auto-commits, and nothing auto-applies.** Machine-time *proposes* and stages;
+  human-time applies and promotes on an explicit order (I0.1). No skill calls `apply_link_patch`.
 - ❌ **Nothing ships unregistered** — covered by C.2; the seal exercises new components through the
   **live client**, never in-process imports (`friction-260811-01`).
 - ❌ **Do not relax a closed `Literal` to `str`** (R5a is discharged only while they stay closed).
