@@ -298,7 +298,7 @@ async def test_stage_deep_read_node_excludes_migration_backup(tmp_path: Path) ->
 
 async def test_supersede_edge_when_existing_node(tmp_path: Path) -> None:
     # A re-extraction supersedes the PRIOR COMMITTED Knowledge/ node for the same paper,
-    # matched by frontmatter arxiv_id — committed nodes are named by title slug (_promote_write),
+    # matched by frontmatter arxiv_id — committed nodes are named by title slug (_ascend_write),
     # so the id is NOT in the stem. The filename here is deliberately not the arxiv id, proving
     # the match is on frontmatter, not the stem.
     vault = _make_vault(tmp_path)
@@ -364,7 +364,8 @@ def test_ascend_unlinks_superseded(tmp_path: Path) -> None:
     This test used to drive a knowledge node through `promote_node` with no tier — which is
     precisely the I1.2 hole (`Knowledge/` reachable without `ascend_node`), so the test was
     asserting real behaviour over an illegal path. `_unlink_superseded` is shared by both
-    callers via `_promote_write`, so ascending a deep_read node covers the same mechanics
+    callers via the shared writer (now `_ascend_write`), so ascending a deep_read node covers
+    the same mechanics
     without depending on the defect.
     """
     vault = _make_vault(tmp_path)

@@ -154,11 +154,41 @@ indistinguishable. `chimera_tier` is the net-new field that separates them.
 | `scout` | Shallow LLM triage of a fetched paper — an inbox card, not yet read in depth. | `VaultNoteWriter.write_knowledge_node` (`knowledge_node.j2`) — `daily_pipeline` / `ingest_paper`. |
 | `deep_read` | Full-paper extraction (synthesis + lens + attack + ARA claims, or the survey atlas). | `single_paper_extract` (via `create_staging_node`, staging) + `VaultNoteWriter.write_deep_read_node` (`deep_read{,_survey}_node.j2`, optics). |
 | `harness_candidate` | A W1/W2 research-harness artifact awaiting Architect curation. | `ResultService.write_result` → `Harness/` (already `kind`-keyed with a review status; the tier is this documented mapping — harness artifacts are not K/T/I/D nodes). |
-| `synthesis` | A user-authored T/I/D node — reasoning, not ingestion. | `create_staging_node` (dict) — defaulted by node type for `thought`/`insight`/`decision`. |
+| `synthesis` | A user-authored T/I/D node — reasoning, not ingestion. | **No code path. The Architect writes these in Obsidian by hand** (see §7.1.1). |
 
-**Why `knowledge` is never defaulted.** `create_staging_node` defaults ONLY T/I/D to
-`synthesis`; a `knowledge` node created with no tier stays untiered so its writer is
-FORCED to declare `scout` vs `deep_read`. A silent K default would re-open C-1.
+**Why `knowledge` is never defaulted.** A `knowledge` node created with no tier stays
+untiered so its writer is FORCED to declare `scout` vs `deep_read`. A silent K default would
+re-open C-1.
+
+#### 7.1.1 T/I/D are hand-written — above all
+
+**No tool authors a Thought, Insight, or Decision.** I0.5 (Tier 0) reserves judgment-type
+bodies for the Architect: *"A T/I/D node with an AI-written body violates I0.5 — illegal,
+even if promoted."* A `body` passed to an MCP tool is written by the tool's caller, and the
+caller of this system's MCP surface is Claude — so a machine path that accepts a T/I/D body
+is a machine path for AI-authored judgment, whatever the intent behind it.
+
+Accordingly, as of **2026-08-11**:
+
+- `create_staging_node` / the `create_node` MCP tool are **knowledge-only**; T/I/D are
+  refused with an error pointing at Obsidian.
+- `promote_node` — which moved staged T/I/D into the vault — is **retired**. `ascend_node` is
+  now the only path from staging into any committed tier, and `_ascend_write` refuses every
+  destination but `Knowledge/`.
+- This row previously named `create_staging_node` as the `synthesis` writer while defining
+  the tier as "user-authored", a contradiction that stood until the drift was traced.
+
+The evidence that this was always the real workflow: every T/I/D node in the vault carries
+**spaces** in its filename (`Thought-visual memory substrates.md`), while the retired writer
+slugged whitespace to underscores. In the seven weeks the machine path existed, not one node
+used it.
+
+**How AI output legitimately reaches a judgment node.** It informs the Architect, who writes
+the body. Provenance is recorded with `informed_by` (§2), which documents the tool consulted
+and is explicitly **not** support-bearing — it transfers no authorship (I0.5, I2.2). Note the
+open gap: `informed_by` is defined in the canonical but not yet emittable in code
+(`ENFORCEMENT_DEBT.md` D-3), so today it is typed by hand in frontmatter — which, for a
+hand-authored node, is the correct place for it anyway.
 
 ### 7.2 `status` — lifecycle (committed vs uncommitted)
 

@@ -185,31 +185,29 @@ def cmd_suggest(cfg, svc, adapter) -> None:
         print(f"    ... and {len(candidates) - 40} more")
 
 
+_RETIRED = """
+    `create` and `promote` are RETIRED (2026-08-11).
+
+    Both wrote Thought nodes through the staging service. I0.5 (Tier 0) reserves T/I/D bodies
+    for the Architect, and `create_staging_node` is now knowledge-only, so no tool authors a
+    Thought any more — `promote_node` was removed with it.
+
+    This never was the real workflow: every Thought in the vault carries spaces in its
+    filename, so none was written by the slugging promoter. The bodies in this file were
+    always placeholders ("Replace with a real thought") waiting for you.
+
+    Write the Thoughts in Obsidian, then use:
+        scripts/seed_hsc3.py probe    # participation count
+        scripts/seed_hsc3.py link     # apply REAL paper->paper edges
+"""
+
+
 def cmd_create(cfg, svc, adapter) -> None:
-    for t in THOUGHTS:
-        derives = [d for d in t.get("derives_from", []) if not d.startswith("<")]
-        edges = {"derives_from": derives} if derives else None
-        path = svc.create_staging_node(
-            type="thought", title=t["title"], body=t["body"], edges=edges
-        )
-        print(f"    staged: {path.name}  (derives_from={derives or '[]'})")
-    print("\nReview docs/staging/, then run:  scripts/seed_hsc3.py promote")
+    print(_RETIRED)
 
 
 def cmd_promote(cfg, svc, adapter) -> None:
-    titles = {t["title"] for t in THOUGHTS}
-    promoted = 0
-    for p in sorted(svc.staging_dir.glob("*.md")):
-        fm = _frontmatter(p.read_text(encoding="utf-8", errors="ignore"))
-        if (
-            fm.get("type") == "thought"
-            and fm.get("title") in titles
-            and fm.get("status") == "PENDING_REVIEW"
-        ):
-            dest = svc.promote_node(p)
-            print(f"    promoted: {dest}")
-            promoted += 1
-    print(f"\nPromoted {promoted} thought node(s). Next:  scripts/seed_hsc3.py link")
+    print(_RETIRED)
 
 
 def cmd_link(cfg, svc, adapter) -> None:

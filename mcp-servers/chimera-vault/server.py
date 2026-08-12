@@ -168,19 +168,27 @@ async def vault_query(
 
 @mcp.tool()
 async def create_node(
-    type: Literal["knowledge", "thought", "insight", "decision"],
+    type: Literal["knowledge"],
     title: str,
     body: str,
     edges: dict | None = None,
 ) -> str:
-    """Create a K/T/I/D node in the staging area for user review (never auto-promoted).
+    """Create a **Knowledge** node in the staging area for user review (never auto-promoted).
 
     Writes a markdown node with typed ``graph_edges`` frontmatter to ``docs/staging/``
-    and returns the staging path. Promotion into the vault is a separate, explicit step —
-    this tool never writes into the live vault.
+    and returns the staging path. Ascension into the vault is a separate, explicit step
+    (``ascend_node``) — this tool never writes into the live vault.
+
+    **T/I/D are deliberately NOT creatable here (I0.5).** Judgment-type nodes — Thought,
+    Insight, Decision — have Architect-authored bodies; a body supplied through this tool is
+    written by the caller, and the caller of an MCP tool is Claude. Such a node is "illegal,
+    even if promoted". Author them in Obsidian; record any AI output that informed one with
+    an ``informed_by`` edge (I2.2), which documents the tool used and transfers no authorship.
+    The type parameter was narrowed from the K/T/I/D set on 2026-08-11, after the vault showed
+    that every existing T/I/D node had been hand-written and none had ever used this path.
 
     Args:
-        type: Node type — ``knowledge``, ``thought``, ``insight``, or ``decision``.
+        type: Node type — ``knowledge`` only.
         title: Node title (also used to derive the staging filename).
         body: Markdown body of the node.
         edges: Optional typed edges, e.g. ``{"derives_from": ["Some Note"]}``. Keys must be

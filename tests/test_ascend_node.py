@@ -59,61 +59,49 @@ def test_ascend_node_refuses_non_deep_read_tier(tmp_path: Path, tier: str | None
     assert staged.exists()  # refused — staging file untouched
 
 
-def test_promote_node_refuses_deep_read_node_structurally(tmp_path: Path) -> None:
-    vault = tmp_path / "vault"
-    svc = StagingService(tmp_path / "staging", vault)
-    staged = svc.create_staging_node(
-        type="knowledge", title="Deep Read Via Promote", body="b", chimera_tier="deep_read"
-    )
-
-    with pytest.raises(ValueError, match="ascend_node"):
-        svc.promote_node(staged)
-
-    assert not (vault / "Knowledge").exists() or not list((vault / "Knowledge").glob("*.md"))
-    assert staged.exists()  # refused — staging file untouched
+def test_promote_node_is_retired(tmp_path: Path) -> None:
+    """`promote_node` promoted staged T/I/D into the vault — an affordance for machine-written
+    judgment bodies (I0.5 forbids them) that nothing ever used: every T/I/D node in the vault
+    was hand-written in Obsidian. Retired 2026-08-11; its absence is the guarantee."""
+    svc = StagingService(tmp_path / "staging", tmp_path / "vault")
+    assert not hasattr(svc, "promote_node")
 
 
-@pytest.mark.parametrize("tier", ["scout", "synthesis", None])
-def test_promote_node_refuses_any_knowledge_node_whatever_its_tier(
-    tmp_path: Path, tier: str | None
-) -> None:
-    """THE cell this file used to leave untested — and the hole it hid.
+@pytest.mark.parametrize("node_type", ["thought", "insight", "decision"])
+def test_staging_refuses_to_author_judgment_nodes(tmp_path: Path, node_type: str) -> None:
+    """I0.5 (Tier 0): T/I/D bodies are Architect-authored.
 
-    The suite checked `promote_node(deep_read)` and `ascend_node(non-deep_read)`, so the
-    remaining combination — `promote_node` on a knowledge node that is NOT deep_read — was
-    never exercised. It landed in `Knowledge/`: L.B.3 gated the callers on the TIER, while
-    I1.2 is a claim about the DESTINATION, and `create_staging_node` deliberately never
-    defaults a K node's tier, so an untiered K node is routine rather than exotic.
-    Demonstrated by execution 2026-08-11; the gate now lives in `_promote_write`.
+    `body` is caller-supplied and the caller of the MCP surface is Claude, so any T/I/D node
+    created here carries an AI-written judgment body — "illegal, even if promoted". The staging
+    buffer exists for AI-authored content (I1.2), which a judgment node must never be.
+    """
+    svc = StagingService(tmp_path / "staging", tmp_path / "vault")
+
+    with pytest.raises(ValueError, match="knowledge-only"):
+        svc.create_staging_node(type=node_type, title=f"A {node_type}", body="AI-written")
+
+    assert not list((tmp_path / "staging").glob("*.md"))
+
+
+@pytest.mark.parametrize("dest_sub", ["Thoughts", "Insight", "Decision"])
+def test_no_code_path_writes_a_judgment_node(tmp_path: Path, dest_sub: str) -> None:
+    """The committed writer refuses every destination but Knowledge/.
+
+    Belt to the braces above: even handed a T/I/D frontmatter directly, the one writer left
+    will not put it in the vault.
     """
     vault = tmp_path / "vault"
     svc = StagingService(tmp_path / "staging", vault)
-    staged = svc.create_staging_node(
-        type="knowledge", title="Sneaks Past The Tier Guard", body="b", chimera_tier=tier
+    node_type = {"Thoughts": "thought", "Insight": "insight", "Decision": "decision"}[dest_sub]
+    staged = tmp_path / "staging" / "handmade.md"
+    staged.parent.mkdir(parents=True, exist_ok=True)
+    # deep_read so ascend_node's TIER check passes and the DESTINATION guard is what fires.
+    staged.write_text(
+        f"---\ntype: {node_type}\nchimera_tier: deep_read\ntitle: Smuggled\n---\n\nbody\n",
+        encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="ascend_node"):
-        svc.promote_node(staged)
+    with pytest.raises(ValueError, match="committed K tier only"):
+        svc.ascend_node(staged)
 
-    assert not (vault / "Knowledge").exists() or not list((vault / "Knowledge").glob("*.md"))
-    assert staged.exists()  # refused — staging file untouched
-
-
-@pytest.mark.parametrize(
-    "node_type,dest_sub",
-    [("thought", "Thoughts"), ("insight", "Insight"), ("decision", "Decision")],
-)
-def test_promote_node_still_works_for_tid_nodes(
-    tmp_path: Path, node_type: str, dest_sub: str
-) -> None:
-    vault = tmp_path / "vault"
-    svc = StagingService(tmp_path / "staging", vault)
-    staged = svc.create_staging_node(type=node_type, title=f"A {node_type}", body="b")
-
-    dest = svc.promote_node(staged)
-
-    assert dest == vault / dest_sub / f"A_{node_type}.md"
-    assert dest.exists()
-    fm = _read_frontmatter(dest)
-    assert fm["status"] == "active"
-    assert not staged.exists()
+    assert not (vault / dest_sub).exists()

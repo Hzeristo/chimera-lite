@@ -64,8 +64,8 @@ Judgment is externalized out of the MCP layer entirely (Phase L.B): the MCP serv
 | destination | writer | anchor | reached by |
 |---|---|---|---|
 | `inbox/<verdict>/  [chimera_tier=scout]` | `write_knowledge_node` | `mcp-servers/chimera-papers/ports/vault/vault_note_writer.py:31` | `write_scout_card` |
-| `docs/staging/  [chimera_tier=deep_read \| synthesis]` | `create_staging_node` | `mcp-servers/chimera-papers/staging_service.py:61` | `stage_deep_read_node`, `create_node` |
-| `<vault>/Knowledge\|Thoughts\|Insights\|Decisions/` | `_promote_write` | `mcp-servers/chimera-papers/staging_service.py:117` | `ascend_node` |
+| `docs/staging/  [chimera_tier=deep_read]` | `create_staging_node` | `mcp-servers/chimera-papers/staging_service.py:61` | `stage_deep_read_node`, `create_node` |
+| `<vault>/Knowledge/` | `_ascend_write` | `mcp-servers/chimera-papers/staging_service.py:132` | `ascend_node` |
 | `<vault>/Harness/` | `write_result` | `mcp-servers/chimera-papers/result_service.py:132` | `write_result` |
 | `<vault>/01_Deep_Reads/` | `write_deep_read_node` | `mcp-servers/chimera-papers/ports/vault/vault_note_writer.py:47` | **ORPHANED — no MCP tool reaches this** |
 
@@ -74,14 +74,14 @@ Judgment is externalized out of the MCP layer entirely (Phase L.B): the MCP serv
 Each edge above, with the chain that proves it:
 
 - `write_scout_card` -> `inbox/<verdict>/  [chimera_tier=scout]` via `write_scout_card -> write_knowledge_node`
-- `stage_deep_read_node` -> `docs/staging/  [chimera_tier=deep_read | synthesis]` via `stage_deep_read_node -> create_staging_node`
-- `create_node` -> `docs/staging/  [chimera_tier=deep_read | synthesis]` via `create_node -> create_staging_node`
-- `ascend_node` -> `<vault>/Knowledge|Thoughts|Insights|Decisions/` via `ascend_node -> _promote_write`
+- `stage_deep_read_node` -> `docs/staging/  [chimera_tier=deep_read]` via `stage_deep_read_node -> create_staging_node`
+- `create_node` -> `docs/staging/  [chimera_tier=deep_read]` via `create_node -> create_staging_node`
+- `ascend_node` -> `<vault>/Knowledge/` via `ascend_node -> _ascend_write`
 - `write_result` -> `<vault>/Harness/` via `write_result`
 
 - `inbox/<verdict>/  [chimera_tier=scout]` — Scout tier. Never auto-promoted; ascension is a separate operator action.
-- `docs/staging/  [chimera_tier=deep_read | synthesis]` — Review gate. Nothing here is live vault content until promoted or ascended.
-- `<vault>/Knowledge|Thoughts|Insights|Decisions/` — Shared write mechanics for promote_node + ascend_node. promote_node REFUSES chimera_tier=deep_read, which is what makes ascend_node the sole writer of Knowledge/ (structural, not conventional).
+- `docs/staging/  [chimera_tier=deep_read]` — Review gate, KNOWLEDGE ONLY. Nothing here is live vault content until ascended. T/I/D are refused: their bodies are Architect-authored (I0.5).
+- `<vault>/Knowledge/` — The one committed-tier writer, called only by ascend_node, refusing every destination but Knowledge/. promote_node (T/I/D) was retired 2026-08-11 — no code path writes Thoughts/Insight/Decision; the Architect authors those in Obsidian.
 - `<vault>/Harness/` — W1 verdicts + W2 breadth maps. Review area, not the committed tier.
 - `<vault>/01_Deep_Reads/` — Oligo-era surface; its only caller is the retired OpticsService.irradiate path.
 
@@ -89,10 +89,10 @@ Each edge above, with the chain that proves it:
 flowchart TD
     inbox_dest["inbox/verdict/  (chimera_tier=scout)"]
     tool_write_scout_card["write_scout_card"] --> inbox_dest
-    staging_dest["docs/staging/  (chimera_tier=deep_read  /  synthesis)"]
+    staging_dest["docs/staging/  (chimera_tier=deep_read)"]
     tool_stage_deep_read_node["stage_deep_read_node"] --> staging_dest
     tool_create_node["create_node"] --> staging_dest
-    committed_dest["vault/Knowledge / Thoughts / Insights / Decisions/"]
+    committed_dest["vault/Knowledge/"]
     tool_ascend_node["ascend_node"] --> committed_dest
     harness_dest["vault/Harness/"]
     tool_write_result["write_result"] --> harness_dest
@@ -127,8 +127,8 @@ The invariants are a HUMAN-AUTHORED SSOT: `docs/ARCHITECTURE/INVARIANTS.md` owns
 
 **I0.1 — PASS**
 
-- *Checked:* Tested which entry points reach `_promote_write` (the only committed-tier write mechanic): registered MCP tools vs background/scheduled task entry points.
-- *Finding:* `_promote_write` is reached only by human-invoked MCP tool(s): `ascend_node`. No background/scheduled path reaches it.
+- *Checked:* Tested which entry points reach `_ascend_write` (the only committed-tier write mechanic): registered MCP tools vs background/scheduled task entry points.
+- *Finding:* `_ascend_write` is reached only by human-invoked MCP tool(s): `ascend_node`. No background/scheduled path reaches it.
 
 **I0.2a — PASS**
 
@@ -162,8 +162,8 @@ The invariants are a HUMAN-AUTHORED SSOT: `docs/ARCHITECTURE/INVARIANTS.md` owns
 
 **I1.2 — PASS**
 
-- *Checked:* AST-extracted `_promote_write` / `promote_node` / `ascend_node` and tested that the `Knowledge/` refusal sits in the shared writer keyed on the DESTINATION, that only `ascend_node` unlocks it, and that `promote_node` does not.
-- *Finding:* `_promote_write` refuses any write whose destination is `Knowledge/` unless the caller passes `allow_knowledge=True`; only `ascend_node` does (`mcp-servers/chimera-papers/staging_service.py`). The gate is on the destination at the single shared chokepoint, so `promote_node` cannot reach the committed tier at any tier value.
+- *Checked:* AST-extracted `_ascend_write` / `ascend_node` / `create_staging_node` and tested that the committed writer refuses every destination but `Knowledge/`, that `ascend_node` is its only caller, that the retired `promote_node` is truly gone, and that the staging creator refuses the judgment types whose bodies I0.5 reserves for the Architect.
+- *Finding:* `_ascend_write` refuses any destination but `Knowledge/` and has exactly one caller, `ascend_node` (`mcp-servers/chimera-papers/staging_service.py`). `promote_node` is retired, so no code path reaches any committed tier except the ascension gate; `create_staging_node` refuses T/I/D, so no tool authors a judgment body (I0.5).
 
 **I1.3 — UNCHECKABLE**
 

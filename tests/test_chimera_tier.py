@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 import yaml
 
 from core.schemas import DeepReadAtlas, Paper, PaperAnalysisResult, VerdictDecision
@@ -52,11 +53,17 @@ def test_explicit_chimera_tier_is_honored(tmp_path: Path) -> None:
     assert fm["chimera_tier"] == "deep_read"
 
 
-def test_tid_defaults_to_synthesis(tmp_path: Path) -> None:
+def test_tid_can_no_longer_be_staged_at_all(tmp_path: Path) -> None:
+    """Was `test_tid_defaults_to_synthesis`: T/I/D staging nodes defaulted to the `synthesis`
+    tier. That default is now unreachable — `create_staging_node` is knowledge-only, because a
+    caller-supplied T/I/D body is an AI-written judgment body (I0.5, Tier 0).
+
+    The `synthesis` tier value itself survives in `NODE_ONTOLOGY.md` as the label for a
+    hand-authored T/I/D node; what died is the code path that minted one.
+    """
     svc = StagingService(tmp_path / "staging", tmp_path / "vault")
-    path = svc.create_staging_node(type="thought", title="T node", body="b")
-    fm = _read_frontmatter(path)
-    assert fm["chimera_tier"] == "synthesis"
+    with pytest.raises(ValueError, match="knowledge-only"):
+        svc.create_staging_node(type="thought", title="T node", body="b")
 
 
 def test_knowledge_is_never_defaulted(tmp_path: Path) -> None:
