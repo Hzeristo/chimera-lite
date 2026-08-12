@@ -75,7 +75,8 @@ Constraints:
 | C.3a | 🟡 | The `promote` transition — the `PENDING_REVIEW → PROMOTED` lifecycle the spec declares and no code provided | ✅ `40508af` |
 | C.3b | 🟡 | `evidence_base` extended to K, canonical and code together | ✅ `eb0f1d2` |
 | C.3c | 🟡 | Route 3 collapse: pending `[V]` verdicts → one structured decision → promote, support edge staged | ✅ `aeaa860`, verified live `45d9d4a` |
-| C.4 | 🟡 | Boundary bridge: close D-3, then propose an `informed_by` edge onto a hand-authored node | ▶ ready |
+| C.4a | 🟡 | Close D-3: `_TYPE_EDGES` mirrors the canonical; `informed_by` becomes emittable | ✅ `14aa957` |
+| C.4b | 🟡 | Boundary bridge: `chimera-propose-links` proposes `informed_by` onto a hand-authored node | ✅ `3d550a7` |
 | C.5 | 🔴 | Mid-read verification: queue a claim on a native background task; probe-first, may end at its probe | ▶ needs per-sprint approval |
 | C.6 | 🟢 | W2 handoff: a promote-candidate becomes a runnable extract carrying its gap sentence | ▶ ready |
 | seal | — | phase_review: three routes measured, not asserted | — |
