@@ -121,3 +121,107 @@ def test_stop_on_a_dead_sidecar_clears_the_runfile(isolated_state) -> None:
     state = sc.stop()
     assert state.running is False
     assert not runfile.exists()
+
+
+# --------------------------------------------------------------- orphaned VRAM / lifecycle
+
+
+def test_stop_recovers_a_kill_handle_from_the_os(isolated_state, monkeypatch) -> None:
+    """A sidecar started elsewhere leaves no runfile — it must still be stoppable.
+
+    Refusing here is what stranded a resident GPU process: healthy, unowned, unkillable.
+    """
+    _fake_probe(monkeypatch, HEALTHY_PAYLOAD)
+    monkeypatch.setattr(sc, "_pid_on_port", lambda: 7777)
+    killed: list[int] = []
+    monkeypatch.setattr(sc, "_kill_tree", lambda pid: killed.append(pid))
+    # After the kill, the port must read dead so stop() can confirm shutdown.
+    monkeypatch.setattr(sc, "probe", lambda *a, **k: None if killed else HEALTHY_PAYLOAD)
+
+    state = sc.stop(force=True)
+
+    assert killed == [7777]
+    assert state.running is False
+
+
+def test_stop_reports_honestly_when_no_handle_exists(isolated_state, monkeypatch) -> None:
+    _fake_probe(monkeypatch, HEALTHY_PAYLOAD)
+    monkeypatch.setattr(sc, "_pid_on_port", lambda: None)
+    monkeypatch.setattr(sc, "_kill_tree", lambda *_a: pytest.fail("nothing to kill"))
+    state = sc.stop(force=True)
+    assert state.running is True
+    assert "no kill handle" in state.detail
+
+
+def test_status_surfaces_an_adopted_kill_handle(isolated_state, monkeypatch) -> None:
+    _fake_probe(monkeypatch, HEALTHY_PAYLOAD)
+    monkeypatch.setattr(sc, "_pid_on_port", lambda: 7777)
+    state = sc.status()
+    assert state.running is True
+    assert state.pid == 7777
+    assert "adopted" in state.detail
+
+
+def test_losing_the_spawn_race_adopts_instead_of_falling_back(isolated_state, monkeypatch) -> None:
+    """Our child exits because a concurrent batch won the port — that is a win, not a failure."""
+
+    class _DeadChild:
+        pid = 1234
+        returncode = 1
+
+        def poll(self):
+            return 1
+
+    # conftest disables the sidecar for every test; these two exercise ensure_running itself,
+    # so they must opt back in or they only prove the disabled short-circuit returns None.
+    monkeypatch.setattr(sc, "SIDECAR_ENABLED", True)
+    monkeypatch.setattr(sc, "_spawn", lambda: _DeadChild())
+    monkeypatch.setattr(sc, "_pid_on_port", lambda: 7777)
+    # Nothing on the port when we decide to spawn; healthy by the time our child dies.
+    calls = {"n": 0}
+
+    def _probe(*_a, **_k):
+        calls["n"] += 1
+        return None if calls["n"] == 1 else HEALTHY_PAYLOAD
+
+    monkeypatch.setattr(sc, "probe", _probe)
+
+    assert sc.ensure_running(timeout=5) == sc.base_url()
+    # The adopted sidecar's handle is recorded, so it can be stopped later.
+    assert json.loads((isolated_state / "sidecar.json").read_text())["pid"] == 7777
+
+
+def test_spawn_failure_with_a_dead_port_still_returns_none(isolated_state, monkeypatch) -> None:
+    monkeypatch.setattr(sc, "SIDECAR_ENABLED", True)  # else this asserts only the kill switch
+    monkeypatch.setattr(sc, "_spawn", lambda: None)
+    monkeypatch.setattr(sc, "probe", lambda *a, **k: None)
+    assert sc.ensure_running(timeout=1) is None
+
+
+# ------------------------------------------------------------------------------ disk
+
+
+def test_prune_output_reclaims_duplicate_parse_dirs(isolated_state) -> None:
+    task = isolated_state / "output" / "task-uuid" / "2603.02096" / "auto"
+    task.mkdir(parents=True)
+    (task / "2603.02096.md").write_text("x" * 500, encoding="utf-8")
+    (task / "origin.pdf").write_bytes(b"y" * 1500)
+
+    freed = sc.prune_output()
+
+    assert freed == 2000
+    assert not (isolated_state / "output" / "task-uuid").exists()
+    assert (isolated_state / "output").is_dir()  # root survives; MinerU writes into it
+
+
+def test_prune_output_is_safe_when_nothing_exists(isolated_state) -> None:
+    assert sc.prune_output() == 0
+
+
+def test_log_appends_across_runs(isolated_state, monkeypatch) -> None:
+    """Truncate-on-start erased the evidence of the run you actually need to diagnose."""
+    sc.log_path().write_text("=== previous run ===\n", encoding="utf-8")
+    monkeypatch.setattr(sc.subprocess, "Popen", lambda *a, **k: pytest.fail("no real spawn"))
+    with pytest.raises(BaseException):
+        sc._spawn()
+    assert "previous run" in sc.log_path().read_text(encoding="utf-8")

@@ -1,7 +1,8 @@
 # friction-260810-01 — every convert reloads MinerU's models from scratch; half a convert's wall clock is setup
 
 **Date:** 2026-08-10
-**Status:** SCHEDULED (sidecar supervisor implemented same session; batch-level wiring open)
+**Status:** RESOLVED for the performance gap (supervisor + batch-scoped lifecycle wired and
+verified). One non-code item remains open: this work's phase home is the operator's call.
 **Phase context:** Phase L (branch `phase-L`). **Not an L deliverable** — L is the research
 harness (W1/W2). This is an ingest-performance gap surfaced while building
 `scripts/debug_mineru.py` to instrument the MinerU seam, and it needs a phase home.
@@ -104,11 +105,36 @@ a stale runfile must NOT read as running, and `api_url_if_healthy` must never sp
 
 ## Open
 
-- **Batch-level ownership.** `daily_paper_pipeline` should start the sidecar and stop it in a
-  `finally`, which is where the N-paper win actually lives and what bounds VRAM residency to
-  the batch. Not wired yet — the supervisor is currently opportunistic (each `convert` reuses
-  a sidecar if one happens to be up).
 - **Phase home.** This work does not belong to Phase L's intent. `docs/phases/*` is
-  human-authored, so where it lives is the operator's call.
-- **Log growth.** Truncate-on-start plus `MINERU_API_DISABLE_ACCESS_LOG=1` bounds it in
-  practice; a long-lived sidecar across many batches has not been observed yet.
+  human-authored, so where it lives is the operator's call. **Still open.**
+
+## Closed since
+
+- **Batch-level ownership — DONE.** `daily_chimera_service.py:224` calls `start_for_batch`
+  and `:238` calls `stop_after_batch` inside a `finally`, ownership-gated so a sidecar the
+  operator brought up by hand outlives the batch. This is where the N-paper win lives and
+  what bounds VRAM residency to the batch.
+- **Log growth — resolved differently than planned.** Truncate-on-start bounded the file by
+  destroying the previous run's log, which is precisely the evidence needed to diagnose a
+  convert that failed earlier — during the L.B.6 gate run the sidecar's history was
+  unrecoverable for exactly this reason. The log now APPENDS with a start banner and rolls to
+  `.log.1` past `LOG_MAX_BYTES` (8 MB default).
+- **Orphaned VRAM — closed.** `stop()` used to refuse when the service was healthy but no
+  runfile pid existed, stranding a resident GPU process that only manual intervention could
+  free — reachable whenever the operator or a reconnected MCP instance started it.
+  `_pid_on_port` now recovers the kill handle from the OS (only after `probe()` has confirmed
+  the responder is MinerU), `_adopt_if_healthy` records it, and `status()` reports whether a
+  handle exists at all.
+- **Lost spawn race — closed.** A child that exited because a concurrent batch won the port
+  read as "failed to start" and dropped that batch to standalone beside a healthy sidecar.
+  `ensure_running` now re-probes and adopts the winner.
+
+## Found while fixing — not in the original friction
+
+- **Unbounded duplicate output.** `MINERU_API_OUTPUT_ROOT` points at
+  `.chimera/mineru-sidecar/output` and nothing pruned it. Every parse leaves a task-uuid
+  directory holding a FULL second copy of the paper (`origin.pdf`, `middle.json`, the
+  markdown, images) whose authoritative home is `papers/md_papers_raw/<id>/`. Measured at
+  **60.1 MB across 7 parses** — two orders of magnitude larger than the log growth this doc
+  worried about. `prune_output()` now runs at spawn and after stop; the 60.1 MB backlog was
+  reclaimed through that code path.
