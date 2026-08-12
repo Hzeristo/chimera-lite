@@ -39,11 +39,11 @@ So the sidecar's state lives in the OS, not in this process:
 The log APPENDS across runs — truncate-on-start destroyed exactly the evidence needed to
 diagnose a convert that failed earlier — and rolls to `.log.1` past `LOG_MAX_BYTES`.
 
-`MINERU_API_OUTPUT_ROOT` grows by one task-uuid directory per parse (60 MB across 7) and is
-**not** pruned automatically. It is not the pure duplicate it looks like: under `--api-url`
-the client keeps only the clean markdown, so a paper's extracted `images/` exist only here.
-`prune_output()` is available for an explicit reclaim; see its docstring for the fix that
-would make it safe to automate.
+`MINERU_API_OUTPUT_ROOT` grows by one task-uuid directory per parse (it had reached 60 MB
+across 7) and is pruned at SPAWN — never at stop, which is when a failed batch's artifacts
+are the evidence. Safe only because `PaperLoader.extract_and_clean` now promotes `images/`
+beside the clean markdown; before that this tree held a paper's sole copy of its figures.
+See `prune_output`.
 
 ## Blast radius
 
@@ -232,19 +232,23 @@ def _kill_handle() -> int | None:
 def prune_output(reason: str = "") -> int:
     """Delete the sidecar's server-side output tree. Returns bytes reclaimed. Never raises.
 
-    **EXPLICIT ONLY — deliberately not called automatically.** It was wired into spawn and
-    stop on the assumption that this tree is a pure duplicate of
-    `papers/md_papers_raw/<id>/`. That is false for sidecar-parsed papers: with `--api-url`
-    the client keeps only the clean markdown, so the extracted `images/` exist ONLY here.
-    Verified 2026-08-11 — `2608.08883.md` came back referencing
-    `images/c94ea…jpg`, and after the automatic prune that file existed nowhere on disk.
+    Called at SPAWN only — deliberately never at stop. Two rules decide that:
 
-    Growth is real (60 MB across 7 parses) but it is a nuisance; deleting the only copy of a
-    paper's figures is data loss. The right fix is for the convert path to place `images/`
-    beside the clean markdown — that lives in `paper2md`, outside this module — after which
-    this can safely become automatic again.
+    1. **Only prune what has been promoted.** This tree stopped being a pure duplicate the
+       moment the sidecar path started keeping figures nowhere else: with `--api-url` the
+       client promotes only the clean markdown, so a paper's `images/` lived here alone.
+       Pruning at stop therefore deleted the sole copy — verified 2026-08-11, when
+       `2608.08883.md` came back referencing an `images/c94ea…jpg` that existed nowhere on
+       disk. `PaperLoader.extract_and_clean` now copies `images/` beside the clean markdown,
+       so by the time a batch ends its figures are promoted and this tree is redundant again.
+    2. **Never delete evidence at the moment of failure.** Stop is exactly when a batch may
+       have just failed and its parse artifacts are what you would diagnose from — the same
+       mistake truncate-on-start made with the log. Spawn is the safe moment: nothing is in
+       flight, and the previous batch's output has already been promoted.
 
-    Call it by hand when reclaiming space, and only when no parse is in flight.
+    Net effect: growth is bounded to one batch's parses rather than accumulating forever
+    (it had reached 60 MB across 7), and no artifact is destroyed while it is still the only
+    copy or still the best explanation of a failure.
     """
     root = _state_dir() / "output"
     if not root.is_dir():
@@ -370,6 +374,10 @@ def _spawn() -> subprocess.Popen | None:
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(
         subprocess, "CREATE_NEW_PROCESS_GROUP", 0
     )
+    # Safe moment: the service does not exist yet, so nothing is mid-parse, and the previous
+    # batch's markdown AND images are already promoted beside each other. See prune_output.
+    prune_output(reason="spawn")
+
     try:
         # APPEND, not truncate. Truncate-on-start destroyed the evidence of every previous
         # run, which is exactly what was needed to diagnose a failed convert after the fact.
