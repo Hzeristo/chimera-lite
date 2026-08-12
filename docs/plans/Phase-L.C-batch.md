@@ -32,13 +32,19 @@ C.0 (audit ✅)
 its before-state is recorded. C.2 and C.6 are independent of the instrument and may land any time.
 Seal requires C.1 / C.2 / C.3a / C.3b / C.3c / C.4.
 
-**What changed from r1 and why.** r1's C.3 has been split three ways. The re-planning scout found
-that `phase-L.md:139-142` declares a `PENDING_REVIEW → PROMOTED` lifecycle that **no code
-implements** — `_VALID_MODES` is `{supersede, merge, reject, mark_stale}` (`result_service.py:56`),
-and the statuses the code can produce are `PENDING_REVIEW`, `MERGED`, `REJECTED`, `STALE` only.
-Route 3's terminal operation does not exist. Adding it, extending the edge vocabulary, and building
-the review surface is three files' worth of work each; per the split rule (≤3 files / ≤50 lines)
-it is three sprints, not one. This is a split, not an expansion — total scope is unchanged.
+**Execution status.** ✅ C.1 (`dc7375d`) · ✅ C.2 (`4f980a9`) · ✅ C.3a (`40508af`) ·
+✅ C.3b (`eb0f1d2`) · ▶ C.3c next · ▶ C.4 ready · ▶ C.6 ready · ⏸ C.5 awaiting per-sprint approval.
+
+**One process rule, learned in this batch** (`docs/incidents/2026-08-12-parallel-executors-shared-worktree.md`):
+parallel `chimera-sprint-executor` spawns run with `isolation: "worktree"` or are serialized.
+Disjoint *file scope* is not sufficient grounds for concurrency — agents still share the index,
+the stash, and `HEAD`.
+
+**Why C.3 is three sprints.** Route 3's terminal operation did not exist: `phase-L.md:139-142`
+declares a `PENDING_REVIEW → PROMOTED` lifecycle while `_VALID_MODES` was
+`{supersede, merge, reject, mark_stale}` (`result_service.py:56`). Building the transition,
+extending the edge vocabulary, and building the review surface is roughly three files each; under
+the split rule (≤3 files / ≤50 lines) that is three sprints. A split, not an expansion.
 
 ---
 
@@ -242,9 +248,8 @@ Make `evidence_base` a legal edge on Knowledge nodes, in the canonical and in co
 
 ### Red lines
 - ❌ Extend **only** `evidence_base`, **only** to K. `collides_with` / `informed_by`
-  (`ENFORCEMENT_DEBT` D-3) are explicitly out of scope **for this sprint** — they are C.4's, and
-  they are not inert (a 2026-08-12 correction: `_TYPE_EDGES` also gates the patch functions, which
-  edit existing hand-written T/I/D nodes).
+  (`ENFORCEMENT_DEBT` D-3) are out of scope **for this sprint** — they belong to C.4, which closes
+  D-3 as a whole.
 - ❌ Do not touch `INVARIANTS.md` — it is FROZEN; I2.2 already permits this and the change is
   documented in `NODE_ONTOLOGY.md`.
 - ❌ No opportunistic refactoring.
@@ -330,34 +335,32 @@ judgment nodes; `ENFORCEMENT_DEBT` D-3 records that the invariant has **no mecha
 **Predecessor assumptions:**
 - **C.1 complete.** Independent of C.3*.
 
-**Risk level:** 🟡 MED — but the widest file scope in the batch after the 2026-08-12 revision
-(1 domain file + 2 test files + 3 templates + 2 skills + 1 arch doc + a probe). If it does not
-fit one sprint cleanly, split C.4a (close D-3: tasks 1-3, 5) / C.4b (the proposal path: tasks
-4, 6, 7) rather than widening it.
+**Risk level:** 🟡 MED — the widest file scope in the batch (1 domain file + 2 test files +
+3 templates + 2 skills + 1 arch doc + a probe). If it does not fit one sprint cleanly, split
+C.4a (close D-3: tasks 1-3, 5) / C.4b (the proposal path: tasks 4, 6, 7) rather than widening it.
 
 ### Objective
 Give `informed_by` a real mechanism by closing D-3, then **proposing** the edge onto a
 hand-authored node the Architect explicitly orders applied — the tool writing the edge, never the
 body.
 
-### Design notes — **REVISED 2026-08-12** (the prior premise was wrong)
-- **Withdrawn:** "fixing D-3 would not help — `_TYPE_EDGES` serves only writers that reject
-  T/I/D." **False.** `_TYPE_EDGES` has three consumers: `staging_service.py:104`
-  (`create_staging_node`, which does reject T/I/D) and `:225-230` / `:279-284`
+### Design notes (audit-derived)
+- **`_TYPE_EDGES` gates the patch functions, not just the staging creator.** Three consumers:
+  `staging_service.py:104` (`create_staging_node`, which rejects T/I/D) and `:225-230` / `:279-284`
   (`stage_link_patch` / `apply_link_patch`), which operate on **existing** vault nodes of any
-  K/T/I/D type — routinely hand-written Thoughts. `tests/test_staging_tools.py:51` says so outright.
-- **I0.5 reserves the *body*.** D-7 settled that an edge is metadata, not content, so a tool
+  K/T/I/D type — routinely hand-written Thoughts (`tests/test_staging_tools.py:51`). Closing D-3
+  is therefore the mechanism I0.5's provenance mandate has been missing.
+- **I0.5 reserves the *body*.** D-7 settles that an edge is metadata, not content, so a tool
   appending `informed_by` to a hand-authored T-node authors no judgment. No node is ever created
   by a tool and no body is ever opened.
-- **Edges are format work, and the Architect does not do format work.** Route-1 datum
-  (2026-08-12): *"create a T node via keyboard shortcut, fill the contents, **no links**."*
-  `informed_by` is **skipped entirely**; all six vault T-nodes carry empty edge lists. A
-  paste-ready block was therefore the wrong deliverable — the barrier was never typing
-  convenience, it is that filling a structured edge is not the work being done at that moment.
-- **Propose, never auto-apply (Architect constraint, 2026-08-12).** Claude proposes on a node
-  found unlinked; the Architect **explicitly orders** the apply — not inferred, not defaulted, not
-  batched by convenience. D-7 makes the edge legal to write; it does not license the machine to
-  decide the edge should exist.
+- **Edges are format work, and the Architect does not do format work.** Route-1 datum:
+  *"create a T node via keyboard shortcut, fill the contents, **no links**."* `informed_by` is
+  **skipped entirely**; all six vault T-nodes carry empty edge lists. The barrier is not typing
+  convenience — filling a structured edge is simply not the work being done at that moment, which
+  is why the deliverable is a proposed patch rather than an easier way to type one.
+- **Propose, never auto-apply.** Claude proposes on a node found unlinked; the Architect
+  **explicitly orders** the apply — not inferred, not defaulted, not batched by convenience. D-7
+  makes the edge legal to write; it does not license the machine to decide the edge should exist.
 - `Tpl_thought.md:8-12` carries `graph_edges` with four keys and no `informed_by`. Repo templates
   are the source; vault copies are **user-synced** (CLAUDE.md) — edit the repo, the Architect syncs.
 - **Detection probe (D7).** `Monitor` can watch the vault's judgment folders, one event per new
@@ -559,8 +562,9 @@ Violation in any sprint halts the batch:
    every agent parses — verified by `pytest` **plus a recorded negative control.**
 3. **(C.3a+b+c)** Pending `[V]` verdicts reviewed and promoted in one structured decision; the
    `evidence_base` patch staged with correct type and direction; no manual YAML, no `depends_on`.
-4. **(C.4)** A hand-authored T/I/D node carries `informed_by` from template + paste, with **no tool
-   having written the node.**
+4. **(C.4)** A hand-authored T/I/D node left unlinked receives a **proposed** `informed_by` edge;
+   the Architect **explicitly orders** the apply and it lands via the staged-patch path — with **no
+   tool having written its body**, and nothing applied without that order.
 5. **(C.5 — may end at its probe)** A queued claim returns without blocking and both modes coexist;
    or the probe's failure is recorded as the finding.
 6. **(C.6)** A W2 promote-candidate triggers extract with gap context, no map dependency.

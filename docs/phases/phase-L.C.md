@@ -1,12 +1,11 @@
 # Phase L.C — Colligo: Candidate Consumption Paths
 
-**Status:** Queued (after Phase L.B seal)
+**Status:** Active (opened 2026-08-12)
 **Predecessor:** Phase L.B (Integratio)
 **Etymology:** Latin *colligō* — to bind together, to infer. Whewell's term for
 the cognitive moment scattered observations bind into a principle. Here: binding
 candidate material (W1/extract outputs) into committed artifacts (K/T/I nodes).
-**Audit:** `docs/audits/L.C.0.md` (C.0, complete). Sprint detail belongs in the batch plan,
-not here.
+**Audit:** `docs/audits/L.C.0.md` · **Sprint detail:** `docs/plans/Phase-L.C-batch.md`
 
 **Driving frictions:**
 - Research is not batch — a claim spotted mid-read wants verification now, and the verdict
@@ -57,8 +56,8 @@ impression. Establish proof-graph normal form: every committed node's support ch
 (strong `[V]`, or documented-weak `[P]`/`[U]`).
 
 Constraints:
-1. **T/I/D nodes are Architect-authored.** AI may inform; provenance records `informed_by`,
-   never `derives_from`. Authorship is non-transferable (I0.5).
+1. **Judgment bodies are Architect-authored.** No tool writes or creates a T/I/D node. AI may
+   inform; provenance records `informed_by`, never `derives_from` (I0.5).
 2. **W2 consumption stays thin.** W2's artifact form carries no protection; the link must
    survive its reshaping in L.D.
 3. **Seal on real fixtures, not scale.** 3-4 real papers suffice.
@@ -68,22 +67,21 @@ Constraints:
 
 ## Sprint Sequence
 
-| Sprint | Risk | One-line goal |
-|--------|------|---------------|
-| C.0 | — | ✅ Complete — `docs/audits/L.C.0.md` |
-| C.1 | 🟢 | Friction instrument: define the metric, baseline all three routes + composition drift |
-| C.2 | 🟢 | Registration reachability: ONE assertion over `@mcp.tool` names and `.claude/agents/*.md`. Homes `friction-260811-01` |
-| C.3a | 🟡 | The `promote` transition: implement the `PENDING_REVIEW → PROMOTED` lifecycle the artifact spec declares and no code has ever provided |
-| C.3b | 🟡 | `evidence_base` extended to K, canonical and code together (D4) |
-| C.3c | 🟡 | Route 3 collapse: pending `[V]` verdicts → one structured decision → promote; the `evidence_base` patch is staged, not hand-written |
-| C.4 | 🟡 | Boundary bridge: close D-3 (`informed_by` / `collides_with` emittable), then stage an `informed_by` patch onto a hand-authored T/I/D node. The tool writes the edge, never the body |
-| C.5 | 🟡 | Mid-read verification: queue a claim on a native background task, verdict returns by notification. Probe-first; may end at its probe |
-| C.6 | 🟢 | W2 handoff: a promote-candidate becomes a runnable extract carrying its gap sentence. Interface only |
-| seal | — | phase_review: three routes measured, not asserted |
+| Sprint | Risk | One-line goal | Status |
+|--------|------|---------------|--------|
+| C.0 | — | Audit | ✅ `docs/audits/L.C.0.md` |
+| C.1 | 🟢 | Friction instrument: the metric, and a baseline for all three routes + composition drift | ✅ `dc7375d` |
+| C.2 | 🟢 | Registration reachability: ONE assertion over `@mcp.tool` names and `.claude/agents/*.md` | ✅ `4f980a9` |
+| C.3a | 🟡 | The `promote` transition — the `PENDING_REVIEW → PROMOTED` lifecycle the spec declares and no code provided | ✅ `40508af` |
+| C.3b | 🟡 | `evidence_base` extended to K, canonical and code together | ✅ `eb0f1d2` |
+| C.3c | 🟡 | Route 3 collapse: pending `[V]` verdicts → one structured decision → promote, support edge staged | ▶ next |
+| C.4 | 🟡 | Boundary bridge: close D-3, then propose an `informed_by` edge onto a hand-authored node | ▶ ready |
+| C.5 | 🔴 | Mid-read verification: queue a claim on a native background task; probe-first, may end at its probe | ▶ needs per-sprint approval |
+| C.6 | 🟢 | W2 handoff: a promote-candidate becomes a runnable extract carrying its gap sentence | ▶ ready |
+| seal | — | phase_review: three routes measured, not asserted | — |
 
 **Dependencies:** C.1 gates C.3a/b/c, C.4, C.5 — the sprints that change friction. C.3a and C.3b
-both precede C.3c and are parallel-eligible with each other. C.2 and C.6 are independent. Seal
-requires C.1/C.2/C.3a/C.3b/C.3c/C.4. Sprint detail: `docs/plans/Phase-L.C-batch.md`.
+both precede C.3c. C.2 and C.6 are independent. Seal requires C.1/C.2/C.3a/C.3b/C.3c/C.4.
 
 ---
 
@@ -92,55 +90,55 @@ requires C.1/C.2/C.3a/C.3b/C.3c/C.4. Sprint detail: `docs/plans/Phase-L.C-batch.
 **D1 — Friction is measured in Architect actions.** Per route, per committed artifact, in three
 registers: **invocations**, **context switches** (crossings of the Claude Code ↔ Obsidian
 boundary), and **manual transcription** (characters retyped that a machine already held).
-Deliberately crude: a crude observable beats an eloquent impression, and today there is none.
+Deliberately crude: a crude observable beats an eloquent impression, and there was none.
 
 **D2 — The nudge is composition drift, not an action-count cap.** What I1.4 protects is
 longitudinal: if promoted K nodes accumulate while hand-authored T/I nodes stop appearing, the
 vault has become a record of what the pipeline found rather than of the Architect's thinking.
-Measured from the vault itself (`vault_query` by type and `chimera_tier`). **Corollary — the
-design rule:** where a route is against the grain, fix *that* route; never handicap another to
-restore parity.
+Measured from the vault itself. **Corollary — the design rule:** where a route is against the
+grain, fix *that* route; never handicap another to restore parity.
 
-**D3 — No tool writes a judgment *body*; a tool MAY write its *edges*.** *(Revised 2026-08-12 —
-supersedes "informed_by is offered, never written.")*
+**D3 — No tool writes a judgment *body*; a tool MAY write its *edges*.**
 
-I0.5 reserves the **body**: "Judgment-type nodes (T/I/D) have Architect-authored bodies." D-7
-settled that an **edge is metadata, not content**. Together: a tool that appends `informed_by` to
-a hand-authored T-node's `graph_edges` authors no judgment and violates nothing. The earlier
-reading — that no tool may touch a T/I/D node at all — over-extended I0.5 from bodies to whole
-files.
+I0.5 reserves the body: "Judgment-type nodes (T/I/D) have Architect-authored bodies." D-7 settles
+that an edge is metadata, not content. Together: a tool appending `informed_by` to a hand-authored
+T-node's `graph_edges` authors no judgment. The line is the body — no tool creates a judgment
+node, opens one, or writes prose into one.
 
 This matters because **edges are format work.** Filling `informed_by` correctly means knowing the
-exact key, the exact wikilink stem, and the exact list syntax. That is machine work, not judgment,
-and the Architect does not do it: the route-1 datum is *"create the node via keyboard shortcut,
-fill the contents, **no links**,"* and `informed_by` is **skipped entirely**. All six vault T-nodes
-carry empty edge lists.
+exact key, the exact wikilink stem, and the exact list syntax — machine work, not judgment, and
+not the work being done at the moment a thought is written. The route-1 datum: *"create a T node
+via keyboard shortcut, fill the contents, no links."* `informed_by` is skipped entirely, and all
+six vault T-nodes carry empty edge lists.
 
-So the mechanism is the one that already exists — `link_nodes` stages a patch, the Architect
-applies it (D5) — and the only thing missing is the vocabulary entry (`ENFORCEMENT_DEBT` D-3).
-The tool never opens the body.
+The mechanism already exists — `link_nodes` stages a patch, the Architect applies it (D5). Only
+the vocabulary entry is missing (`ENFORCEMENT_DEBT` D-3), which C.4 closes.
 
-**Propose; never auto-apply (Architect, 2026-08-12).** The permitted act is a *proposal*: Claude
-observes a hand-authored node that is unlinked, and proposes the `informed_by` edge it can
-honestly justify. The apply is an **explicit Architect order** — not inferred from context, not
-defaulted on, not batched by convenience. Legality here rests on the edge being metadata (D-7);
-it does **not** license the machine to decide *that* the edge should exist. Proposing is
-machine-time, ordering is human-time (I0.1), and the two must stay visibly separate.
+**Propose; never auto-apply.** The permitted act is a *proposal*: Claude observes a hand-authored
+node left unlinked and proposes the edge it can honestly justify. The apply is an **explicit
+Architect order** — not inferred from context, not defaulted on, not batched by convenience. D-7
+makes the edge legal to write; it does not license the machine to decide the edge *should exist*.
+Proposing is machine-time, ordering is human-time (I0.1), and the two stay visibly separate.
 
-**Wider consequence, recorded not scoped:** edges are format work, humans do not do format work by
-hand, and no tool was permitted to do it on the judgment side. That is a candidate root cause for
-the typed graph being empty for months (`friction-260708-01`; the Phase N.B cancellation), and it
-is a better explanation than "the write path was missing" — the write path existed since Phase O
-and its vocabulary simply excluded the judgment edges.
+**Consequence recorded, not scoped:** edges are format work, humans do not do format work by hand,
+and no tool was permitted to do it on the judgment side. That is a candidate root cause for the
+typed graph standing empty for months (`friction-260708-01`; the Phase N.B cancellation), and a
+better explanation than "the write path was missing" — the write path shipped in Phase O; its
+vocabulary did not reach the judgment side.
 
 **D4 — The support edge is `evidence_base`, extended to K.** `depends_on` was retired in Phase O
 and again by canonical r2; it survives only as `write_result`'s parameter, pinned to a coordinated
 rename with K.1 (`ENFORCEMENT_DEBT` D-4) — **this phase does not touch it**. Extending
-`evidence_base` to K is a Tier-2 amendment under I2.2, ratified 2026-08-12, documented in
-`NODE_ONTOLOGY.md`, justified against I0.2 and I1.3. C.3 carries it as its first task.
+`evidence_base` to K is a Tier-2 amendment under I2.2, ratified 2026-08-12 and documented in
+`NODE_ONTOLOGY.md`, justified against I0.2 and I1.3.
 
 **D5 — Staging is machine-time; applying is human-time.** `link_nodes` stages a patch;
-`apply_link_patch` applies it. C.3 automates the staging only; the apply call is the commit (I0.1).
+`apply_link_patch` applies it. Sprints automate the staging only; the apply call is the commit
+(I0.1). The two-call split is what makes the gate structural — a single writing tool would
+collapse propose and commit into one machine act. **Known limit:** the patch is consumed on apply
+(`staging_service.py:294,301`), so the gate is enforced at the moment and leaves no durable record
+of having been. Edge-level provenance is impossible under D-7 by construction; any such record
+belongs at the node level and to Phase K.
 
 **D6 — C.5's substrate is the harness, not the repo.** W1's judgment must run in a subagent and
 MCP cannot spawn subagents, so `TaskService` can never host a backgrounded W1 at any budget. The
@@ -157,19 +155,20 @@ it is rebuilding the harness. `chimera-dependency-veto`'s logic, pointed inward.
 
 ## Cross-Sprint Red Lines
 
-- ❌ **No tool authors a T/I/D *body*** — no writer, no staging path, no body-filler, no prose
-  scaffold, no node created by a tool (I0.5). Writing an *edge* onto an existing hand-authored
-  node is explicitly permitted (D3 + D-7): metadata, not content. The line is the body.
+- ❌ **No tool authors a T/I/D *body***, and no tool creates a judgment node — no writer, no
+  staging path, no body-filler, no prose scaffold (I0.5). Writing an *edge* onto an existing
+  hand-authored node is permitted (D3, D-7). The line is the body.
+- ❌ **Nothing auto-commits, and nothing auto-applies.** Machine-time proposes and stages;
+  human-time applies and promotes on an explicit order (I0.1). No skill calls `apply_link_patch`.
+  An edge patch is never applied because it was obvious, recent, or the only one pending.
 - ❌ **No friction-changing sprint lands before C.1.** A route whose before-state was never
   recorded cannot be shown to have kept parity.
 - ❌ **No route privileged.** Where a route is against the grain, fix that route — never
   handicap another (D2).
-- ❌ **Nothing auto-commits, and nothing auto-applies.** Machine-time *proposes* and stages;
-  human-time applies and promotes on an explicit order (I0.1). An edge patch is never applied
-  because it was obvious, recent, or the only one pending.
 - ❌ **Nothing ships unregistered.** Covered by C.2, and the seal exercises new components
   through the **live client** — never in-process imports (`friction-260811-01`).
 - ❌ **Do not rename `write_result`'s `depends_on` parameter** — pinned to Phase K.1.
+- ❌ **Do not relax a closed `Literal` to `str`** — R5a is discharged only while they stay closed.
 - ❌ **W2 consumption stays thin** — no map parsing, ranking, or persistent-map dependency.
 - ❌ **No new MCP server**; `.mcp.json` stays two.
 - ❌ No opportunistic refactoring.
@@ -179,22 +178,20 @@ it is rebuilding the harness. `chimera-dependency-veto`'s logic, pointed inward.
 ## Hard Sealing Conditions
 
 1. **(C.1)** The metric is defined and all three routes carry a recorded baseline in D1's three
-   registers, plus a composition-drift baseline (D2), before any of C.3/C.4/C.5 executes.
+   registers, plus a composition-drift baseline (D2), before any friction-changing sprint runs.
 
 2. **(C.2)** One assertion covers `@mcp.tool` names and `.claude/agents/*.md`; every skill is
-   covered and every agent parses. Verified by `pytest` **plus a manual negative control that the
+   covered and every agent parses. Verified by `pytest` **plus a negative control proving the
    check can be made to fail.**
 
 3. **(C.3a+b+c)** Pending `[V]` verdicts are reviewed and promoted in one structured decision, and
-   the `evidence_base` patch is staged automatically with correct type and direction. No manual
-   YAML, no `depends_on`. Requires the `promote` transition to exist at all — it does not today
-   (`result_service.py:56`), which is C.3a.
+   the `evidence_base` patch is staged with correct type and direction. No manual YAML, no
+   `depends_on`.
 
-4. **(C.4)** A T/I/D node hand-authored in Obsidian and left unlinked (the observed default)
+4. **(C.4)** A T/I/D node hand-authored in Obsidian and left unlinked — the observed default —
    receives a **proposed** `informed_by` edge naming what the session consulted; the Architect
-   **explicitly orders** the apply and the edge lands through the staged-patch path — with **no
-   tool having written its body**, and nothing applied without that order. Verified on a real
-   authoring session.
+   **explicitly orders** the apply and the edge lands through the staged-patch path. No tool wrote
+   its body, and nothing applied without that order. Verified on a real authoring session.
 
 5. **(C.5 — may end at its probe)** A claim queued mid-read returns its verdict without blocking,
    and both W1 modes coexist. Or the probe's failure is recorded as the sprint's finding.
@@ -212,13 +209,12 @@ it is rebuilding the harness. `chimera-dependency-veto`'s logic, pointed inward.
 
 ## Settled Questions
 
-- **`evidence_base` extended to K** — ratified 2026-08-12 (D4).
-- **`apply_link_patch` writing committed nodes is NOT an I1.2 violation** — settled by the
-  Architect 2026-08-12 on ontological grounds: an edge here is frontmatter metadata (a list of
-  wikilink stems), not a first-class relation object carrying its own identity and provenance as
-  in a KG. Appending one does not modify the committed node's **content**, which is what I1.2's
-  writer clause governs. **No tier guard is owed.** Recorded in `ENFORCEMENT_DEBT` and
-  `NODE_ONTOLOGY.md §2`; the L.B seal's flat "sole writer" phrasing is annotated there.
+- **`evidence_base` extended to K** — ratified 2026-08-12 (D4); shipped in C.3b.
+- **`apply_link_patch` writing committed nodes is not an I1.2 violation** — settled 2026-08-12 on
+  ontological grounds: an edge is frontmatter metadata, not a first-class relation object carrying
+  its own identity and provenance. Appending one does not modify the committed node's *content*,
+  which is what I1.2's writer clause governs. No tier guard is owed. Recorded as `ENFORCEMENT_DEBT`
+  **D-7**, with the definitional basis in `NODE_ONTOLOGY.md` §2.
 
 ---
 
@@ -226,8 +222,7 @@ it is rebuilding the harness. `chimera-dependency-veto`'s logic, pointed inward.
 
 - Inline rendering of verdicts into the reading context → Phase L.D.
 - W2's role change itself → Phase L.D. L.C prepares the interface; L.D reshapes W2.
-*(`ENFORCEMENT_DEBT` D-3 was listed here as orthogonal and inert. It is neither — it is the
-mechanism I0.5's provenance mandate has been missing, and C.4 closes it. See D3.)*
+- Node-level provenance for applied edges (D5's known limit) → Phase K.
 - Deep Obsidian integration beyond the vault filesystem → Phase S+.
 - 20-paper breadth regime; novelty three-state operationalization (→ H/K); multi-user.
 - **Phase L's own seal.** L has six sprint records and no `phase-review.md`; its VISION gate has
