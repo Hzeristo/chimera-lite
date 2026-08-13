@@ -90,8 +90,10 @@ reading sprint records:
   longitudinal ones are still open. The marker is the honesty, not a formality.
 - **Retract in place.** A claim that turns out wrong is narrowed where it stands, with the reason it
   was wrong attached — never silently rewritten. I0.4 (append-only) applied to our own documents.
-- **One event is an incident; a recurring class is a friction.** `docs/incidents/` for the first
-  two, `docs/logs/friction-*.md` once it is a pattern with a name.
+- **Defects get names, not just ids.** *The CRLF trap*, *the green suite that lied* — the shape of
+  the failure, never its location, so it is recognizable when it reappears elsewhere. One event is
+  an incident (`docs/incidents/`); a reused name means a pair; three is a class and escalates to
+  `docs/logs/friction-*.md`. Ledger and rules: [`docs/logs/DEFECTS.md`](docs/logs/DEFECTS.md).
 
 **Date-stamp anything that can decay.** Status claims, "verified" claims, counts — carry the date
 they were checked (`ENFORCEMENT_DEBT.md` does this well). Nothing in this repo has ever gone stale
