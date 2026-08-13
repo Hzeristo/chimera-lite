@@ -83,6 +83,7 @@ dates order them rather than expiring them. Only the short "Live status" block a
 | **The shared worktree** | `2026-08-12-parallel-executors-shared-worktree` | Parallel executors with disjoint *file* scope still share the index, the stash, and `HEAD` |
 | **The prune that ate the figures** | `2026-08-12-sidecar-prune-deleted-paper-images` | An automatic duplicate-cleanup deleted the only copy of a paper's images |
 | **The CRLF trap, again** | `2026-08-12-vault-query-crlf-silent-truncation` | `vault_query` returned 2 of 6 notes — the same `\r\n` shape, a different tool, two years of notes affected |
+| **The gate that overwrites** | `2026-08-12-ascend-node-overwrites-committed-node` | The sole guarded door into the committed tier checked who may write, never what was already there — an unconditional write that a re-extract at a new arXiv version would have used to destroy a committed node |
 
 ## What the ledger shows *(historical — a reading of the record above)*
 
@@ -100,6 +101,11 @@ new entries are append-only.
 ## Live status *(descriptive — the only part here that can go stale)*
 
 **Checked: 2026-08-12.** Re-verify against the tables above; do not trust these lines on sight.
+
+- **Silent destructive writes are now a pair, not a one-off.** *The gate that overwrites* joins
+  D-1 (supersession implemented as deletion, `ENFORCEMENT_DEBT`): two independent paths that
+  destroy a committed node while I0.4 forbids deleting one. By rule 5 that is a pair — **a third
+  escalates it to a friction class**, and it would be the most serious one in this ledger.
 
 - **The CRLF trap is at two instances** — agent frontmatter (2026-08-10) and `vault_query`
   (2026-08-12). By rule 5 that is a pair; **one more escalates it to a friction class of its own.**

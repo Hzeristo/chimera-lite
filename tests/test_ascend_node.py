@@ -105,3 +105,77 @@ def test_no_code_path_writes_a_judgment_node(tmp_path: Path, dest_sub: str) -> N
         svc.ascend_node(staged)
 
     assert not (vault / dest_sub).exists()
+
+
+def test_ascend_node_uses_the_vault_arxiv_id_moniker_convention(tmp_path: Path) -> None:
+    """Incident 2026-08-12 "the gate that overwrites": the committed stem is `{id}-{Moniker}`.
+
+    This is the vault's existing convention (`core.naming.expected_stem`), which every paper
+    asset and `derives_from` target already used; only this writer diverged, slugging
+    `title[:60]` and cutting mid-word. The moniker is the title's pre-colon segment because
+    `KNodeExtraction.title` specifies that shape (`core/schemas.py:363`).
+    """
+    vault = tmp_path / "vault"
+    svc = StagingService(tmp_path / "staging", vault)
+    staged = svc.create_staging_node(
+        type="knowledge",
+        title="MEMDREAMER: Hierarchical Graph Memory and Agentic Tool Retrieval for Long Video",
+        body="b",
+        chimera_tier="deep_read",
+        metadata={"arxiv_id": "2606.07512"},
+    )
+
+    dest = svc.ascend_node(staged)
+
+    assert dest == vault / "Knowledge" / "2606.07512-MEMDREAMER.md"
+    # the old behaviour truncated mid-word; nothing may reintroduce it
+    assert "Retrie.md" not in dest.name
+    assert len(dest.stem) < 60
+
+
+def test_ascend_node_refuses_to_overwrite_a_committed_node(tmp_path: Path) -> None:
+    """I0.4: committed nodes are never deleted. Two ascends of one paper must not silently
+    destroy the first — the realistic trigger is a re-extract at a new arXiv version, whose
+    title (and therefore stem) is identical."""
+    vault = tmp_path / "vault"
+    svc = StagingService(tmp_path / "staging", vault)
+    kwargs = dict(
+        type="knowledge",
+        title="FluxMem: Training-Free Hierarchical Token Compression",
+        body="first",
+        chimera_tier="deep_read",
+        metadata={"arxiv_id": "2603.02096"},
+    )
+    first = svc.ascend_node(svc.create_staging_node(**kwargs))
+    assert first.read_text(encoding="utf-8").endswith("first\n") or "first" in first.read_text(
+        encoding="utf-8"
+    )
+
+    second = svc.create_staging_node(**{**kwargs, "body": "second"})
+    with pytest.raises(ValueError, match="Refusing to overwrite"):
+        svc.ascend_node(second)
+
+    assert "first" in first.read_text(encoding="utf-8")  # the committed node survived
+    assert second.exists()  # and the staging file was NOT consumed
+
+
+def test_ascend_node_allows_deliberate_supersession(tmp_path: Path) -> None:
+    """The escape hatch is explicit: name the prior in `supersedes` and the replace proceeds."""
+    vault = tmp_path / "vault"
+    svc = StagingService(tmp_path / "staging", vault)
+    kwargs = dict(
+        type="knowledge",
+        title="FluxMem: Training-Free Hierarchical Token Compression",
+        body="first",
+        chimera_tier="deep_read",
+        metadata={"arxiv_id": "2603.02096"},
+    )
+    svc.ascend_node(svc.create_staging_node(**kwargs))
+
+    replacement = svc.create_staging_node(
+        **{**kwargs, "body": "second"},
+        edges={"supersedes": ["2603.02096-FluxMem"]},
+    )
+    dest = svc.ascend_node(replacement)
+
+    assert "second" in dest.read_text(encoding="utf-8")

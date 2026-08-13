@@ -65,8 +65,8 @@ Judgment is externalized out of the MCP layer entirely (Phase L.B): the MCP serv
 | destination | writer | anchor | reached by |
 |---|---|---|---|
 | `inbox/<verdict>/  [chimera_tier=scout]` | `write_knowledge_node` | `mcp-servers/chimera-papers/ports/vault/vault_note_writer.py:31` | `write_scout_card` |
-| `docs/staging/  [chimera_tier=deep_read]` | `create_staging_node` | `mcp-servers/chimera-papers/staging_service.py:61` | `stage_deep_read_node`, `create_node` |
-| `<vault>/Knowledge/` | `_ascend_write` | `mcp-servers/chimera-papers/staging_service.py:132` | `ascend_node` |
+| `docs/staging/  [chimera_tier=deep_read]` | `create_staging_node` | `mcp-servers/chimera-papers/staging_service.py:93` | `stage_deep_read_node`, `create_node` |
+| `<vault>/Knowledge/` | `_ascend_write` | `mcp-servers/chimera-papers/staging_service.py:164` | `ascend_node` |
 | `<vault>/Harness/` | `write_result` | `mcp-servers/chimera-papers/result_service.py:133` | `write_result` |
 | `<vault>/01_Deep_Reads/` | `write_deep_read_node` | `mcp-servers/chimera-papers/ports/vault/vault_note_writer.py:47` | **ORPHANED — no MCP tool reaches this** |
 

@@ -8,6 +8,8 @@ from pathlib import Path
 
 import yaml
 
+from core.naming import expected_stem, sanitize_filename
+
 # K/T/I/D typed-edge vocabulary — mirrors docs/ARCHITECTURE/NODE_ONTOLOGY.md (the authority).
 _TYPE_DEST = {"knowledge": "Knowledge", "thought": "Thoughts", "insight": "Insight", "decision": "Decision"}
 _TYPE_EDGES: dict[str, dict[str, list]] = {
@@ -17,6 +19,36 @@ _TYPE_EDGES: dict[str, dict[str, list]] = {
     "decision":  {"derives_from": [], "drives_decision": [], "dead_ends": [], "supersedes": [], "contradicts": [], "collides_with": [], "informed_by": []},
 }
 _SLUG_RE = re.compile(r'[\\/:*?"<>|\s]+')
+
+
+def _stem_of(target: str) -> str:
+    """The bare stem inside an edge target, with any ``[[...]]`` wrapper removed."""
+    return str(target).strip().strip("[]").strip()
+
+
+def _committed_stem(fm: dict) -> str:
+    """Filename stem for a node entering the committed tier: ``{arxiv_id}-{moniker}``.
+
+    This is the vault's EXISTING convention, not a new one — ``core.naming.expected_stem`` and
+    ``compute_fancy_basename`` have produced it all along for paper assets and triage notes
+    ("与 Obsidian 一致"), which is why every ``derives_from`` target reads like
+    ``2404.16130v2-GraphRAG``. Only this writer diverged, deriving ``title[:60]`` instead and
+    cutting mid-word (``..._Tool_Retrie``). Incident 2026-08-12 "the gate that overwrites".
+
+    The moniker comes from the node title, which ``KNodeExtraction.title`` specifies as
+    ``"<system/model name>: <one-line what-it-is>"`` (``core/schemas.py:363``) — so the segment
+    before the first colon IS the moniker as the schema defines it, not a string scraped by luck.
+    Falls back to the sanitized title when a title carries no colon, and to the title alone when
+    no ``arxiv_id`` is present (T/I/D never reach here; K nodes from extraction always carry one).
+    """
+    title = str(fm.get("title", "untitled")).strip()
+    arxiv_id = str(fm.get("arxiv_id", "") or "").strip()
+    moniker = sanitize_filename(title.split(":", 1)[0].strip()) if ":" in title else ""
+    if arxiv_id and moniker:
+        return expected_stem(sanitize_filename(arxiv_id), moniker)
+    if arxiv_id:
+        return expected_stem(sanitize_filename(arxiv_id), sanitize_filename(title))
+    return sanitize_filename(title) or "untitled"
 
 
 def _as_wikilink(target: str) -> str:
@@ -153,10 +185,23 @@ class StagingService:
                 "code path writes them."
             )
         fm["status"] = "active"
-        slug = _SLUG_RE.sub("_", fm.get("title", "untitled"))[:60].rstrip("_")
         dest_dir = self.vault_root / dest_sub
         dest_dir.mkdir(parents=True, exist_ok=True)
-        dest_path = dest_dir / f"{slug}.md"
+        dest_path = dest_dir / f"{_committed_stem(fm)}.md"
+        # I0.4: committed nodes are never deleted. This writer previously derived the stem from
+        # `title[:60]` and wrote unconditionally, so two papers sharing 60 title characters — most
+        # realistically ONE paper re-extracted at a new arXiv version, whose title is identical —
+        # silently destroyed the earlier committed node, with `supersedes` never consulted.
+        # Incident 2026-08-12 "the gate that overwrites". Supersession is explicit or it does not
+        # happen: a prior named in `supersedes` is handled by `_unlink_superseded` below.
+        if dest_path.exists() and dest_path.name not in {
+            f"{_stem_of(s)}.md" for s in fm.get("graph_edges", {}).get("supersedes", []) or []
+        }:
+            raise ValueError(
+                f"ascend_node: {dest_path.name} already exists in {dest_sub}/ and is not named in "
+                "this node's `supersedes`. Refusing to overwrite a committed node (I0.4). Either "
+                "add it to `supersedes` to replace it deliberately, or resolve the name collision."
+            )
         dest_path.write_text(
             f"---\n{yaml.dump(fm, allow_unicode=True, default_flow_style=False)}---\n{body}",
             encoding="utf-8",
