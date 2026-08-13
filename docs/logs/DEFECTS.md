@@ -1,5 +1,9 @@
 # The named defects
 
+> **Consumer:** anyone asking *"have we seen this shape before?"* · **Load:** read the rules and the
+> Live status block; **grep the ledgers, do not read them through.** The 38 entries are an index
+> into `docs/incidents/` and `docs/logs/`, not reading material.
+
 Every incident and friction in this repo carries a **name** as well as an id. The id is for
 linking; the name is for remembering. `friction-260811-01` is unmemorable and therefore
 untransmissible — *the green suite that lied* is not, and you will still recognize it in November.

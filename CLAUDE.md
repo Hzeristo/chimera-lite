@@ -87,6 +87,9 @@ WebSearch and Task tools.
   `FORMAL_MODEL.md` for the objects and `ENFORCEMENT_DEBT.md` for what actually holds.**
 - `docs/ARCHITECTURE/ARCHITECTURE_RULES.md` — the Violation Detector checklist to run first.
 - This file (architecture + rules).
+- **`docs/README.md` — the router: who reads what, and which directories are archives.** `docs/` is
+  ~1.6 MB; **context is the load**, so archives are grepped, never browsed. Progressive disclosure
+  is the red line.
 - `docs/ROADMAP.md` — phase history.
 - `README.md` — quickstart · `TBD.md` — what is open and waiting on the Architect.
 

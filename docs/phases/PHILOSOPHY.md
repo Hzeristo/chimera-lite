@@ -163,6 +163,23 @@ aimed at the wrong category. Generative names compound and cost nothing to keep;
 documentation is the liability. Adding a fourth constraint is cheap. Adding a fourth status page is
 not.
 
+**Corollary — the decay class sets the load policy, because context is the load.** In a
+Claude-Code-native repo every document is a potential context pull, and a session that reads history
+it did not need reasons worse for it — the cost is metered, not hypothetical. The three kinds map
+almost exactly onto how a document should be consumed:
+
+| Kind | Consumer | Load |
+|---|---|---|
+| **Generative** | every agent, before acting | must be known — it constrains behaviour |
+| **Descriptive** | whoever needs current state | on demand, and check its date |
+| **Historical** | whoever is investigating | **grep, never browse** — evidence, not reading material |
+
+So the missing instruction on most documents was never "is this true?" but **"who reads this, and
+when?"** A 300 KB archive with no load policy is an invitation to spend a context window on
+resolved incidents. The red line is **progressive disclosure**: load the smallest thing that answers
+the question, and mark archives as archives so nothing opens them speculatively. The router is
+[`docs/README.md`](../README.md).
+
 ## Why this coheres with everything else
 
 - **Brand → mechanism.** This is the honesty-promise (the personal-instrument brand) made
