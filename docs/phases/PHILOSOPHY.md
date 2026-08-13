@@ -46,6 +46,35 @@ The north star is therefore **self-suspicious**: every provenance flag, criteria
 verbatim-verifier must be *enforced* or deleted. The permanent adversary of an epistemic instrument
 is **its own theater**.
 
+### The Theater — the house name for the enemy
+
+Give it a name and it becomes a question short enough to ask during review. **"Is this theater?"**
+is the standing challenge to any new flag, criteria file, verifier, status field, or checklist —
+and it is answered by two tests, not by intent:
+
+1. **Has anyone ever seen it fail?** A check nobody has watched fail is not known to be a check.
+   This is the negative-control convention pointed at design rather than at tests.
+2. **If it were deleted, would anything downstream change?** If nothing changes, it was performing.
+   Delete it — a mechanism that only decorates is worse than its absence, because its presence is
+   read as a guarantee.
+
+The Theater is not carelessness and never looks like it. It ships as a well-anchored, file-and-line
+referenced, entirely sincere mechanism that happens to guarantee nothing. Documented instances:
+`chimera-w1-verify` names `criteria/disposition/_general.md` as the layer countering early-stopping
+and **that file does not exist** — `load_criteria` emits a silent marker and every verdict ever
+produced ran without it. C.2's first round shipped a frontmatter check that a CRLF file passed,
+carrying a comment claiming it guarded exactly that case. Both were sincere. Both were theater.
+
+**Its local faces have their own names:** *advisory rigor* (§3), the *fond companion* (§4), and in
+the defect ledger, the whole silent-success family — `docs/logs/DEFECTS.md`.
+
+**The opposite pole already had a name and nobody noticed:** **load-bearing** — used ~80 times
+across this repo, spontaneously, since long before the Theater was named. A mechanism is
+load-bearing when something downstream actually rests on it, which is exactly what the two tests
+measure. So the review question has both poles and needs no new vocabulary: **"is this load-bearing,
+or is it theater?"** Every mechanism here is one or the other, and a thing that cannot be shown to
+be the first should be deleted rather than defended.
+
 ## 4. The ergonomics of the verdict: an accuracy-forcing adversary, with rationed praise
 
 Fidelity has to be *read* to be worth anything. A verdict the tired researcher skims past, or
@@ -100,6 +129,56 @@ it applies wherever Chimera Lite hands the researcher a judgment:
 In every case the same two dials: **an edge that is only allowed to exist attached to a mechanism,
 and a scarce positive signal that stays trustworthy precisely because it is rationed.** The BB skill
 just makes both dials audible.
+
+## 5. Names decay by category, not by age
+
+Everything this repo writes down is one of three kinds, and they age nothing alike. Confusing them
+produces two opposite errors: date-stamping a constraint that cannot be wrong, and trusting a state
+claim that quietly stopped being true.
+
+| Kind | What it does | Can it be wrong? | Maintenance |
+|---|---|---|---|
+| **Generative** | Constrains future choice | **No** — only violated or abandoned, both loud | None. Commit to it |
+| **Historical** | Records what happened | No — the past does not move | A date for *ordering*, not freshness |
+| **Descriptive** | Claims a current state | **Yes**, and silently | Must carry a verification date |
+
+**Generative names do work before the thing they govern exists.** "BB speaks the verdict, never the
+apparatus" settled what a future HTML panel's palette will be, in a phase not yet named. `chimera` —
+graft anything useful, only once validated, never become official — answers questions nobody has
+asked. These are prohibitions and commitments, not reports, and a prohibition cannot fall out of
+date. This is why the oldest prose in the repo (this file, April) is still exactly true while the
+README described a scaffold that had shipped months earlier.
+
+**Descriptive claims are the entire decay surface.** Every rot repaired on 2026-08-12 was one:
+"22 tools" listed as 5; "Foundation scaffold… NOT-WIRED sentinel" for a wired system; a debt row
+calling a one-turn gap session-wide. None were errors when written. All were states that moved while
+their sentences stood still. **The date-stamp convention applies here and nowhere else** — stamping
+a constraint is itself theater, implying a verification that has no meaning.
+
+**The practical test is one question: *can this be wrong?*** A tool count can. A prohibition cannot.
+If it can be wrong, date it; if it can only be broken, commit to it and stop maintaining it.
+
+**Corollary — ration the right thing.** The instinct to limit how much culture a repo carries is
+aimed at the wrong category. Generative names compound and cost nothing to keep; descriptive
+documentation is the liability. Adding a fourth constraint is cheap. Adding a fourth status page is
+not.
+
+**Corollary — the decay class sets the load policy, because context is the load.** In a
+Claude-Code-native repo every document is a potential context pull, and a session that reads history
+it did not need reasons worse for it — the cost is metered, not hypothetical. The three kinds map
+almost exactly onto how a document should be consumed:
+
+| Kind | Consumer | Load |
+|---|---|---|
+| **Generative** | every agent, before acting | must be known — it constrains behaviour |
+| **Descriptive** | whoever needs current state | on demand, and check its date |
+| **Historical** | whoever is investigating | **grep, never browse** — evidence, not reading material |
+
+So the missing instruction on most documents was never "is this true?" but **"who reads this, and
+when?"** A 300 KB archive with no load policy is an invitation to spend a context window on
+resolved incidents. The red line is **progressive disclosure**: load the smallest thing that answers
+the question, and mark archives as archives so nothing opens them speculatively. The router is
+[`docs/README.md`](../README.md).
 
 ## Why this coheres with everything else
 

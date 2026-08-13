@@ -15,9 +15,14 @@
 >
 > A friction log file can hold multiple dated entries; separate them with `---`.
 
+> **Name it, not just number it.** Every friction and incident gets a short spoken name — *the edge
+> nobody types*, *the CRLF trap*. Rules and ledger:
+> [`docs/logs/DEFECTS.md`](../../../../docs/logs/DEFECTS.md).
+
 ```markdown
 # friction-{YYMMDD}-{NN} — {short, specific title naming the gap}
 
+**Name:** {2-4 words, sayable out loud — the shape, not the location}
 **Date:** YYYY-MM-DD
 **Status:** OPEN | RESOLVED ({date}, {phase}) — {one-line resolution summary} | PARTIALLY ADDRESSED — {what's still open}
 **Phase context:** {what phase or work was in flight when this was logged}
