@@ -107,9 +107,9 @@ reading sprint records:
   an incident (`docs/incidents/`); a reused name means a pair; three is a class and escalates to
   `docs/logs/friction-*.md`. Ledger and rules: [`docs/logs/DEFECTS.md`](docs/logs/DEFECTS.md).
 
-- **"Is this theater?"** The standing challenge to any new flag, criteria file, verifier, or
-  status field. Two tests: has anyone ever watched it fail, and would deleting it change anything
-  downstream. The Theater is the house name for the permanent adversary — see
+- **"Is this load-bearing, or is it theater?"** The standing challenge to any new flag, criteria
+  file, verifier, or status field. Two tests: has anyone ever watched it fail, and would deleting it
+  change anything downstream. The Theater is the house name for the permanent adversary — see
   [`docs/phases/PHILOSOPHY.md`](docs/phases/PHILOSOPHY.md).
 
 **Date-stamp anything that can decay.** Status claims, "verified" claims, counts — carry the date

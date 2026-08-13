@@ -68,6 +68,13 @@ carrying a comment claiming it guarded exactly that case. Both were sincere. Bot
 **Its local faces have their own names:** *advisory rigor* (§3), the *fond companion* (§4), and in
 the defect ledger, the whole silent-success family — `docs/logs/DEFECTS.md`.
 
+**The opposite pole already had a name and nobody noticed:** **load-bearing** — used ~80 times
+across this repo, spontaneously, since long before the Theater was named. A mechanism is
+load-bearing when something downstream actually rests on it, which is exactly what the two tests
+measure. So the review question has both poles and needs no new vocabulary: **"is this load-bearing,
+or is it theater?"** Every mechanism here is one or the other, and a thing that cannot be shown to
+be the first should be deleted rather than defended.
+
 ## 4. The ergonomics of the verdict: an accuracy-forcing adversary, with rationed praise
 
 Fidelity has to be *read* to be worth anything. A verdict the tired researcher skims past, or
