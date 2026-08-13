@@ -166,7 +166,15 @@ documents it as though it does is exactly the advisory rigor this repo refuses.
 - [x] A queued claim leaves the session responsive
 - [x] Two claims against one paper produce two artifacts, neither overwriting the other
 - [x] Both W1 modes coexist; the foreground path is unchanged
-- [ ] **`chimera-w1-runner` spawns by agent type** — blocked on a session restart, not on a defect
+- [x] **`chimera-w1-runner` spawns by agent type** — closed 2026-08-12, one turn later. Returned
+      `BINDING-OK` and a tool list matching its frontmatter **exactly**: 9 tools, no `Write`, no
+      `Edit`, no shell. The authority narrowing is real, not just declared.
+
+**Correction to the finding above.** No restart was needed. The registry refreshed on a subsequent
+turn of the same session and announced the new type. "Unreachable for the remainder of the session"
+was over-generalized from a single failed spawn; the true gap is **one turn wide** — the turn that
+authors an agent cannot verify it. Narrower than first stated, and still real: D-8 is corrected
+rather than deleted, because the too-strong claim was already committed.
 
 ## Red lines
 

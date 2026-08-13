@@ -59,7 +59,31 @@ RECON reduction (gap + number), and MERGES the result into a living map — it n
    title=<topic>, body=<the subfield-grouped keyed blocks>, mode="merge")`. Merge PRESERVES the
    Architect's in-Obsidian annotations and ADDS new papers — the map lives; it is not regenerated.
 
-6. **Report.** The classified map, the promote-candidates worth a full ingest, and the Harness path.
+6. **Hand off the nominees.** For each block whose `promote-candidate` is `yes`, emit one runnable
+   handoff, in map order — **not ranked**, because ranking is a judgment W2 has no basis for and the
+   Architect already has the gap sentences in front of them:
+
+   ```
+   <id> — <title>
+       gap: "<the block's gap sentence, verbatim>"
+       run: ingest_paper("<id>")            # only if not yet converted
+            chimera-deep-extract on <id>    # resolves markdown via get_paper_markdown
+   ```
+
+   The gap sentence is quoted verbatim and is the point of the handoff: it is the context the
+   extract should be read against, and re-typing or paraphrasing it is the manual transcription this
+   phase measures (D1).
+
+   **Build each line from the block you already hold — never by re-reading the map.** No map path,
+   no block offset, no re-parse. That is not an optimization: W2's artifact form carries no
+   protection and is reshaped in L.D, so a handoff that depends on the map's structure dies with it,
+   while one built from a candidate in hand survives. The same handoff works when the Architect
+   simply names a promote-candidate in conversation and no map exists at all.
+
+   `ingest_paper` is refused while a long arXiv/pipeline job holds the GPU — if that happens, report
+   it and leave the handoff standing; it is a timing conflict, not a failed nomination.
+
+7. **Report.** The classified map, the handoff lines from step 6, and the Harness path.
    W2 nominates; the Architect promotes.
 
 ## Red lines
@@ -74,3 +98,8 @@ RECON reduction (gap + number), and MERGES the result into a living map — it n
 - ❌ **Judgment in Claude subagents, never deepseek.** Classify + reduce are forked Task subagents;
   the paper text stays in the worker (isolation).
 - ❌ **W2 nominates; the Architect promotes.** No auto-ingest of promote-candidates, no auto-K-node.
+  Step 6 emits lines the Architect *runs* — never run them yourself, not even for a single obvious
+  candidate, and never chain straight into `chimera-deep-extract` (I0.1).
+- ❌ **The handoff is an interface, not a workflow.** No ranking, no scoring, no filtering of
+  nominees, and no dependency on the map's persistence or structure — build each line from the block
+  in hand. A handoff that must parse the map cannot survive W2's reshaping in L.D.
