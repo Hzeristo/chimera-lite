@@ -9,6 +9,18 @@ engineers is the fidelity of what the researcher comes to believe through the to
 [`CLAUDE.md`](./CLAUDE.md) for the architecture and the rules of the road, and
 [`TBD.md`](./TBD.md) for what is currently waiting on the Architect.
 
+## Why "chimera"
+The name is the intake policy, not decoration. A chimera is assembled from parts taken wherever they
+were found — so this repo grafts on **any useful component, from anywhere, provided it is
+validated** before it becomes load-bearing. That second clause is the whole discipline, and it has
+teeth: `chimera-dependency-veto` is where a proposed graft has to argue for itself.
+
+The other half of the name is what it is *not*. This is one researcher's harness, not an official
+product, and it is meant to stay that way — the same register as Kasane Teto, a fan-made voice that
+was never a sanctioned Vocaloid and whose own lore makes her a chimera. Unofficial by construction,
+assembled from what worked, and none the worse for it. Every design decision here assumes exactly
+one user; "how would this generalize" is not a question this repo answers.
+
 ## Architecture in one breath
 Claude Code is the agent loop. Domain capabilities are MCP servers. Persona and
 process discipline are skills under `.claude/`. No custom streaming protocol, no
@@ -94,6 +106,11 @@ reading sprint records:
   the failure, never its location, so it is recognizable when it reappears elsewhere. One event is
   an incident (`docs/incidents/`); a reused name means a pair; three is a class and escalates to
   `docs/logs/friction-*.md`. Ledger and rules: [`docs/logs/DEFECTS.md`](docs/logs/DEFECTS.md).
+
+- **"Is this theater?"** The standing challenge to any new flag, criteria file, verifier, or
+  status field. Two tests: has anyone ever watched it fail, and would deleting it change anything
+  downstream. The Theater is the house name for the permanent adversary — see
+  [`docs/phases/PHILOSOPHY.md`](docs/phases/PHILOSOPHY.md).
 
 **Date-stamp anything that can decay.** Status claims, "verified" claims, counts — carry the date
 they were checked (`ENFORCEMENT_DEBT.md` does this well). Nothing in this repo has ever gone stale

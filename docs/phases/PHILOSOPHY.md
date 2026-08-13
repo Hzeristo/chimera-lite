@@ -46,6 +46,28 @@ The north star is therefore **self-suspicious**: every provenance flag, criteria
 verbatim-verifier must be *enforced* or deleted. The permanent adversary of an epistemic instrument
 is **its own theater**.
 
+### The Theater — the house name for the enemy
+
+Give it a name and it becomes a question short enough to ask during review. **"Is this theater?"**
+is the standing challenge to any new flag, criteria file, verifier, status field, or checklist —
+and it is answered by two tests, not by intent:
+
+1. **Has anyone ever seen it fail?** A check nobody has watched fail is not known to be a check.
+   This is the negative-control convention pointed at design rather than at tests.
+2. **If it were deleted, would anything downstream change?** If nothing changes, it was performing.
+   Delete it — a mechanism that only decorates is worse than its absence, because its presence is
+   read as a guarantee.
+
+The Theater is not carelessness and never looks like it. It ships as a well-anchored, file-and-line
+referenced, entirely sincere mechanism that happens to guarantee nothing. Documented instances:
+`chimera-w1-verify` names `criteria/disposition/_general.md` as the layer countering early-stopping
+and **that file does not exist** — `load_criteria` emits a silent marker and every verdict ever
+produced ran without it. C.2's first round shipped a frontmatter check that a CRLF file passed,
+carrying a comment claiming it guarded exactly that case. Both were sincere. Both were theater.
+
+**Its local faces have their own names:** *advisory rigor* (§3), the *fond companion* (§4), and in
+the defect ledger, the whole silent-success family — `docs/logs/DEFECTS.md`.
+
 ## 4. The ergonomics of the verdict: an accuracy-forcing adversary, with rationed praise
 
 Fidelity has to be *read* to be worth anything. A verdict the tired researcher skims past, or

@@ -12,7 +12,10 @@ is bought by refactoring the foundation, not by adding features — which is why
 phases (**L — Locus**, **K — Katalepsis**) grow *backward* from the pivot. Corollary
 (the north star, and it is self-suspicious): **advisory rigor is negative value** — a provenance
 flag / criteria / verifier that only *performs* rigor launders opinion into knowledge, worse than
-nothing. Enforce it or delete it; the permanent adversary is the instrument's own theater. The
+nothing. Enforce it or delete it; the permanent adversary is the instrument's own theater — **the
+Theater**, in house shorthand, and *"is this theater?"* is the standing question for any new flag,
+criteria, or verifier. Two tests, in `PHILOSOPHY.md`: has anyone seen it fail, and would deleting it
+change anything downstream. The
 dev-phase codename motif encodes this arc (neural horror → epistemology); full *why* in
 [`docs/phases/PHILOSOPHY.md`](docs/phases/PHILOSOPHY.md), the naming grammar in
 [`docs/phases/CODENAMES.md`](docs/phases/CODENAMES.md).
