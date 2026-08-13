@@ -63,7 +63,7 @@ def _find_superseded_stem(paper_id: str, vault_root: Path) -> str | None:
 
     Scans ONLY the committed ``Knowledge/`` tier (ascend_node's sole write target) and matches
     on the frontmatter ``arxiv_id`` + ``type: knowledge``, never a filename-substring. Committed
-    K nodes are named by title slug (``_promote_write``), so the arxiv id is NOT in their stem —
+    K nodes are named by title slug (``_ascend_write``), so the arxiv id is NOT in their stem —
     while Harness/ verdicts and inbox/ scout cards DO carry it in their stems but are not supersede
     targets. A bare ``self_id in path.stem`` match therefore both missed real prior nodes (theater)
     and hit Harness/inbox artifacts, which ``_unlink_superseded`` would then delete on ascend."""

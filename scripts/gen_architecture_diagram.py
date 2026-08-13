@@ -125,20 +125,23 @@ WRITE_SURFACES = [
     ),
     WriteSurface(
         surface_id="staging",
-        destination="docs/staging/  [chimera_tier=deep_read | synthesis]",
+        destination="docs/staging/  [chimera_tier=deep_read]",
         module="mcp-servers/chimera-papers/staging_service.py",
         writer_symbol="create_staging_node",
-        note="Review gate. Nothing here is live vault content until promoted or ascended.",
+        note=(
+            "Review gate, KNOWLEDGE ONLY. Nothing here is live vault content until ascended. "
+            "T/I/D are refused: their bodies are Architect-authored (I0.5)."
+        ),
     ),
     WriteSurface(
         surface_id="committed",
-        destination="<vault>/Knowledge|Thoughts|Insights|Decisions/",
+        destination="<vault>/Knowledge/",
         module="mcp-servers/chimera-papers/staging_service.py",
-        writer_symbol="_promote_write",
+        writer_symbol="_ascend_write",
         note=(
-            "Shared write mechanics for promote_node + ascend_node. promote_node REFUSES "
-            "chimera_tier=deep_read, which is what makes ascend_node the sole writer of "
-            "Knowledge/ (structural, not conventional)."
+            "The one committed-tier writer, called only by ascend_node, refusing every "
+            "destination but Knowledge/. promote_node (T/I/D) was retired 2026-08-11 — no code "
+            "path writes Thoughts/Insight/Decision; the Architect authors those in Obsidian."
         ),
     ),
     WriteSurface(
@@ -447,59 +450,103 @@ def _verify_r1(tools_by_server: dict[str, list[str]], graph: dict[str, set[str]]
 
 def _verify_r2(tools_by_server: dict[str, list[str]], graph: dict[str, set[str]]) -> RuleVerdict:
     """R2 — no truth advance without a human action: committed-tier writes only via MCP tools."""
+    symbol = "_ascend_write"
     tools = _tool_names(tools_by_server)
-    writers = sorted(t for t in tools if find_chain(t, "_promote_write", graph) is not None)
+    writers = sorted(t for t in tools if find_chain(t, symbol, graph) is not None)
     background = [
         entry
         for entry in ("run_subprocess_task", "create_task", "_run_task", "daily_paper_pipeline")
-        if find_chain(entry, "_promote_write", graph) is not None
+        if find_chain(entry, symbol, graph) is not None
     ]
     checked = (
-        "Tested which entry points reach `_promote_write` (the only committed-tier write "
-        "mechanic): registered MCP tools vs background/scheduled task entry points."
+        f"Tested which entry points reach `{symbol}` (the only committed-tier write mechanic): "
+        "registered MCP tools vs background/scheduled task entry points."
     )
     if background:
         return RuleVerdict(
             "I0.1", "VIOLATED", checked, f"Non-human entry reaches the committed tier: {background}"
+        )
+    if not writers:
+        # An empty result is NOT a pass. This check silently degraded to a vacuous PASS once
+        # `_promote_write` was renamed: no tool chained to a symbol that no longer existed, so
+        # nothing was "found reaching" the committed tier and the rule reported clean. A guard
+        # a renamed target can defeat is the failure mode this whole document exists to catch.
+        return RuleVerdict(
+            "I0.1",
+            "VIOLATED",
+            checked,
+            (
+                f"No MCP tool reaches `{symbol}` — either the committed-tier writer was renamed "
+                f"out from under this check, or the ascension gate is unreachable. Vacuous "
+                f"result refused rather than reported as PASS."
+            ),
         )
     return RuleVerdict(
         "I0.1",
         "PASS",
         checked,
         (
-            f"`_promote_write` is reached only by human-invoked MCP tool(s): "
+            f"`{symbol}` is reached only by human-invoked MCP tool(s): "
             f"{', '.join(f'`{w}`' for w in writers)}. No background/scheduled path reaches it."
         ),
     )
 
 
 def _verify_r3() -> RuleVerdict:
-    """R3 — ascend_node is the sole writer of Knowledge/, enforced by promote_node's refusal."""
+    """R3 — ascend_node is the sole writer of Knowledge/.
+
+    I1.2 is a claim about a DESTINATION, so the check must be about the destination. The
+    previous version tested `"deep_read" in promote_node and "raise" in promote_node` and
+    concluded sole-writership from it — a substring test that cannot support that conclusion,
+    and which returned PASS while a `type: knowledge` node with an absent or `scout` tier
+    reached `Knowledge/` through `promote_node` (demonstrated by execution, 2026-08-11).
+
+    What actually makes it structural: the refusal lives in `_promote_write`, the ONE
+    function both callers funnel through, keyed on the destination folder, and opened only
+    by a parameter `ascend_node` alone passes. Then no present or future caller can reach
+    the committed tier by another route.
+    """
     module = "mcp-servers/chimera-papers/staging_service.py"
-    promote = _function_source(module, "promote_node")
+    source = (REPO_ROOT / module).read_text(encoding="utf-8")
+    writer = _function_source(module, "_ascend_write")
     ascend = _function_source(module, "ascend_node")
+    creator = _function_source(module, "create_staging_node")
     checked = (
-        "AST-extracted `promote_node` / `ascend_node` and tested for the tier guards that make "
-        "the sole-writer guarantee structural rather than conventional."
+        "AST-extracted `_ascend_write` / `ascend_node` / `create_staging_node` and tested that "
+        "the committed writer refuses every destination but `Knowledge/`, that `ascend_node` is "
+        "its only caller, that the retired `promote_node` is truly gone, and that the staging "
+        "creator refuses the judgment types whose bodies I0.5 reserves for the Architect."
     )
-    promote_guards = "deep_read" in promote and "raise" in promote
-    ascend_guards = "deep_read" in ascend and "raise" in ascend
-    if promote_guards and ascend_guards:
-        return RuleVerdict(
-            "I1.2",
-            "PASS",
-            checked,
-            (
-                f"`promote_node` refuses `chimera_tier=deep_read` and `ascend_node` requires it "
-                f"(`{module}`), so `ascend_node` is structurally the sole `Knowledge/` writer."
-            ),
-        )
-    missing = [
+
+    writer_is_k_only = 'dest_sub != "Knowledge"' in writer and "raise" in writer
+    # `self._ascend_write(` is the call form; counting `_ascend_write(` would also match the def.
+    single_caller = source.count("self._ascend_write(") == 1 and "self._ascend_write(" in ascend
+    promote_retired = "def promote_node" not in source
+    creator_is_k_only = 'node_type != "knowledge"' in creator and "raise" in creator
+
+    failures = [
         name
-        for name, ok in (("promote_node refusal", promote_guards), ("ascend_node gate", ascend_guards))
+        for name, ok in (
+            ("_ascend_write refuses non-Knowledge destinations", writer_is_k_only),
+            ("ascend_node is the only caller of _ascend_write", single_caller),
+            ("promote_node is retired", promote_retired),
+            ("create_staging_node refuses T/I/D (I0.5)", creator_is_k_only),
+        )
         if not ok
     ]
-    return RuleVerdict("I1.2", "VIOLATED", checked, f"Missing guard(s): {', '.join(missing)}")
+    if failures:
+        return RuleVerdict("I1.2", "VIOLATED", checked, f"Missing: {'; '.join(failures)}")
+    return RuleVerdict(
+        "I1.2",
+        "PASS",
+        checked,
+        (
+            f"`_ascend_write` refuses any destination but `Knowledge/` and has exactly one "
+            f"caller, `ascend_node` (`{module}`). `promote_node` is retired, so no code path "
+            f"reaches any committed tier except the ascension gate; `create_staging_node` "
+            f"refuses T/I/D, so no tool authors a judgment body (I0.5)."
+        ),
+    )
 
 
 def _verify_r4() -> RuleVerdict:

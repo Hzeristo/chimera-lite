@@ -36,13 +36,6 @@ class PaperLoader:
         clean_dir.mkdir(parents=True, exist_ok=True)
         final_clean_md = clean_dir / f"{paper_stem}.md"
 
-        if final_clean_md.exists():
-            logger.info(
-                "[Papers] Target markdown already exists in clean vault: %s",
-                final_clean_md.name,
-            )
-            return final_clean_md
-
         md_files = list(raw_paper_dir.rglob("*.md"))
         if not md_files:
             raise FileNotFoundError(
@@ -63,6 +56,18 @@ class PaperLoader:
                 best_match.name,
             )
 
+        if final_clean_md.exists():
+            # Still promote images: papers converted before figures were copied alongside
+            # have a clean markdown whose links dangle, and returning here without the copy
+            # would make the defect unrepairable by re-running. The copy skips files that
+            # already exist, so this is idempotent.
+            logger.info(
+                "[Papers] Target markdown already exists in clean vault: %s",
+                final_clean_md.name,
+            )
+            self._copy_images_alongside(best_match, clean_dir)
+            return final_clean_md
+
         try:
             shutil.copy2(best_match, final_clean_md)
             logger.info(
@@ -76,7 +81,53 @@ class PaperLoader:
                 f"IO Error during promotion. source={best_match}, target={final_clean_md}"
             ) from exc
 
+        self._copy_images_alongside(best_match, clean_dir)
         return final_clean_md
+
+    @staticmethod
+    def _copy_images_alongside(source_md: Path, clean_dir: Path) -> int:
+        """Copy MinerU's `images/` next to the clean markdown so its links resolve.
+
+        MinerU writes figure references as `![](images/<sha256>.jpg)` — RELATIVE to the
+        markdown. Promoting only the `.md` therefore produced a file whose every image link
+        was dangling from the moment it was written; the images stayed behind in the raw
+        output directory. That was survivable while the raw tree was permanent, and became
+        data loss the moment anything reclaimed it.
+
+        A single shared `clean_dir/images/` is correct rather than a per-paper subdirectory:
+        the relative link is exactly `images/<name>`, and MinerU names files by content hash,
+        so two papers sharing an identical figure share one file and never collide. Existing
+        files are left alone for the same reason — same name means same bytes.
+
+        Never raises: a missing figure must not fail an otherwise good conversion. Returns
+        the number of images copied.
+        """
+        source_images = source_md.parent / "images"
+        if not source_images.is_dir():
+            return 0
+        target_images = clean_dir / "images"
+        copied = 0
+        try:
+            target_images.mkdir(parents=True, exist_ok=True)
+            for image in source_images.iterdir():
+                if not image.is_file():
+                    continue
+                destination = target_images / image.name
+                if destination.exists():
+                    continue
+                shutil.copy2(image, destination)
+                copied += 1
+        except OSError as exc:
+            logger.warning(
+                "[Papers] Could not copy images from %s: %s — markdown image links will "
+                "not resolve for this paper",
+                source_images,
+                exc,
+            )
+            return copied
+        if copied:
+            logger.info("[Papers] Copied %s image(s) -> %s", copied, target_images)
+        return copied
 
     def load_paper(self, clean_md: Path) -> Paper:
         """

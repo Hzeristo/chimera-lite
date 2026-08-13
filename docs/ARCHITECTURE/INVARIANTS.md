@@ -74,7 +74,7 @@ construction. Judgment lives in skills orchestrating subagents.
 system exists to hold.
 
 ### I1.2 — Staging Gate Universality
-All AI-authored content enters a staging buffer (docs/staging/ or vault/Harness/)
+AI-authored Knowledge node enters a staging buffer
 before any committed tier. Promotion into the committed tier passes through a
 single gate (ascend_node), which is the sole writer of the committed tier.
 

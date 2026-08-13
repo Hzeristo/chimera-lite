@@ -8,7 +8,8 @@ Nothing here serves HTTP, and no inference runs in this process.
 WHY: every `MineruClient.convert` currently spawns a throwaway MinerU service and reloads
 every model. Measured on a pipeline convert: 3.1s server spawn + full model load against
 15.8s of actual parsing, inside a 32.4s wall — roughly half the wall clock is setup that a
-resident server pays once. See docs/logs/friction-260810.md.
+resident server pays once. Measurements and the lifecycle defects found later:
+docs/incidents/2026-08-11-sidecar-orphaned-vram-and-lost-race.md.
 
 ## Statelessness — the design constraint
 
@@ -24,6 +25,25 @@ So the sidecar's state lives in the OS, not in this process:
   until cleared (CLAUDE.md, known deferred issues). Not repeating it here.
 - **The probe validates that the thing answering is MinerU**, so a foreign process that
   grabbed the port cannot be mistaken for the sidecar.
+- **A missing kill handle is recovered from the OS, not surrendered.** A sidecar started by
+  the operator or by a previous MCP instance leaves no runfile here. `_pid_on_port` asks the
+  OS who holds the port (only ever after `probe()` has confirmed the responder is MinerU), so
+  adoption and `stop` work regardless of who started it. Refusing instead — the old
+  behaviour — stranded a resident GPU process that only manual intervention could free.
+- **Losing a start race is not a failure.** If our spawned child exits because a concurrent
+  batch won the port, `ensure_running` re-probes and adopts the winner rather than dropping
+  this batch to standalone alongside a perfectly healthy service.
+
+## Disk
+
+The log APPENDS across runs — truncate-on-start destroyed exactly the evidence needed to
+diagnose a convert that failed earlier — and rolls to `.log.1` past `LOG_MAX_BYTES`.
+
+`MINERU_API_OUTPUT_ROOT` grows by one task-uuid directory per parse (it had reached 60 MB
+across 7) and is pruned at SPAWN — never at stop, which is when a failed batch's artifacts
+are the evidence. Safe only because `PaperLoader.extract_and_clean` now promotes `images/`
+beside the clean markdown; before that this tree held a paper's sole copy of its figures.
+See `prune_output`.
 
 ## Blast radius
 
@@ -42,6 +62,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -65,6 +86,8 @@ STARTUP_TIMEOUT_SECONDS = float(os.getenv("CHIMERA_MINERU_SIDECAR_STARTUP", "300
 POLL_INTERVAL_SECONDS = 2.0
 PROBE_TIMEOUT_SECONDS = 5.0
 SHUTDOWN_GRACE_SECONDS = 30
+# The log appends across runs (forensics), so it needs a ceiling: past this, roll to .log.1.
+LOG_MAX_BYTES = int(os.getenv("CHIMERA_MINERU_SIDECAR_LOG_MAX", str(8 * 1024 * 1024)))
 
 HEALTH_ENDPOINT = "/health"
 # Keys MinerU's /health payload carries (mineru/cli/fast_api.py). Used as an identity check:
@@ -157,6 +180,106 @@ def _read_runfile() -> dict | None:
         return None
 
 
+def _pid_on_port() -> int | None:
+    """Ask the OS which pid is LISTENING on the sidecar port. Never raises.
+
+    The runfile only exists for a sidecar THIS process started. A sidecar started by the
+    operator, or by another MCP instance after an `/mcp` reconnect, left no kill handle —
+    and `stop()` used to give up and say "stop it manually", stranding a resident GPU
+    process. The OS already knows the owner; ask it instead of holding state.
+
+    Only ever used AFTER `probe()` has confirmed a MinerU service answers on this port, so
+    the pid owning the port is that service.
+    """
+    try:
+        if sys.platform == "win32":
+            completed = subprocess.run(
+                ["netstat", "-ano", "-p", "tcp"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                check=False,
+            )
+            needle = f"{SIDECAR_HOST}:{SIDECAR_PORT}"
+            for line in completed.stdout.splitlines():
+                parts = line.split()
+                # proto local foreign state pid
+                if len(parts) >= 5 and parts[1].endswith(needle) and parts[3].upper() == "LISTENING":
+                    return int(parts[4])
+            return None
+        completed = subprocess.run(
+            ["lsof", "-t", f"-iTCP:{SIDECAR_PORT}", "-sTCP:LISTEN"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+        first = completed.stdout.strip().splitlines()
+        return int(first[0]) if first else None
+    except (OSError, subprocess.SubprocessError, ValueError) as exc:
+        logger.warning("[Sidecar] Could not resolve the pid holding port %s: %s", SIDECAR_PORT, exc)
+        return None
+
+
+def _kill_handle() -> int | None:
+    """The pid to kill: the runfile's if we started it, else whoever the OS says owns the port."""
+    record = _read_runfile()
+    pid = record.get("pid") if record else None
+    return pid if pid is not None else _pid_on_port()
+
+
+def prune_output(reason: str = "") -> int:
+    """Delete the sidecar's server-side output tree. Returns bytes reclaimed. Never raises.
+
+    Called at SPAWN only — deliberately never at stop. Two rules decide that:
+
+    1. **Only prune what has been promoted.** This tree stopped being a pure duplicate the
+       moment the sidecar path started keeping figures nowhere else: with `--api-url` the
+       client promotes only the clean markdown, so a paper's `images/` lived here alone.
+       Pruning at stop therefore deleted the sole copy — verified 2026-08-11, when
+       `2608.08883.md` came back referencing an `images/c94ea…jpg` that existed nowhere on
+       disk. `PaperLoader.extract_and_clean` now copies `images/` beside the clean markdown,
+       so by the time a batch ends its figures are promoted and this tree is redundant again.
+    2. **Never delete evidence at the moment of failure.** Stop is exactly when a batch may
+       have just failed and its parse artifacts are what you would diagnose from — the same
+       mistake truncate-on-start made with the log. Spawn is the safe moment: nothing is in
+       flight, and the previous batch's output has already been promoted.
+
+    Net effect: growth is bounded to one batch's parses rather than accumulating forever
+    (it had reached 60 MB across 7), and no artifact is destroyed while it is still the only
+    copy or still the best explanation of a failure.
+    """
+    root = _state_dir() / "output"
+    if not root.is_dir():
+        return 0
+    freed = 0
+    try:
+        for entry in root.iterdir():
+            try:
+                size = sum(f.stat().st_size for f in entry.rglob("*") if f.is_file())
+            except OSError:
+                size = 0
+            try:
+                if entry.is_dir():
+                    shutil.rmtree(entry, ignore_errors=True)
+                else:
+                    entry.unlink(missing_ok=True)
+                freed += size
+            except OSError as exc:
+                logger.warning("[Sidecar] Could not prune %s: %s", entry, exc)
+    except OSError as exc:
+        logger.warning("[Sidecar] Could not read the output root: %s", exc)
+        return freed
+    if freed:
+        logger.info(
+            "[Sidecar] Pruned %.1f MB of duplicate parse output%s",
+            freed / (1024 * 1024),
+            f" ({reason})" if reason else "",
+        )
+    return freed
+
+
 def _write_runfile(pid: int) -> None:
     payload = {
         "pid": pid,
@@ -186,12 +309,23 @@ def status() -> SidecarStatus:
                 else f"not running (stale runfile records pid {pid})"
             ),
         )
+    # Healthy: report a kill handle even when we never started it, so an operator (or Claude)
+    # reading status always sees whether this sidecar can actually be stopped.
+    owned = pid is not None
+    if pid is None:
+        pid = _pid_on_port()
     return SidecarStatus(
         running=True,
         base_url=base_url(),
         port=SIDECAR_PORT,
         pid=pid,
-        detail="healthy",
+        detail=(
+            "healthy"
+            if owned
+            else f"healthy (adopted — kill handle {pid} resolved from the OS)"
+            if pid is not None
+            else "healthy (no kill handle — cannot be stopped by this process)"
+        ),
         queued_tasks=payload.get("queued_tasks"),
         processing_tasks=payload.get("processing_tasks"),
         mineru_version=payload.get("version"),
@@ -240,10 +374,26 @@ def _spawn() -> subprocess.Popen | None:
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(
         subprocess, "CREATE_NEW_PROCESS_GROUP", 0
     )
+    # Safe moment: the service does not exist yet, so nothing is mid-parse, and the previous
+    # batch's markdown AND images are already promoted beside each other. See prune_output.
+    prune_output(reason="spawn")
+
     try:
-        # Truncate on start: a resident uvicorn would otherwise grow this file without
-        # bound. Access logging is disabled in _build_env to keep it small.
-        logf = log_path().open("w", encoding="utf-8", errors="replace")
+        # APPEND, not truncate. Truncate-on-start destroyed the evidence of every previous
+        # run, which is exactly what was needed to diagnose a failed convert after the fact.
+        # Unbounded growth is held off by a size cap below plus MINERU_API_DISABLE_ACCESS_LOG.
+        path = log_path()
+        try:
+            if path.is_file() and path.stat().st_size > LOG_MAX_BYTES:
+                path.replace(path.with_suffix(".log.1"))  # keep exactly one previous generation
+        except OSError as exc:
+            logger.warning("[Sidecar] Could not roll the sidecar log: %s", exc)
+        logf = path.open("a", encoding="utf-8", errors="replace")
+        logf.write(
+            f"\n===== sidecar start {datetime.now(timezone.utc).isoformat(timespec='seconds')} "
+            f"on {base_url()} =====\n"
+        )
+        logf.flush()
     except OSError as exc:
         logger.error("[Sidecar] Cannot open the sidecar log: %s", exc)
         return None
@@ -298,17 +448,23 @@ def ensure_running(timeout: float = STARTUP_TIMEOUT_SECONDS) -> str | None:
 
     proc = _spawn()
     if proc is None:
-        return None
+        return _adopt_if_healthy("spawn failed")
 
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if proc.poll() is not None:
-            logger.error(
-                "[Sidecar] mineru-api exited with code %s before becoming healthy; see %s",
-                proc.returncode,
-                log_path(),
-            )
-            return None
+            # Our child died — but losing a start RACE looks identical to failing to start.
+            # The likely cause is that a concurrent batch won the port, so re-probe before
+            # giving up: falling straight through to standalone would run this batch slowly
+            # alongside a perfectly healthy sidecar.
+            adopted = _adopt_if_healthy(f"our spawn exited {proc.returncode}, port already served")
+            if adopted is None:
+                logger.error(
+                    "[Sidecar] mineru-api exited with code %s before becoming healthy; see %s",
+                    proc.returncode,
+                    log_path(),
+                )
+            return adopted
         if probe() is not None:
             _write_runfile(proc.pid)
             logger.info("[Sidecar] Healthy at %s (pid=%s)", base_url(), proc.pid)
@@ -318,6 +474,22 @@ def ensure_running(timeout: float = STARTUP_TIMEOUT_SECONDS) -> str | None:
     logger.error("[Sidecar] mineru-api did not become healthy within %ss; stopping it", timeout)
     _kill_tree(proc.pid)
     return None
+
+
+def _adopt_if_healthy(context: str) -> str | None:
+    """Adopt a sidecar this process did not start: verify health, then RECORD a kill handle.
+
+    Without the runfile write this is where orphaned VRAM came from — a healthy service with
+    no recorded owner, which `stop()` refused to touch. The pid comes from the OS, so the
+    handle is recorded even though we never held the child.
+    """
+    if probe() is None:
+        return None
+    pid = _pid_on_port()
+    if pid is not None:
+        _write_runfile(pid)
+    logger.info("[Sidecar] Adopted the running sidecar at %s (pid=%s; %s)", base_url(), pid, context)
+    return base_url()
 
 
 def start_for_batch() -> bool:
@@ -405,16 +577,19 @@ def stop(force: bool = False) -> SidecarStatus:
             mineru_version=payload.get("version"),
         )
 
-    record = _read_runfile()
-    pid = record.get("pid") if record else None
+    # A sidecar started by the operator or by another MCP instance has no runfile here; ask
+    # the OS who owns the port rather than refusing and stranding its VRAM.
+    pid = _kill_handle()
     if pid is None:
-        # Healthy but unowned — this process never started it and holds no kill handle.
         return SidecarStatus(
             running=True,
             base_url=base_url(),
             port=SIDECAR_PORT,
             pid=None,
-            detail="running but no runfile pid — stop it manually (no kill handle recorded)",
+            detail=(
+                "running but no kill handle — the runfile has no pid and the OS did not "
+                f"report a listener on port {SIDECAR_PORT}; stop it manually"
+            ),
             queued_tasks=payload.get("queued_tasks"),
             processing_tasks=payload.get("processing_tasks"),
             mineru_version=payload.get("version"),
@@ -425,6 +600,8 @@ def stop(force: bool = False) -> SidecarStatus:
     while time.monotonic() < deadline:
         if probe() is None:
             _runfile().unlink(missing_ok=True)
+            # NOT pruning here: the parse output holds the only copy of a paper's extracted
+            # images (see prune_output). Reclaim space explicitly instead.
             logger.info("[Sidecar] Stopped (pid=%s)", pid)
             return SidecarStatus(
                 running=False,

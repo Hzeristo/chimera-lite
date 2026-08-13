@@ -21,10 +21,14 @@ from staging_service import StagingService, _TYPE_DEST, _TYPE_EDGES  # noqa: E40
 
 # The canonical sets from docs/ARCHITECTURE/NODE_ONTOLOGY.md §2 (post-ratification).
 CANONICAL = {
-    "knowledge": {"derives_from", "supersedes", "contradicts"},
-    "thought": {"derives_from", "supersedes", "contradicts", "dead_ends", "drives_decision"},
-    "insight": {"synthesizes", "evidence_base", "derives_from", "drives_decision", "supersedes", "contradicts"},
-    "decision": {"derives_from", "drives_decision", "dead_ends", "supersedes", "contradicts"},
+    # `evidence_base` extended to K by Architect ratification 2026-08-12 (Phase L.C, C.3b) —
+    # a W1 verdict is the supporting evidence for a claim living in a Knowledge node.
+    # `collides_with` (all four types) and `informed_by` (T/I/D only) closed D-3
+    # (Phase L.C, C.4a) — the vocabulary NODE_ONTOLOGY.md §2 ratified in r2.
+    "knowledge": {"derives_from", "supersedes", "contradicts", "evidence_base", "collides_with"},
+    "thought": {"derives_from", "supersedes", "contradicts", "dead_ends", "drives_decision", "collides_with", "informed_by"},
+    "insight": {"synthesizes", "evidence_base", "derives_from", "drives_decision", "supersedes", "contradicts", "collides_with", "informed_by"},
+    "decision": {"derives_from", "drives_decision", "dead_ends", "supersedes", "contradicts", "collides_with", "informed_by"},
 }
 
 
@@ -44,35 +48,38 @@ def test_ontology_mirrors_node_ontology_doc() -> None:
     assert "depends_on" not in _TYPE_EDGES["decision"]
 
 
-@pytest.mark.parametrize("node_type", ["knowledge", "thought", "insight", "decision"])
-def test_create_node_writes_typed_edges(tmp_path: Path, node_type: str) -> None:
+# Only `knowledge` is creatable — T/I/D bodies are Architect-authored (I0.5), so the staging
+# creator refuses them (see test_ascend_node.py::test_staging_refuses_to_author_judgment_nodes).
+# `_TYPE_EDGES` still carries T/I/D entries: `stage_link_patch` validates edges on EXISTING
+# vault nodes, which are frequently hand-written Thoughts.
+def test_create_node_writes_typed_edges(tmp_path: Path) -> None:
     svc = StagingService(tmp_path / "staging", tmp_path / "vault")
-    path = svc.create_staging_node(type=node_type, title=f"Test {node_type}", body="body text")
+    path = svc.create_staging_node(type="knowledge", title="Test knowledge", body="body text")
 
     assert path.exists()
     assert path.parent == tmp_path / "staging"          # staged, not vaulted
     fm = _read_frontmatter(path)
-    assert fm["type"] == node_type
+    assert fm["type"] == "knowledge"
     assert fm["status"] == "PENDING_REVIEW"
-    assert set(fm["graph_edges"]) == CANONICAL[node_type]
+    assert set(fm["graph_edges"]) == CANONICAL["knowledge"]
 
 
 def test_edges_merge_populates_valid_key(tmp_path: Path) -> None:
     svc = StagingService(tmp_path / "staging", tmp_path / "vault")
     path = svc.create_staging_node(
-        type="thought", title="linked thought", body="b",
+        type="knowledge", title="linked node", body="b",
         edges={"derives_from": ["Some Note"]},
     )
     fm = _read_frontmatter(path)
     assert fm["graph_edges"]["derives_from"] == ["[[Some Note]]"]  # normalized to wikilink form
     # untouched keys stay empty
-    assert fm["graph_edges"]["dead_ends"] == []
+    assert fm["graph_edges"]["supersedes"] == []
 
 
 def test_edges_prewrapped_not_double_wrapped(tmp_path: Path) -> None:
     svc = StagingService(tmp_path / "staging", tmp_path / "vault")
     path = svc.create_staging_node(
-        type="thought", title="pw", body="b",
+        type="knowledge", title="pw", body="b",
         edges={"derives_from": ["[[Already Linked]]"]},
     )
     fm = _read_frontmatter(path)
@@ -83,7 +90,7 @@ def test_unknown_edge_key_is_rejected_loudly(tmp_path: Path) -> None:
     svc = StagingService(tmp_path / "staging", tmp_path / "vault")
     with pytest.raises(ValueError, match="Unknown edge"):
         svc.create_staging_node(
-            type="thought", title="bad", body="b",
+            type="knowledge", title="bad", body="b",
             edges={"bogus_edge": ["x"]},
         )
 

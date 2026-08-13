@@ -14,8 +14,9 @@ identity always maps to the same file):
   PRESERVES the Architect's in-Obsidian annotations verbatim (existing blocks win). Clobbering the
   map would destroy irreplaceable human curation, which is why W2 does not supersede. Status moves
   to ``MERGED`` when papers were added.
-- ``reject`` / ``mark_stale``: status transitions on an EXISTING artifact (body untouched) —
-  ``REJECTED`` / ``STALE`` respectively. Raise if the artifact does not exist.
+- ``promote`` / ``reject`` / ``mark_stale``: status transitions on an EXISTING artifact (body
+  untouched) — ``PROMOTED`` / ``REJECTED`` / ``STALE`` respectively. Raise if the artifact does
+  not exist.
 """
 
 from __future__ import annotations
@@ -53,7 +54,7 @@ class WriteOutcome:
 
 _SLUG_RE = re.compile(r'[\\/:*?"<>|\s]+')
 _PAPER_KEY_RE = re.compile(r"<!--\s*w2:paper=(?P<id>\S+?)\s*-->")
-_VALID_MODES = frozenset({"supersede", "merge", "reject", "mark_stale"})
+_VALID_MODES = frozenset({"supersede", "merge", "promote", "reject", "mark_stale"})
 
 
 def _slug(text: str, limit: int = 80) -> str:
@@ -171,8 +172,13 @@ class ResultService:
             raise ValueError("write_result requires a non-empty identity")
         path = self.results_dir / f"{_slug(kind)}__{_slug(ident)}.md"
 
-        if mode in ("reject", "mark_stale"):
-            return self._transition(path, "REJECTED" if mode == "reject" else "STALE")
+        if mode in ("promote", "reject", "mark_stale"):
+            new_status = {
+                "promote": "PROMOTED",
+                "reject": "REJECTED",
+                "mark_stale": "STALE",
+            }[mode]
+            return self._transition(path, new_status)
         if mode == "merge" and path.exists():
             return self._merge(path, title=title, body=body, metadata=metadata)
 
