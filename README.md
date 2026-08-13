@@ -74,7 +74,7 @@ research sessions, not build sessions. They are listed in [`TBD.md`](./TBD.md).
 | `.mcp.json` | MCP server registration |
 | `mcp-servers/chimera-vault/` | Vault MCP server — query, staging, harness artifacts, edges |
 | `mcp-servers/chimera-papers/` | Papers MCP server — mining, ingest, conversion, extraction |
-| `.claude/skills/` | 20 `chimera-*` skills (workflows, lenses, process discipline) |
+| `.claude/skills/` | 19 `chimera-*` skills (workflows, lenses, process discipline) + `_shared/` |
 | `.claude/agents/` | 9 pinned subagent types; model bound in frontmatter |
 | `docs/phases/`, `docs/plans/`, `docs/sprints/` | Phase specs, batch plans, sprint records |
 | `docs/audits/`, `docs/incidents/`, `docs/logs/` | Audits, incidents, friction logs |

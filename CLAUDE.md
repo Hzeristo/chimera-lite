@@ -18,9 +18,13 @@ dev-phase codename motif encodes this arc (neural horror → epistemology); full
 [`docs/phases/CODENAMES.md`](docs/phases/CODENAMES.md).
 
 ## Current state
-Active build: **Phase L — Locus: The Research Harness** (`docs/phases/phase-L.md`) — automates the
-manual research harness into two Claude-subagent workflows, W1 (claim verbatim verification) and W2
-(breadth mapping), with paper-type criteria loaded dynamically from the vault. Judgment lives in Task
+**Phase L.C — Colligo** is ⚠️ *functionally sealed* (2026-08-12) — candidate material (W1/extract
+output) binds into committed artifacts across three consumption routes. Sealed on the mechanical
+conditions only: two remain open and need real research sessions, not build sessions (`TBD.md`).
+Next in the backward arc is **Phase K**.
+
+The harness it sits on is Phase L: W1 (claim verbatim verification), W2 (breadth mapping), and deep
+extraction, with paper-type criteria loaded dynamically from the vault. Judgment lives in Task
 subagents; MCP provides the primitives.
 
 Known deferred issues (not blockers): `status=?` across knowledge nodes (vault frontmatter); and the
@@ -61,14 +65,16 @@ Three documents, three jobs — never conflate them:
 Registered in `.mcp.json`. Tool **contracts** (names, args, docstrings) live in each
 `server.py` and are authoritative.
 
-- **`chimera-vault`** — read/query the Obsidian vault:
-  `search_vault`, `search_vault_attribute`, `read_vault_file`,
-  `obsidian_graph_query`, `vault_query`.
-- **`chimera-papers`** — arXiv mining + the daily pipeline (long-running via
-  `TaskService`, poll model): `arxiv_miner`, `daily_paper_pipeline`,
-  `check_task_status`; plus `ingest_paper` — single known paper (arxiv_id **or**
-  local pdf_path) → Knowledge node (synchronous; the single-paper counterpart to
-  `daily_paper_pipeline`).
+- **`chimera-vault`** (11) — vault read/query: `search_vault`, `search_vault_attribute`,
+  `read_vault_file`, `obsidian_graph_query`, `vault_query`, `load_criteria`. Writes:
+  `create_node` (knowledge-only), `ascend_node` (sole writer of `Knowledge/`), `link_nodes`
+  (stages an edge patch) / `apply_link_patch` (applies one — Architect-invoked),
+  `write_result` (harness artifacts + their lifecycle transitions).
+- **`chimera-papers`** (11) — arXiv mining + the daily pipeline (long-running via `TaskService`,
+  poll model): `arxiv_miner`, `daily_paper_pipeline`, `check_task_status`. Single-paper:
+  `ingest_paper`, `fetch_paper`, `convert_pdf_to_md`, `get_paper_markdown`, `mineru_sidecar`.
+  Judgment-adjacent primitives (the server never judges): `analyze_paper_data`,
+  `stage_deep_read_node`, `write_scout_card`.
 
 Web search and subagent delegation are **not** MCP servers — use Claude Code's native
 WebSearch and Task tools.
@@ -79,19 +85,32 @@ WebSearch and Task tools.
 - `docs/ARCHITECTURE/ARCHITECTURE_RULES.md` — the Violation Detector checklist to run first.
 - This file (architecture + rules).
 - `docs/ROADMAP.md` — phase history.
-- `README.md` — quickstart.
+- `README.md` — quickstart · `TBD.md` — what is open and waiting on the Architect.
 
 ## Skills
+19 under `.claude/skills/` (+ `_shared/`). Dev-process:
 1. `chimera-sprint-discipline` — planning / reviewing
 2. `chimera-code-taste` — batch sprint execution (code/UI taste)
 3. `chimera-dependency-veto` — adding dependencies
 4. `chimera-commit-style` — drafting commits
-5. `chimera-bb-persona` — always active; restyles the FINAL answer paragraph in BB's
+5. `chimera-mcp-taste` — designing / changing an MCP tool surface
+6. `chimera-bb-persona` — always active; restyles the FINAL answer paragraph in BB's
    voice (Fate/EXTRA CCC Moon Cell AI). Reasoning + tool output stay plain. At
    `.claude/skills/chimera-bb-persona/`.
-6. `chimera-academic-observe` — always active (Phase N.A); proactively surfaces vault-node
+7. `chimera-academic-observe` — always active (Phase N.A); proactively surfaces vault-node
    connections during research analysis via `obsidian_graph_query` / `vault_query`,
    relevance-gated and silent by default. At `.claude/skills/chimera-academic-observe/`.
+
+**Research workflows (explicitly invoked, never ambient).** Each orchestrates MCP primitives and
+delegates every unit of judgment to a pinned subagent:
+- `chimera-triage-paper` — cheap bulk screen → a scout-tier card.
+- `chimera-deep-extract` — ONE paper → a staged `deep_read` Knowledge node.
+- `chimera-w1-verify` — verify a claim against its cited paper → `[V]`/`[P]`/`[U]`. Has a queue
+  mode for a claim spotted mid-read (`chimera-w1-runner`, detached).
+- `chimera-w1-review` — review pending verdicts, promote the selected, stage `evidence_base`.
+- `chimera-w2-map` — breadth map from seed papers; nominates promote-candidates.
+- `chimera-propose-links` — propose `informed_by` onto a hand-authored T/I/D node. Proposes and
+  stages only; the apply is the Architect's explicit order.
 
 **Research lenses (Phase N.A — trigger-based, auto-selected by paper type).** Pure prompt
 skills, no MCP changes. Each requires mechanism + evidence + falsifiability via the shared
