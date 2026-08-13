@@ -9,9 +9,13 @@ retired schema that must not be retroactively rewritten
 (`.claude/skills/chimera-sprint-discipline/assets/friction-entry-template.md`), so a ledger is the
 only home that can cover all of them without touching any.
 
-Last synced: **2026-08-12**.
+**This file is two documents with different lifespans** (`PHILOSOPHY.md` §5). The rules below are
+**generative** — constraints on how future defects get named; they cannot go stale and carry no
+date. The ledgers are **historical** — records of what happened; the past does not move, so their
+dates order them rather than expiring them. Only the short "Live status" block at the end is
+**descriptive**, and it is the only part that needs re-checking.
 
-## The rules
+## The rules — generative, no expiry
 
 1. **Name the shape, not the location.** *The CRLF trap*, not *the agent frontmatter bug*. A name
    that points at a file cannot be recognized when the same failure appears somewhere else — and
@@ -28,7 +32,7 @@ Last synced: **2026-08-12**.
    This is the mechanism, not a suggestion: *the unregistered tool* + *the CRLF trap* + one more
    became *the green suite that lied*.
 
-## Frictions — the classes
+## Frictions — the classes *(historical record)*
 
 | Name | id | The shape |
 |---|---|---|
@@ -38,7 +42,7 @@ Last synced: **2026-08-12**.
 | **The mock that never passed** | `friction-260523` | A test double with no success path burned the turn limit instead of failing |
 | **Reviewer Zero refuses** | `friction-260526` | The agent declined to call tools and reported the refusal as diligence |
 | **The crawl that wouldn't** | `friction-260611` | The mining path returned nothing and said nothing about why |
-| **The edge nobody types** | `friction-260708-01` | Typed edges must be filled by hand after writing a body; format work at the wrong moment. **Still the live one** — L.C's C.4 exists because of it |
+| **The edge nobody types** | `friction-260708-01` | Typed edges must be filled by hand after writing a body; format work at the wrong moment |
 | **The observer that never fires** | `friction-260709-01` | An always-active skill that was never actually triggered by the loop |
 | **The untunable prompt** | `friction-260710-01` | Judgment quality buried in code, with no surface to adjust it |
 | **The node without its gap** | `friction-260713-01` | Synthesis that recorded the mechanism but dropped the motivation and the payoff |
@@ -46,7 +50,7 @@ Last synced: **2026-08-12**.
 | **Rules nobody checks** | `friction-260803-01` | Invariants declared in a document with no verifier — the ancestor of `ENFORCEMENT_DEBT.md` |
 | **The green suite that lied** | `friction-260811-01` | "Registered" is an untested surface: components shipped unreachable with a fully green suite |
 
-## Incidents — the events
+## Incidents — the events *(historical record)*
 
 | Name | id | The shape |
 |---|---|---|
@@ -76,15 +80,27 @@ Last synced: **2026-08-12**.
 | **The prune that ate the figures** | `2026-08-12-sidecar-prune-deleted-paper-images` | An automatic duplicate-cleanup deleted the only copy of a paper's images |
 | **The CRLF trap, again** | `2026-08-12-vault-query-crlf-silent-truncation` | `vault_query` returned 2 of 6 notes — the same `\r\n` shape, a different tool, two years of notes affected |
 
-## What the ledger shows
+## What the ledger shows *(historical — a reading of the record above)*
 
-Reading the names together is the point, and two patterns are visible only this way.
-
-**The CRLF trap fired twice**, in different subsystems, six weeks apart. By rule 5 that is a pair —
-one more instance and it escalates to a friction class of its own. Worth knowing *before* the third.
+Reading the names together is the point, and this pattern is visible only this way.
 
 **Silence is this repo's dominant failure mode.** *The silent downgrade*, *swallowed as skip*, *the
 invisible pipeline*, *the silent block*, *the green suite that lied*, *the CRLF trap* twice, *the
 unregistered tool* — the majority of named defects here did not crash. They returned a plausible
 answer and said nothing. That is not a coincidence about this codebase; it is what an epistemic
 instrument fails like, and it is the argument for negative controls in one line.
+
+This claim ages with the ledger, not with the calendar: it can only be changed by new entries, and
+new entries are append-only.
+
+## Live status *(descriptive — the only part here that can go stale)*
+
+**Checked: 2026-08-12.** Re-verify against the tables above; do not trust these lines on sight.
+
+- **The CRLF trap is at two instances** — agent frontmatter (2026-08-10) and `vault_query`
+  (2026-08-12). By rule 5 that is a pair; **one more escalates it to a friction class of its own.**
+  Worth knowing before the third, which is the entire reason this line is here.
+- **The edge nobody types (`friction-260708-01`) is the live one.** Phase L.C's C.4 exists because
+  of it, and C.4's semantic acceptance is still open (`TBD.md`), so the friction is not yet closed.
+- **Everything else listed as RESOLVED in its source document is taken as resolved here.** This
+  ledger does not re-verify resolutions; the source friction/incident file is authoritative.

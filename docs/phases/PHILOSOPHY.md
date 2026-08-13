@@ -130,6 +130,39 @@ In every case the same two dials: **an edge that is only allowed to exist attach
 and a scarce positive signal that stays trustworthy precisely because it is rationed.** The BB skill
 just makes both dials audible.
 
+## 5. Names decay by category, not by age
+
+Everything this repo writes down is one of three kinds, and they age nothing alike. Confusing them
+produces two opposite errors: date-stamping a constraint that cannot be wrong, and trusting a state
+claim that quietly stopped being true.
+
+| Kind | What it does | Can it be wrong? | Maintenance |
+|---|---|---|---|
+| **Generative** | Constrains future choice | **No** — only violated or abandoned, both loud | None. Commit to it |
+| **Historical** | Records what happened | No — the past does not move | A date for *ordering*, not freshness |
+| **Descriptive** | Claims a current state | **Yes**, and silently | Must carry a verification date |
+
+**Generative names do work before the thing they govern exists.** "BB speaks the verdict, never the
+apparatus" settled what a future HTML panel's palette will be, in a phase not yet named. `chimera` —
+graft anything useful, only once validated, never become official — answers questions nobody has
+asked. These are prohibitions and commitments, not reports, and a prohibition cannot fall out of
+date. This is why the oldest prose in the repo (this file, April) is still exactly true while the
+README described a scaffold that had shipped months earlier.
+
+**Descriptive claims are the entire decay surface.** Every rot repaired on 2026-08-12 was one:
+"22 tools" listed as 5; "Foundation scaffold… NOT-WIRED sentinel" for a wired system; a debt row
+calling a one-turn gap session-wide. None were errors when written. All were states that moved while
+their sentences stood still. **The date-stamp convention applies here and nowhere else** — stamping
+a constraint is itself theater, implying a verification that has no meaning.
+
+**The practical test is one question: *can this be wrong?*** A tool count can. A prohibition cannot.
+If it can be wrong, date it; if it can only be broken, commit to it and stop maintaining it.
+
+**Corollary — ration the right thing.** The instinct to limit how much culture a repo carries is
+aimed at the wrong category. Generative names compound and cost nothing to keep; descriptive
+documentation is the liability. Adding a fourth constraint is cheap. Adding a fourth status page is
+not.
+
 ## Why this coheres with everything else
 
 - **Brand → mechanism.** This is the honesty-promise (the personal-instrument brand) made
