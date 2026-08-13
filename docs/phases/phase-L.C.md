@@ -1,6 +1,10 @@
 # Phase L.C — Colligo: Candidate Consumption Paths
 
-**Status:** Active (opened 2026-08-12)
+**Status:** ⚠️ **Functionally sealed 2026-08-12** (opened 2026-08-12) —
+`docs/audits/phase-L.C-seal-review.md`. 8/8 sprints executed; 4/7 hard conditions met, 1 partial
+(C.3c's `evidence_base` staging never exercised — no `[V]` has a K node), **2 open and
+Architect-owed**: condition 4 (a real authoring session) and condition 7 (the VISION gate, three
+research sessions). Both are longitudinal and cannot be closed from a build session.
 **Predecessor:** Phase L.B (Integratio)
 **Etymology:** Latin *colligō* — to bind together, to infer. Whewell's term for
 the cognitive moment scattered observations bind into a principle. Here: binding

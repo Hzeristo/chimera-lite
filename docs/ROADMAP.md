@@ -329,10 +329,14 @@ sprints are batch-planned — `chimera-sprint-discipline` enforces audit-before-
 
 ## Active Phase
 
-**None** — Phase L.B functionally sealed 2026-08-12. Next is **Phase L.C — Colligo: Candidate
-Consumption Paths** (`docs/phases/phase-L.C.md`, Queued): binding candidate material (W1/extract
-outputs) into committed artifacts across three equal-friction routes. Breadth at scale is L.C+
-scope by L.B's own definition.
+**None** — Phase L.C functionally sealed 2026-08-12. Next in the backward arc is **Phase K**
+(`docs/phases/phase-K.md`, Queued), which inherits three things L.C deliberately did not fix:
+node-level provenance for applied edges (D5's known limit), the monotonicity gate that would read
+L.C's `evidence_base` edges (R5b), and the `depends_on` → support rename pinned to K.1 (D-4).
+
+**Before K, two Architect-owed items close L.C's open conditions** — one authoring session
+(condition 4) and three research sessions with friction re-measured against
+`docs/audits/L.C.1-friction-baseline.md` (condition 7, the VISION gate).
 
 > **Note (2026-08-12):** this file lags the build. Phases L, L.B, Q, K and the codename motif
 > (`docs/phases/CODENAMES.md`) are recorded in their phase docs but not fully reflected here —
@@ -428,8 +432,35 @@ back and restructure the foundation rather than adding capability, which is why 
 descend from the M pivot. Register is epistemology throughout: *is what we hold faithfully
 held?* Naming grammar and the full ledger: `docs/phases/CODENAMES.md`.
 
-### Phase L.C — Colligo: Candidate Consumption Paths ▶ Next
-**Status:** Queued (after L.B seal — unblocked 2026-08-12). Spec: `docs/phases/phase-L.C.md`.
+### Phase L.C — Colligo: Candidate Consumption Paths ⚠️ Functionally Sealed 2026-08-12
+**Status:** Functionally sealed. Spec: `docs/phases/phase-L.C.md` · Seal review:
+`docs/audits/phase-L.C-seal-review.md`.
+
+**Etymology.** Latin *colligō* — to bind together, to infer; Whewell's term for the moment scattered
+observations bind into a principle. The phase binds candidate material (W1/extract output) into
+committed artifacts. It earned the name at the narrow end: the binding operation route 3 was
+supposed to have — `PENDING_REVIEW → PROMOTED` — was declared in `phase-L.md:139-142` and
+implemented nowhere, so every harness artifact ever produced had sat unbound since it was written.
+
+**Sealed:** 8 of 8 sprints executed (C.1, C.2, C.3a/b/c, C.4a/b, C.5, C.6); 19 commits; 241 tests.
+**4 of 7 hard conditions met, 1 partial, 2 open and Architect-owed** — condition 4 (a real authoring
+session proposes and applies an `informed_by` edge) and condition 7 (the VISION gate: three research
+sessions with friction re-measured). Both are longitudinal; neither can be produced by a build
+session, which is why this is a *functional* seal and not a green one.
+
+**What it bought.** I1.4 got an observable (it was one of eight canonical invariants with no
+verifier). Route 3 got its terminal operation. I0.5's provenance mandate got a mechanism — D-3
+discharged; `informed_by` was canonical and unemittable. Mid-read verification got a substrate the
+harness supplies, after the probe proved a detached subagent can spawn its own judgment worker,
+which `TaskService` structurally never could.
+
+**The measurement that inverted its own diagnosis.** "The Architect does not fill edges by hand" was
+false — 5 of 6 T-nodes carry 15 `derives_from` links. What is never filled is `informed_by`, the one
+key absent from `Tpl_thought.md`. **Template presence predicts edge population**, making a one-line
+template change, not a skill, the intervention most likely to move the number.
+
+**New debt:** D-8 — a newly authored agent/skill is unreachable for the turn that authors it, and no
+in-process test can assert the live registry (`friction-260811-01` instance 4).
 **Etymology:** Latin *colligō* — to bind together, to infer. Whewell's term for the cognitive
 moment scattered observations bind into a principle. Here: binding candidate material (W1 /
 extract outputs) into committed artifacts.
