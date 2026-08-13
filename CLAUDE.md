@@ -13,9 +13,8 @@ phases (**L — Locus**, **K — Katalepsis**) grow *backward* from the pivot. C
 (the north star, and it is self-suspicious): **advisory rigor is negative value** — a provenance
 flag / criteria / verifier that only *performs* rigor launders opinion into knowledge, worse than
 nothing. Enforce it or delete it; the permanent adversary is the instrument's own theater — **the
-Theater**, in house shorthand, and *"is this theater?"* is the standing question for any new flag,
-criteria, or verifier. Two tests, in `PHILOSOPHY.md`: has anyone seen it fail, and would deleting it
-change anything downstream. The
+Theater**, and *"is this load-bearing, or is it theater?"* is the standing question for any new
+flag, criteria, or verifier (its two tests: `PHILOSOPHY.md` §3). The
 dev-phase codename motif encodes this arc (neural horror → epistemology); full *why* in
 [`docs/phases/PHILOSOPHY.md`](docs/phases/PHILOSOPHY.md), the naming grammar in
 [`docs/phases/CODENAMES.md`](docs/phases/CODENAMES.md).
@@ -87,9 +86,8 @@ WebSearch and Task tools.
   `FORMAL_MODEL.md` for the objects and `ENFORCEMENT_DEBT.md` for what actually holds.**
 - `docs/ARCHITECTURE/ARCHITECTURE_RULES.md` — the Violation Detector checklist to run first.
 - This file (architecture + rules).
-- **`docs/README.md` — the router: who reads what, and which directories are archives.** `docs/` is
-  ~1.6 MB; **context is the load**, so archives are grepped, never browsed. Progressive disclosure
-  is the red line.
+- **`docs/README.md` — the router: who reads what, which directories are archives.** Read it before
+  opening anything under `docs/`; context is the load.
 - `docs/ROADMAP.md` — phase history.
 - `README.md` — quickstart · `TBD.md` — what is open and waiting on the Architect.
 

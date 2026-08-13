@@ -16,7 +16,7 @@ matters; **historical** docs are evidence, retrieved on demand and never browsed
 | Path | Consumer | Kind | Load policy |
 |---|---|---|---|
 | `ARCHITECTURE/INVARIANTS.md` | every agent, before any change | generative | **Read before changing anything.** FROZEN — reference, never restate |
-| `ARCHITECTURE/ENFORCEMENT_DEBT.md` | anyone relying on an invariant | descriptive | **Read before trusting an invariant.** An invariant is not a shipped guarantee |
+| `ARCHITECTURE/ENFORCEMENT_DEBT.md` | anyone relying on an invariant | descriptive | **Read before trusting an invariant** |
 | `ARCHITECTURE/FORMAL_MODEL.md`, `NODE_ONTOLOGY.md`, `TAG_SYSTEM.md` | agents touching nodes/edges/tags | generative | Reference on demand — look up the rule you need |
 | `ARCHITECTURE/ARCHITECTURE_RULES.md` | before any change | generative | The Violation Detector checklist. Subordinate to INVARIANTS |
 | `ARCHITECTURE/THEORETICAL_FRAMEWORK.md`, `AUTO_RESEARCH_REQ_REFS.md` | design discussions | reference | On demand. Defers to the canonical on any divergence |
@@ -45,9 +45,5 @@ Everything above is on demand except these, and even these are pointers rather t
 `../CLAUDE.md` is the only always-loaded document and deliberately stays lean; `../TBD.md` carries
 what is open and waiting on the Architect.
 
-## Why this file is itself allowed to exist
-
-It states **policy**, not contents — no file counts, no lists that grow. Adding a sprint record does
-not falsify a line here, which is what keeps a router from becoming the next thing that quietly goes
-stale. If a directory's *purpose* changes, this file is wrong and should be fixed; if a directory
-merely gains files, it is not.
+*This file states policy, not contents — adding files to a directory cannot falsify it; only a
+directory changing purpose can.*

@@ -108,9 +108,8 @@ reading sprint records:
   `docs/logs/friction-*.md`. Ledger and rules: [`docs/logs/DEFECTS.md`](docs/logs/DEFECTS.md).
 
 - **"Is this load-bearing, or is it theater?"** The standing challenge to any new flag, criteria
-  file, verifier, or status field. Two tests: has anyone ever watched it fail, and would deleting it
-  change anything downstream. The Theater is the house name for the permanent adversary — see
-  [`docs/phases/PHILOSOPHY.md`](docs/phases/PHILOSOPHY.md).
+  file, verifier, or status field. The Theater is the house name for the permanent adversary; its
+  two tests live in [`docs/phases/PHILOSOPHY.md`](docs/phases/PHILOSOPHY.md) §3.
 
 **Date-stamp anything that can decay.** Status claims, "verified" claims, counts — carry the date
 they were checked (`ENFORCEMENT_DEBT.md` does this well). Nothing in this repo has ever gone stale
