@@ -1,5 +1,8 @@
 # TBD — what is waiting on the Architect
 
+> **Consumer:** the Architect at session start; any agent asking what is unfinished ·
+> **Load:** short by design, safe to read whole · **Kind:** descriptive — check the sync date below.
+
 **This file has no authority.** It is a reminder index; every item links to the document that
 actually owns it. If this file and its target disagree, **the target is right** — fix this file.
 
