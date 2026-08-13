@@ -80,6 +80,23 @@ research sessions, not build sessions. They are listed in [`TBD.md`](./TBD.md).
 | `docs/audits/`, `docs/incidents/`, `docs/logs/` | Audits, incidents, friction logs |
 | `tests/` | 241 tests |
 
+## House conventions
+Four practices this repo already runs on, written down because they were only ever visible by
+reading sprint records:
+
+- **A check nobody has seen fail is not a check.** New assertions ship with a recorded negative
+  control — break the thing on purpose, watch the check fail, restore it.
+- **A functional seal is not a green seal.** ⚠️ means the mechanical conditions passed and
+  longitudinal ones are still open. The marker is the honesty, not a formality.
+- **Retract in place.** A claim that turns out wrong is narrowed where it stands, with the reason it
+  was wrong attached — never silently rewritten. I0.4 (append-only) applied to our own documents.
+- **One event is an incident; a recurring class is a friction.** `docs/incidents/` for the first
+  two, `docs/logs/friction-*.md` once it is a pattern with a name.
+
+**Date-stamp anything that can decay.** Status claims, "verified" claims, counts — carry the date
+they were checked (`ENFORCEMENT_DEBT.md` does this well). Nothing in this repo has ever gone stale
+by being wrong; it goes stale by having been right on a day nobody recorded.
+
 ## The one thing to know before changing anything
 `docs/ARCHITECTURE/INVARIANTS.md` is Architect-authored and **frozen** — reference it, never restate
 or extend it. **An invariant is not a shipped guarantee:** check
