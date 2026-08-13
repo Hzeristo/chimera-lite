@@ -6,7 +6,12 @@
 **This file has no authority.** It is a reminder index; every item links to the document that
 actually owns it. If this file and its target disagree, **the target is right** — fix this file.
 
-Last synced: **2026-08-12**, at Phase L.C's functional seal.
+Last synced: **2026-08-12**, after MemDreamer's ascension.
+
+**Vault inventory at that date:** 17 converted papers · **3** Knowledge nodes · 6 W1 verdicts ·
+2 W2 maps · 10 hand-authored T/I nodes · staging empty. The binding constraint is extraction depth,
+not paper supply — and `evidence_base` still has **0** live instances, which is what Phase K.1's
+monotonicity gate would need to read.
 
 ---
 
@@ -42,9 +47,8 @@ doing research — neither can be produced by a build session.
       verdict you have ever produced ran without it.** Writing criteria is your judgment, not the
       repo's. → `docs/sprints/phase-L.C/C.5.md`
 
-- [ ] **An unreviewed `deep_read` node sits in `docs/staging/`** — MemDreamer (2606.07512), from
-      C.6's acceptance run. `ascend_node` it or delete it. It is deliberately untracked in git; no
-      staged node has ever been committed. → `docs/sprints/phase-L.C/C.6.md`
+- [x] ~~An unreviewed `deep_read` node in `docs/staging/`~~ — MemDreamer (2606.07512) **ascended
+      2026-08-12** on the Architect's order. `Knowledge/` is now 3 nodes; staging is empty.
 
 - [ ] **Vault template sync — check it took.** You synced `informed_by: []` into the vault's own
       `templates/` copies by hand on 2026-08-12. The repo may not touch those files, so nothing here
