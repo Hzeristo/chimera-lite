@@ -77,6 +77,10 @@ doing research — neither can be produced by a build session.
 Reached in discussion 2026-08-13 and recorded so the reasoning is not re-derived. `phase-L.D.md`
 does not exist yet; this is input for it, not a plan.
 
+**Architect's scoping intent (2026-08-13): L.D is a thin phase.** Recorded at the moment it was
+stated, because the items below plus L.C's deferred scope (inline verdict rendering, W2's reshape)
+already exceed thin — so L.D's spec will have to cut, not just sequence.
+
 - [ ] **Gaps attach to claims as a thin object — not a parallel section, and not an edge.**
       Promote `ClaimFlag` from a bare enum to `{kind, statement, what_would_fill_it}`.
 
