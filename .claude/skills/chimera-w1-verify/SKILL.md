@@ -32,8 +32,14 @@ the verbatim check yourself in the main context — the paper's full text must s
    - **K-node claim:** `read_vault_file` the node; the claim is a mechanism claim inside it; `cited_ref`
      is its paper.
    - **Raw-text claim:** use the pasted text as `claim_text`; `cited_ref` is whatever it cites.
-   - `identity` = the paper's arXiv id when the claim is about one paper; else a short deterministic slug
-     of `claim_text` (so re-running the same claim supersedes, never duplicates).
+   - `identity` = `<arxiv_id>__<claim_slug>` — the paper's arXiv id, `__`, and a short deterministic
+     kebab-case slug of `claim_text` (4-6 words). No arXiv id → the slug alone.
+     **The claim slug is not optional.** `identity` is the artifact's filename
+     (`result_service.py:173`) and `write_result` defaults to `supersede`, so a bare arXiv id makes
+     every claim about one paper overwrite the previous one — a re-run and a *different* claim are
+     indistinguishable to the tool. The slug is what makes supersede mean "this same claim again."
+     Keep it short for a second reason: `_slug` truncates at 80 characters, so two long slugs sharing
+     a prefix still collide.
 
 2. **Resolve the cited paper (cheap-first — D5).**
    - `cited_ref` is an arXiv id already in the vault → read its converted markdown.
@@ -57,10 +63,39 @@ the verbatim check yourself in the main context — the paper's full text must s
 
 7. **Report** to the Architect: the `[V]/[P]/[U]` tag, its grounding quote(s) + location, and the Harness path.
 
+## Queue mode — a claim spotted mid-read
+
+**Trigger:** the Architect queues a claim rather than asking for it now — "queue this", "check this
+in the background", "verify this while I keep reading", or any claim raised while they are plainly
+mid-read and did not ask to stop. When in doubt, run foreground; queueing a claim they wanted
+answered now is the worse error.
+
+Queue mode runs **the same loop**, moved off the Architect's session:
+
+1. Do step 1 above yourself — normalize the claim and compute `identity`. **Only this step.** The
+   identity must be computed here, in the session that knows what else is queued, not by the runner.
+2. Spawn `chimera-w1-runner` with `{claim_text, cited_ref, identity}`. It runs detached; you get
+   control back immediately.
+3. **Report the handle in one line and stop:** the `identity` you queued and the claim, so the
+   Architect knows what is in flight. Do not narrate the loop, do not poll, do not wait.
+4. **On the completion notification,** report the runner's `queued-claim`, verdict, grounding quote,
+   and Harness path — leading with `queued-claim`, because by then several may be outstanding and a
+   verdict the Architect cannot attribute is worse than no verdict.
+
+Queueing does not weaken anything: the judgment still happens in `chimera-verbatim-verifier` under
+isolation, one layer further out. Both modes coexist — queue mode never replaces the foreground path.
+
 ## Red lines
 
 - ❌ The verbatim judgment happens in the `chimera-verbatim-verifier` subagent — NEVER in the main
   context (isolation), and NEVER via deepseek.
+- ❌ **Queue mode spawns `chimera-w1-runner` and nothing else** — never an unpinned or
+  general-purpose agent. The runner's tool list is deliberately narrow: no `Write`, no `Edit`, no
+  shell. A detached agent runs unwatched, so its authority is bounded by construction.
+- ❌ **Never queue and foreground the same claim.** They share an `identity` and the second write
+  supersedes the first.
+- ❌ Queue mode does not promote and does not link. The artifact lands `PENDING_REVIEW`;
+  `chimera-w1-review` is where the Architect promotes it (I0.1).
 - ❌ No `[V]/[P]/[U]` tag without a verbatim quote + location. A claim you cannot ground is `[U]`.
 - ❌ W1 stops at verification — it does NOT interpret what a verified fact "means" (that is Phase K's
   framing gate). The verdict answers "is the claim supported?", nothing more (C2).

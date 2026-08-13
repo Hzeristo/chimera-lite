@@ -77,7 +77,7 @@ Constraints:
 | C.3c | 🟡 | Route 3 collapse: pending `[V]` verdicts → one structured decision → promote, support edge staged | ✅ `aeaa860`, verified live `45d9d4a` |
 | C.4a | 🟡 | Close D-3: `_TYPE_EDGES` mirrors the canonical; `informed_by` becomes emittable | ✅ `14aa957` |
 | C.4b | 🟡 | Boundary bridge: `chimera-propose-links` proposes `informed_by` onto a hand-authored node | ✅ `3d550a7` |
-| C.5 | 🔴 | Mid-read verification: queue a claim on a native background task; probe-first, may end at its probe | ▶ needs per-sprint approval |
+| C.5 | 🔴 | Mid-read verification: queue a claim on a native background task; probe-first, may end at its probe | ✅ probe passed 3/3; queue mode live — agent-type binding owed to a restart (D-8) |
 | C.6 | 🟢 | W2 handoff: a promote-candidate becomes a runnable extract carrying its gap sentence | ▶ ready |
 | seal | — | phase_review: three routes measured, not asserted | — |
 

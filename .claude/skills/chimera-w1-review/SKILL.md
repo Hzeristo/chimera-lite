@@ -24,15 +24,24 @@ not yours.
    If none are pending, say so and stop — do not offer to run W1.
 
 2. **Read each verdict in full.** `read_vault_file` per artifact. You need four things from each:
-   - `identity` (frontmatter) — the paper's arXiv id, and the artifact's key for `write_result`.
+   - `identity` (frontmatter) — the artifact's key for `write_result`. Pass it back **whole**.
+     Since C.5 it has the form `<arxiv_id>__<claim_slug>`, so it is no longer the bare paper id;
+     older artifacts still carry a bare id. Both are valid keys — never normalize either.
    - `verdict` (frontmatter) — `V` / `P` / `U`.
    - the **first grounding quote** with its location, from the body.
    - the claim line (the body's `**Claim verified:**`).
 
 3. **Resolve the support-edge target — never invent one.** For a `[V]`, the edge is
    `<K node> --evidence_base--> [[<verdict stem>]]`, so the K node whose claim was verified must be
-   found. W1 does not record it, so resolve by paper:
-   `search_vault_attribute(key="arxiv_id", value=<identity>)`, and keep only hits under
+   found. W1 does not record it, so resolve by paper.
+
+   **Derive the paper id first — do not search on `identity`.** Since C.5 an identity is
+   `<arxiv_id>__<claim_slug>`, so take the part **before the first `__`**; an identity with no `__`
+   is already the bare id. Searching the whole identity matches nothing and every row would report
+   "no committed K node" — a silent wrong answer that looks exactly like the legitimate
+   no-K-node case, which is why this step is spelled out rather than left to inference.
+
+   Then `search_vault_attribute(key="arxiv_id", value=<the derived id>)`, keeping only hits under
    `Knowledge/` (a committed node — inbox scout cards and staging are not edge targets).
    - Exactly one hit → that is the target.
    - Zero hits → **no edge is possible.** The paper has no committed K node. Say so in the row.

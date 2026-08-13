@@ -33,7 +33,8 @@ its before-state is recorded. C.2 and C.6 are independent of the instrument and 
 Seal requires C.1 / C.2 / C.3a / C.3b / C.3c / C.4.
 
 **Execution status.** ✅ C.1 (`dc7375d`) · ✅ C.2 (`4f980a9`) · ✅ C.3a (`40508af`) ·
-✅ C.3b (`eb0f1d2`) · ▶ C.3c next · ▶ C.4 ready · ▶ C.6 ready · ⏸ C.5 awaiting per-sprint approval.
+✅ C.3b (`eb0f1d2`) · ✅ C.3c (`aeaa860`, live `45d9d4a`) · ✅ C.4a (`14aa957`) · ✅ C.4b (`3d550a7`) ·
+✅ C.5 (probe 3/3; agent binding owed to a restart — `ENFORCEMENT_DEBT` D-8) · ▶ C.6 ready.
 
 **One process rule, learned in this batch** (`docs/incidents/2026-08-12-parallel-executors-shared-worktree.md`):
 parallel `chimera-sprint-executor` spawns run with `isolation: "worktree"` or are serialized.
