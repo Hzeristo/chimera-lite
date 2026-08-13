@@ -1,4 +1,4 @@
-# Phase N.A — Lens Skills
+# Phase N.A — Noesis: Lens Skills
 
 **Status:** ✅ Sealed 2026-07-06 — all 3 HSC met (auto-select · academic-taste · proactive-observe); 7 pure prompt skills, zero MCP changes. Seal: `docs/plans/Phase-N.A-batch.md`, `docs/sprints/phase-N.A/*.md`.
 **Driving frictions:**

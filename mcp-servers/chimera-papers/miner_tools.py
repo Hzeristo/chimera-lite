@@ -7,7 +7,11 @@ Long-running tools return a ``task_id`` immediately; callers poll ``check_task_s
 from __future__ import annotations
 
 import asyncio
+import json
+from collections.abc import Awaitable, Callable
+from pathlib import Path
 
+from core.config import ChimeraConfig, get_config
 from core.schemas import ToolOutput
 from fetch_arxiv_workflow import fetch_and_process_arxiv
 from task_service import TaskStatus, get_task_service
@@ -61,7 +65,11 @@ async def daily_paper_pipeline(
     arxiv_max_results: int | None = None,
     skip_telegram: bool = False,
 ) -> str:
-    """Start the full daily pipeline (fetch → ingest → filter → notify); return task_id."""
+    """Start the full daily pipeline (fetch → convert → notify); return task_id.
+
+    Makes NO LLM call and writes NO Knowledge node (L.B.2) — triage of the converted papers is a
+    separate, explicitly invoked step: the ``chimera-triage-paper`` skill.
+    """
     n: int | None
     if arxiv_max_results is None:
         n = None
@@ -87,33 +95,225 @@ async def daily_paper_pipeline(
 
 
 async def ingest_paper(
-    arxiv_id: str | None = None, pdf_path: str | None = None
+    arxiv_id: str | None = None,
+    pdf_path: str | None = None,
+    progress: Callable[[float, str], Awaitable[None]] | None = None,
 ) -> str:
-    """Ingest ONE paper (arXiv id or local PDF) into a vault Knowledge node.
+    """Fetch + convert ONE paper (arXiv id or local PDF); returns its markdown path.
 
-    Synchronous — returns the written K-node path. The heavy MinerU convert + triage runs
-    in a worker thread so the event loop is not blocked.
+    Writes NO Knowledge node and makes NO LLM call (L.B.2) — this is a fetch+convert primitive
+    only. Contrast with the retired ingest→triage→K-node path: triage is now the explicitly
+    invoked ``chimera-triage-paper`` skill, which reads this markdown itself (isolation) and, on
+    a verdict, calls ``write_scout_card`` to write the inbox card. The heavy download / MinerU
+    convert each run in a worker thread inside the domain function so the event loop is not
+    blocked; ``progress`` (from the MCP tool wrapper) streams stage labels to the client.
     """
     has_arxiv = bool(arxiv_id and str(arxiv_id).strip())
     has_pdf = bool(pdf_path and str(pdf_path).strip())
     if not has_arxiv and not has_pdf:
         return "[Tool Error]: ingest_paper requires arxiv_id or pdf_path."
 
-    # Lazy import: keep the heavy MinerU / LLM chain out of module load (matches the
+    # Lazy import: keep the heavy MinerU chain out of module load (matches the
     # daily-pipeline lazy import).
     from single_paper_ingest import ingest_single_paper
 
     try:
-        out_path = await asyncio.to_thread(
-            ingest_single_paper,
+        md_path = await ingest_single_paper(
             arxiv_id=(str(arxiv_id).strip() if has_arxiv else None),
             pdf_path=(str(pdf_path).strip() if has_pdf else None),
+            progress=progress,
         )
     except FileNotFoundError as exc:
         return f"[Ingest Error] PDF not found: {exc}"
-    except Exception as exc:  # network / MinerU / LLM / vault write
+    except Exception as exc:  # network / MinerU
         return f"[Ingest Error] {exc}"
-    return f"[✔] Knowledge node written: {out_path}"
+    return f"[✔] Markdown converted (no Knowledge node written): {md_path}"
+
+
+async def write_scout_card(paper_id: str, analysis: dict) -> str:
+    """Write ONE scout-tier Knowledge card from an already-decided triage verdict.
+
+    ``analysis`` is a ``PaperAnalysisResult``-shaped dict — the ``chimera-triage-paper`` skill's
+    ``chimera-paper-triager`` subagent's verdict, judged elsewhere. This tool makes NO judgment
+    call of its own; it validates + writes. The card always lands in ``inbox/<verdict>/`` (never
+    ``Harness/``) at ``chimera_tier="scout"``, for the Architect to review before promotion.
+    """
+    pid = (paper_id or "").strip()
+    if not pid:
+        return "[Tool Error]: write_scout_card requires a non-empty paper_id."
+
+    # Lazy import: keep the vault-write chain out of module load.
+    from single_paper_ingest import write_scout_card as _write_scout_card
+
+    try:
+        out_path = await asyncio.to_thread(_write_scout_card, pid, analysis)
+    except FileNotFoundError as exc:
+        return f"[Triage Error] {exc}"
+    except Exception as exc:  # validation / vault write
+        return f"[Triage Error] {exc}"
+    return f"[✔] Scout card written (review before promotion): {out_path}"
+
+
+async def _fetch_pdf(arxiv_id: str, settings: ChimeraConfig) -> Path:
+    """Download one arXiv PDF; the primitive shared by ``fetch_paper`` and the ``arxiv_id`` path
+    of ``convert_pdf_to_md``. Runs the blocking download in a worker thread. Raises on failure —
+    callers format the error message."""
+    # Lazy import: keeps single_paper_ingest's chain (requests / filter_service / vault writer)
+    # out of module load, matching the daily-pipeline / ingest_paper lazy-import convention.
+    from single_paper_ingest import _fetch_arxiv_pdf
+
+    return await asyncio.to_thread(_fetch_arxiv_pdf, arxiv_id, settings)
+
+
+async def fetch_paper(
+    arxiv_id: str,
+    settings: ChimeraConfig | None = None,
+) -> str:
+    """Download ONE arXiv paper's PDF; writes NO vault node — a bare fetch primitive.
+
+    Pairs with ``convert_pdf_to_md`` for a manual fetch-then-convert flow. Contrast with
+    ``ingest_paper``, which always writes a Knowledge node. ``settings`` is injectable for
+    testing; resolved from config when omitted.
+    """
+    aid = (arxiv_id or "").strip()
+    if not aid:
+        return "[Tool Error]: fetch_paper requires a non-empty arxiv_id."
+
+    cfg = settings or get_config()
+    try:
+        pdf_path = await _fetch_pdf(aid, cfg)
+    except Exception as exc:  # network / filesystem
+        return f"[Fetch Error] {exc}"
+    return f"[✔] PDF fetched (no vault node written): {pdf_path}"
+
+
+async def convert_pdf_to_md(
+    pdf_path: str | None = None,
+    arxiv_id: str | None = None,
+    settings: ChimeraConfig | None = None,
+) -> str:
+    """Convert ONE PDF to Markdown via MinerU; writes NO vault node — a standalone convert
+    primitive over ``MineruClient.convert``.
+
+    ``pdf_path`` converts directly; ``arxiv_id`` fetches first (reusing the ``fetch_paper``
+    download primitive, ``_fetch_pdf``) then converts — exactly one of the two must be given.
+    Contrast with ``ingest_paper``, which converts AND writes a Knowledge node. ``settings`` is
+    injectable for testing; resolved from config when omitted.
+    """
+    has_pdf = bool(pdf_path and str(pdf_path).strip())
+    has_arxiv = bool(arxiv_id and str(arxiv_id).strip())
+    if not has_pdf and not has_arxiv:
+        return "[Tool Error]: convert_pdf_to_md requires pdf_path or arxiv_id."
+
+    cfg = settings or get_config()
+
+    if has_pdf:
+        src_pdf = Path(str(pdf_path).strip()).expanduser()
+    else:
+        try:
+            src_pdf = await _fetch_pdf(str(arxiv_id).strip(), cfg)
+        except Exception as exc:  # network / filesystem
+            return f"[Convert Error] Fetch failed: {exc}"
+
+    if not src_pdf.is_absolute():
+        src_pdf = (cfg.project_root / src_pdf).resolve()
+
+    pm = cfg.paper_miner_or_default
+    output_root = pm.md_papers_raw_dir
+    if not output_root.is_absolute():
+        output_root = (cfg.project_root / output_root).resolve()
+
+    # Lazy import: ports.ingest.paper2md itself is stdlib-only, but keep the same lazy-import
+    # shape as the other domain delegates in this file.
+    from ports.ingest.paper2md import MineruClient
+
+    try:
+        client = MineruClient(output_root=output_root)
+        md_path = await asyncio.to_thread(client.convert, src_pdf)
+    except FileNotFoundError as exc:
+        return f"[Convert Error] PDF not found: {exc}"
+    except Exception as exc:  # MinerU subprocess / conversion failure
+        # L.B.6 F4: MinerU sinks the child's output to a temp log, so an OOM used to reach the
+        # caller as a bare "Conversion failed for <pdf>". Surface the actionable cause.
+        detail = f"{exc}\n{getattr(exc, '__cause__', '') or ''}".lower()
+        if "cuda" in detail or "out of memory" in detail:
+            return (
+                "[Convert Error] CUDA out of memory — close GPU-consuming apps and retry. "
+                f"({exc})"
+            )
+        return f"[Convert Error] {exc}"
+    return f"[✔] Markdown converted (no vault node written): {md_path}"
+
+
+async def get_paper_markdown(paper_id: str) -> str:
+    """Return the path to ONE already-ingested paper's converted Markdown (no MinerU) — a bare
+    read primitive. The ``chimera-deep-extract`` skill reads this path directly with its own
+    subagent (isolation: this MCP layer never sees paper content, and makes NO LLM call).
+    """
+    pid = (paper_id or "").strip()
+    if not pid:
+        return "[Tool Error]: get_paper_markdown requires a non-empty paper_id."
+
+    # Lazy import: keep the vault/config chain out of module load.
+    from single_paper_extract import get_paper_markdown as _get_paper_markdown
+
+    try:
+        path = _get_paper_markdown(pid)
+    except FileNotFoundError as exc:
+        return f"[Extract Error] {exc}"
+    return str(path)
+
+
+async def analyze_paper_data(paper_id: str) -> str:
+    """Resolve ONE already-converted paper's markdown path + metadata — a bare read primitive.
+
+    The ``chimera-triage-paper`` skill calls this first, then hands the path + metadata to its
+    ``chimera-paper-triager`` subagent, which reads the paper itself (isolation: this MCP layer
+    never sees paper content, and makes NO LLM call). Returns a JSON object with
+    ``markdown_path`` + ``metadata``.
+    """
+    pid = (paper_id or "").strip()
+    if not pid:
+        return "[Tool Error]: analyze_paper_data requires a non-empty paper_id."
+
+    # Lazy import: keep the vault/config chain out of module load.
+    from filter_service import analyze_paper_data as _analyze_paper_data
+
+    try:
+        data = await asyncio.to_thread(_analyze_paper_data, pid)
+    except FileNotFoundError as exc:
+        return f"[Extract Error] {exc}"
+    return json.dumps(data, ensure_ascii=False, indent=2)
+
+
+async def stage_deep_read_node(
+    paper_id: str,
+    extraction: dict,
+    progress: Callable[[float, str], Awaitable[None]] | None = None,
+) -> str:
+    """Stage a subagent-produced extraction (a ``KNodeExtraction`` dict from the
+    ``chimera-deep-extract`` skill) into a reviewable deep_read Knowledge node: deterministic
+    citation-grounding + supersede-detection + render + write to ``docs/staging/``. All judgment
+    already happened in the skill's subagent — this is the deterministic back-half, making NO LLM
+    call itself. Staging-only — never auto-promoted. ``progress`` streams stage labels; the domain
+    function runs its blocking steps in worker threads.
+    """
+    pid = (paper_id or "").strip()
+    if not pid:
+        return "[Tool Error]: stage_deep_read_node requires a non-empty paper_id."
+
+    # Lazy import: keep the grounding / vault chain out of module load.
+    from single_paper_extract import stage_deep_read_node as _stage_deep_read_node
+
+    try:
+        out_path = await _stage_deep_read_node(
+            paper_id=pid, extraction=extraction, progress=progress
+        )
+    except FileNotFoundError as exc:
+        return f"[Extract Error] {exc}"
+    except Exception as exc:  # validation / grounding / staging
+        return f"[Extract Error] {exc}"
+    return f"[✔] Staged K node (review before promotion): {out_path}"
 
 
 async def check_task_status(task_id: str) -> str:
@@ -142,3 +342,40 @@ async def check_task_status(task_id: str) -> str:
         return "[Task Pending] Waiting to start..."
     label = str(task.status.value).upper()
     return f"[Task {label}] Progress: {task.progress * 100:.0f}%"
+
+
+async def mineru_sidecar(action: str = "status", force: bool = False) -> str:
+    """Start / inspect / stop the resident MinerU parse service. No LLM, no vault write.
+
+    Delegates to ``ports.ingest.mineru_sidecar``; this function only renders. ``start`` is
+    idempotent — a healthy sidecar is reused rather than duplicated, because discovery is by
+    fixed port, not by a handle held in this process.
+    """
+    verb = (action or "status").strip().lower()
+    if verb not in {"status", "start", "stop"}:
+        return f"[Tool Error]: mineru_sidecar action must be status|start|stop, got {action!r}"
+
+    # Lazy: keeps the sidecar module (and core.platform) off the server's import path.
+    from ports.ingest import mineru_sidecar as sidecar
+
+    if verb == "start":
+        url = await asyncio.to_thread(sidecar.ensure_running)
+        if url is None:
+            return (
+                "[Sidecar] Could not start — converts will run standalone (slower, still "
+                f"correct). See {sidecar.log_path()}"
+            )
+        state = await asyncio.to_thread(sidecar.status)
+        return f"[✔] Sidecar healthy at {url} (pid={state.pid}, mineru {state.mineru_version})"
+
+    if verb == "stop":
+        state = await asyncio.to_thread(sidecar.stop, force)
+        return f"[Sidecar] {state.detail} ({state.base_url})"
+
+    state = await asyncio.to_thread(sidecar.status)
+    if not state.running:
+        return f"[Sidecar] {state.detail} — port {state.port} idle; converts run standalone"
+    return (
+        f"[Sidecar] healthy at {state.base_url} (pid={state.pid}, mineru {state.mineru_version}, "
+        f"queued={state.queued_tasks}, processing={state.processing_tasks})"
+    )

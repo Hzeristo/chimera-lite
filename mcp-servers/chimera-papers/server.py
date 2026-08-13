@@ -10,8 +10,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import sys
+from collections.abc import Awaitable, Callable
+from typing import Literal
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp import Context, FastMCP
 
 import miner_tools
 from task_service import get_task_service
@@ -25,7 +27,16 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
 )
 
-mcp = FastMCP("chimera-papers")
+logger = logging.getLogger(__name__)
+
+# Cross-tool invariant, carried ONCE at server level instead of restated in every docstring
+# (chimera-mcp-taste `contract_surface`). Per-tool docstrings state only their own contract.
+_INSTRUCTIONS = (
+    "Primitives only. No tool returns a verdict or makes a judgment. "
+    "Judgment lives in Claude Code skills, never in a tool call."
+)
+
+mcp = FastMCP("chimera-papers", instructions=_INSTRUCTIONS)
 
 # Serialize the check-and-start critical section so two concurrent calls cannot both pass
 # the busy check. TaskService persists PENDING synchronously, so the guard is race-free.
@@ -37,6 +48,20 @@ def _busy_message() -> str:
         "[Busy] A long-running task is already in progress. Poll check_task_status "
         "first — only one arXiv/pipeline job runs at a time."
     )
+
+
+def _reporter(ctx: Context) -> Callable[[float, str], Awaitable[None]]:
+    """Adapt the FastMCP ``ctx`` into the domain layer's ``progress(frac, msg)`` callback — emitting
+    MCP progress notifications at stage boundaries. Best-effort: a notification failure never aborts
+    the tool (the domain function also logs each stage to stderr, chimera-mcp-taste Rule #4)."""
+
+    async def report(frac: float, msg: str) -> None:
+        try:
+            await ctx.report_progress(frac, 1.0, msg)
+        except Exception:  # noqa: BLE001 — progress is decorative; never fail the tool over it
+            logger.debug("progress notification failed", exc_info=True)
+
+    return report
 
 
 @mcp.tool()
@@ -61,8 +86,12 @@ async def daily_paper_pipeline(
     arxiv_max_results: int | None = None,
     skip_telegram: bool = False,
 ) -> str:
-    """Run the full daily paper pipeline (long-running). Returns a ``task_id``; poll
-    ``check_task_status``. Subject to the same single-pipeline concurrency guard.
+    """Run the full BATCH daily paper pipeline — arXiv sweep by query → fetch → convert → notify
+    (long-running). Returns a ``task_id``; poll ``check_task_status``. Subject to the
+    single-pipeline concurrency guard. Converts only — triage of the converted papers is the
+    separate, explicitly invoked ``chimera-triage-paper`` skill.
+
+    For a SINGLE already-known paper (by arXiv id or a local PDF), use ``ingest_paper`` instead.
 
     Args:
         arxiv_query: Optional override for the configured arXiv query.
@@ -80,14 +109,22 @@ async def daily_paper_pipeline(
 
 
 @mcp.tool()
-async def ingest_paper(arxiv_id: str | None = None, pdf_path: str | None = None) -> str:
-    """Ingest a SINGLE paper into a vault Knowledge node — the single-paper counterpart to
-    the batch daily pipeline. Pass an arXiv id (fetched) OR a local PDF path (converted
-    directly). Converts via MinerU (GPU), triages (FilterService), writes the K node, and
-    returns its path. Synchronous (no task_id). Deep reading is a separate step:
-    ``read_vault_file`` + an N.A lens skill.
+async def ingest_paper(
+    ctx: Context, arxiv_id: str | None = None, pdf_path: str | None = None
+) -> str:
+    """Fetch + convert ONE specific, already-known paper to Markdown (single-paper ingest).
 
-    Rejected while a long-running arXiv/pipeline job is active (they share the GPU / MinerU).
+    WHEN: you have a particular paper to bring in for triage — identified by an arXiv id
+    (e.g. "2604.14004") OR a local PDF path. Fits requests like "pull in paper 2604.14004",
+    "convert this PDF", "get <paper> ready for triage".
+    WHAT: PDF → Markdown (MinerU on GPU); returns the converted markdown path. Synchronous
+    (no task_id). Converts only — screening a converted paper into a scout-tier card is the
+    separate ``chimera-triage-paper`` skill.
+
+    For the BATCH daily arXiv sweep — many papers pulled by a search query, not one known paper —
+    use ``daily_paper_pipeline`` instead, NOT this tool.
+
+    Rejected while a long-running arXiv/pipeline job is active (shared GPU / MinerU).
 
     Args:
         arxiv_id: arXiv identifier to fetch + ingest (e.g. "2604.14004").
@@ -96,7 +133,153 @@ async def ingest_paper(arxiv_id: str | None = None, pdf_path: str | None = None)
     async with _start_lock:
         if get_task_service().has_active_long_task():
             return _busy_message()
-    return await miner_tools.ingest_paper(arxiv_id=arxiv_id, pdf_path=pdf_path)
+    return await miner_tools.ingest_paper(
+        arxiv_id=arxiv_id, pdf_path=pdf_path, progress=_reporter(ctx)
+    )
+
+
+@mcp.tool()
+async def fetch_paper(arxiv_id: str) -> str:
+    """Download ONE arXiv paper's PDF; writes NO vault node (bare fetch primitive).
+
+    WHEN: you want the raw PDF for a specific, already-known arXiv paper without converting it —
+    e.g. inspecting it first, or as a manual fetch step paired with ``convert_pdf_to_md``.
+    Contrast with ``ingest_paper``, which fetches AND converts. WHAT: downloads the PDF via arXiv
+    (or reuses an already-downloaded local copy) and returns its local path. Synchronous (no
+    task_id). Rejected while a long-running arXiv/pipeline job is active (shared GPU / network
+    discipline — same guard as ``ingest_paper``).
+
+    Args:
+        arxiv_id: arXiv identifier to fetch (e.g. "2604.14004").
+    """
+    async with _start_lock:
+        if get_task_service().has_active_long_task():
+            return _busy_message()
+    return await miner_tools.fetch_paper(arxiv_id)
+
+
+@mcp.tool()
+async def convert_pdf_to_md(pdf_path: str | None = None, arxiv_id: str | None = None) -> str:
+    """Convert ONE PDF to Markdown via MinerU (GPU); writes NO vault node (standalone convert
+    primitive).
+
+    WHEN: you want just the converted markdown for a PDF or arXiv paper, with no triage and no
+    vault write — e.g. a manual fetch→convert flow paired with ``fetch_paper``. Contrast with
+    ``ingest_paper``, which also fetches for you.
+    WHAT: PDF → Markdown via the same MinerU convert ``ingest_paper`` uses. If ``arxiv_id`` is
+    given and ``pdf_path`` is not, fetches the PDF first. Returns the markdown path. Synchronous
+    (no task_id). Rejected while a long-running arXiv/pipeline job is active (shared GPU / MinerU
+    — same guard as ``ingest_paper``).
+
+    Args:
+        pdf_path: Path to a local PDF to convert directly (absolute, or project-relative).
+        arxiv_id: arXiv identifier to fetch + convert (e.g. "2604.14004"), when pdf_path is not
+            given.
+    """
+    async with _start_lock:
+        if get_task_service().has_active_long_task():
+            return _busy_message()
+    return await miner_tools.convert_pdf_to_md(pdf_path=pdf_path, arxiv_id=arxiv_id)
+
+
+@mcp.tool()
+async def mineru_sidecar(
+    action: Literal["status", "start", "stop"] = "status", force: bool = False
+) -> str:
+    """Start / inspect / stop the resident MinerU parse service; writes NO vault node.
+
+    WHEN: before a multi-paper ingest, to keep MinerU's models loaded across converts instead
+    of reloading them per paper (~half the wall clock of a single convert is that setup); and
+    after one, to hand the VRAM back. WHAT: supervises MinerU's own `mineru-api` service —
+    this tool starts no server of its own and runs no inference. Purely an accelerator:
+    converts work identically with the sidecar down, only slower, so a failure here never
+    blocks ingest. `start` is idempotent (discovery is by fixed port, so a healthy service is
+    reused, never duplicated). `stop` refuses while parses are in flight unless `force`.
+
+    Args:
+        action: "status" (default), "start", or "stop".
+        force: with action="stop", kill even if the service reports queued/processing tasks.
+    """
+    return await miner_tools.mineru_sidecar(action=action, force=force)
+
+
+@mcp.tool()
+async def get_paper_markdown(paper_id: str) -> str:
+    """Return the path to ONE already-ingested paper's converted Markdown (no MinerU) — a bare
+    read primitive for a judgment skill to consume.
+
+    WHEN: the ``chimera-deep-extract`` skill needs a paper's text to hand to its Sonnet subagent
+    for deep-read extraction. WHAT: resolves ``paper_id``'s already-converted markdown path and
+    returns it as a string; an error string if the paper has not been converted yet (fetch +
+    convert first). Writes no node.
+
+    Args:
+        paper_id: arXiv identifier of an already-ingested paper (e.g. "2305.16291").
+    """
+    return await miner_tools.get_paper_markdown(paper_id)
+
+
+@mcp.tool()
+async def analyze_paper_data(paper_id: str) -> str:
+    """Resolve ONE already-converted paper's markdown path + metadata — a bare read primitive for
+    the triage skill to consume.
+
+    WHEN: the ``chimera-triage-paper`` skill needs a paper's location plus its bibliographic
+    metadata to hand to its Haiku subagent (``chimera-paper-triager``) for scout-tier screening.
+    WHAT: returns a JSON object ``{"markdown_path", "metadata"}`` (metadata = id / title /
+    authors / year / content_path); an error string if the paper has not been converted yet
+    (fetch + convert first). Writes no node. Sibling of ``get_paper_markdown``, which the
+    deep-read path uses; this one adds the metadata dict that triage needs.
+
+    Args:
+        paper_id: arXiv identifier of an already-converted paper (e.g. "2604.14004").
+    """
+    return await miner_tools.analyze_paper_data(paper_id)
+
+
+@mcp.tool()
+async def stage_deep_read_node(ctx: Context, paper_id: str, extraction: dict) -> str:
+    """Stage a subagent-produced deep-read extraction into a reviewable Knowledge node — the
+    DETERMINISTIC back-half of Phase Q disciplined extraction (Phase L.B externalized the LLM
+    judgment out of this server).
+
+    WHEN: the ``chimera-deep-extract`` skill's Sonnet subagent has already produced a
+    ``KNodeExtraction`` (synthesis + lens critique + attack vectors + mechanism claims) from a
+    paper's markdown; call this to ground its citations into ``derives_from`` edges, detect
+    supersede, render the node body, and write it to ``docs/staging/`` at
+    ``chimera_tier="deep_read"``. WHAT: takes ``extraction`` as a JSON-serializable dict (the
+    subagent's already-judged structured output) and returns the staging path. Writes NO
+    Insight/Thought/Decision node and never auto-promotes — the operator promotes via
+    ``ascend_node``.
+
+    Args:
+        paper_id: arXiv identifier of the paper the extraction is about (e.g. "2305.16291").
+        extraction: The subagent's ``KNodeExtraction`` payload as a JSON-serializable dict.
+    """
+    # No busy guard: this is a deterministic grounding/render/write with no GPU, MinerU, or
+    # network use — the same shape as its sibling ``write_scout_card``, which has never carried
+    # one. The guard exists to serialize the shared GPU; applying it here made Path 2's back-half
+    # unreachable whenever an unrelated pipeline was converting (L.B.6).
+    return await miner_tools.stage_deep_read_node(paper_id, extraction, progress=_reporter(ctx))
+
+
+@mcp.tool()
+async def write_scout_card(paper_id: str, analysis: dict) -> str:
+    """Write a scout-tier Knowledge card from an already-decided triage verdict — the
+    DETERMINISTIC write half of Phase L.B.2 externalized triage.
+
+    WHEN: the ``chimera-triage-paper`` skill's Haiku subagent (``chimera-paper-triager``) has
+    already produced a ``PaperAnalysisResult`` (verdict + score + mechanism summary + critical
+    flaws) from a paper's markdown; call this to write it into the vault. WHAT: takes
+    ``analysis`` as a JSON-serializable dict (the subagent's already-judged structured output)
+    and returns the written card's path, always under ``inbox/<verdict>/`` at
+    ``chimera_tier="scout"`` — never ``Harness/``.
+
+    Args:
+        paper_id: arXiv identifier of the paper the analysis is about (e.g. "2604.14004").
+        analysis: The subagent's ``PaperAnalysisResult`` payload as a JSON-serializable dict.
+    """
+    return await miner_tools.write_scout_card(paper_id, analysis)
 
 
 @mcp.tool()

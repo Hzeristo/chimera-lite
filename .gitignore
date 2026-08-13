@@ -28,3 +28,10 @@ Thumbs.db
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# BB MessageDisplay hook diagnostic breadcrumb (last fire only)
+.claude/hooks/.render_bb_box.last
+.claude/hooks/.render_bb_box.log
+.claude/hooks/.bb_state/
+
+playground/mineru_debug

@@ -1,0 +1,9 @@
+# Claude Code parses YAML frontmatter in these files. A CRLF `---\r\n` fence defeats that
+# parse and the affected agent/skill silently fails to register — no error, no warning, the
+# worker is simply absent at spawn time. That is how chimera-deep-extractor and
+# chimera-paper-triager sat unreachable from L.B.2 until the L.B.6 gate run found them.
+#
+# This repo runs with core.autocrlf=true, which would restore CRLF on every checkout and
+# re-break them. Pin these to LF so the fix survives a fresh clone.
+.claude/agents/*.md text eol=lf
+.claude/skills/**/*.md text eol=lf

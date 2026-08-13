@@ -1,4 +1,4 @@
-# Phase M — Chimera Lite Migration
+# Phase M — Migration: The Chimera Lite Port
 
 **Status:** ✅ Sealed (full seal 2026-07-03 — all 5 HSC green; see `docs/audits/M.5-e2e-smoke.md`)
 **Sealed predecessor:** Phase V.A (in project_chimera repo; this is chimera-lite's first phase)

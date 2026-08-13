@@ -11,10 +11,10 @@ import yaml
 # K/T/I/D typed-edge vocabulary — mirrors docs/ARCHITECTURE/NODE_ONTOLOGY.md (the authority).
 _TYPE_DEST = {"knowledge": "Knowledge", "thought": "Thoughts", "insight": "Insight", "decision": "Decision"}
 _TYPE_EDGES: dict[str, dict[str, list]] = {
-    "knowledge": {"derives_from": [], "supersedes": [], "contradicts": []},
-    "thought":   {"derives_from": [], "supersedes": [], "contradicts": [], "dead_ends": [], "drives_decision": []},
-    "insight":   {"synthesizes": [], "evidence_base": [], "derives_from": [], "drives_decision": [], "supersedes": [], "contradicts": []},
-    "decision":  {"derives_from": [], "drives_decision": [], "dead_ends": [], "supersedes": [], "contradicts": []},
+    "knowledge": {"derives_from": [], "supersedes": [], "contradicts": [], "evidence_base": [], "collides_with": []},
+    "thought":   {"derives_from": [], "supersedes": [], "contradicts": [], "dead_ends": [], "drives_decision": [], "collides_with": [], "informed_by": []},
+    "insight":   {"synthesizes": [], "evidence_base": [], "derives_from": [], "drives_decision": [], "supersedes": [], "contradicts": [], "collides_with": [], "informed_by": []},
+    "decision":  {"derives_from": [], "drives_decision": [], "dead_ends": [], "supersedes": [], "contradicts": [], "collides_with": [], "informed_by": []},
 }
 _SLUG_RE = re.compile(r'[\\/:*?"<>|\s]+')
 
@@ -64,10 +64,43 @@ class StagingService:
         title: str,
         body: str,
         edges: dict | None = None,
+        metadata: dict | None = None,
+        chimera_tier: str | None = None,
     ) -> Path:
+        """Write a reviewable K/T/I/D node to the staging area (no live vault write).
+
+        ``metadata`` is an optional passthrough of extra staging-node frontmatter
+        (e.g. provenance / ``grounded``) merged in after the fixed keys below.
+        When ``metadata`` is omitted the output is byte-identical to the fixed-keys-only
+        form (backward-compat). ``chimera_tier`` is the orthogonal origin/depth axis
+        (L.B.1): it defaults to ``synthesis`` for thought/insight/decision nodes and is
+        supplied explicitly by K writers (never defaulted for ``knowledge``), and is
+        written authoritatively over any ``chimera_tier`` passed via ``metadata``."""
         node_type = type.lower()
         if node_type not in _TYPE_DEST:
             raise ValueError(f"Unknown node type: {type!r}")
+        if node_type != "knowledge":
+            # I0.5 (Tier 0): judgment-type nodes have ARCHITECT-authored bodies. `body` here is
+            # supplied by the caller, and the caller of the MCP surface is Claude — so a T/I/D
+            # node created through this path is an AI-written judgment body, "illegal, even if
+            # promoted". The staging buffer exists for AI-authored content (I1.2), which is
+            # exactly what a T/I/D node must never be. Author them directly in Obsidian; record
+            # any AI output that informed them with `informed_by` (I2.2), which transfers no
+            # authorship. Evidence this path was never the real workflow: every T/I/D node in
+            # the vault carries spaces in its filename, so none came through this slugging
+            # writer in the seven weeks it existed.
+            raise ValueError(
+                f"create_staging_node is knowledge-only; refusing type={node_type!r}. "
+                "T/I/D bodies are Architect-authored (I0.5) — write them in Obsidian, not "
+                "through a tool."
+            )
+        # chimera_tier (L.B.1): origin/depth axis, orthogonal to `status`. Synthesis
+        # nodes (T/I/D) default to `synthesis`; a `knowledge` node is NEVER defaulted —
+        # its writer MUST declare scout vs deep_read (the C-1 distinction), so an
+        # untiered K node stays untiered rather than being silently mis-tiered.
+        tier = chimera_tier
+        if tier is None and node_type in {"thought", "insight", "decision"}:
+            tier = "synthesis"
         graph_edges = dict(_TYPE_EDGES[node_type])
         if edges:
             for k, v in edges.items():
@@ -85,6 +118,10 @@ class StagingService:
             "tags": [node_type],
             "graph_edges": graph_edges,
         }
+        if metadata:
+            fm.update(metadata)
+        if tier is not None:
+            fm["chimera_tier"] = tier
         slug = _SLUG_RE.sub("_", title)[:60].rstrip("_")
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         path = self.staging_dir / f"{stamp}-{slug}.md"
@@ -92,12 +129,29 @@ class StagingService:
         path.write_text(content, encoding="utf-8")
         return path
 
-    def promote_node(self, staging_path: Path) -> Path:
-        text = staging_path.read_text(encoding="utf-8")
-        _, fm_raw, body = text.split("---", 2)
-        fm = yaml.safe_load(fm_raw)
+    def _ascend_write(self, fm: dict, body: str, staging_path: Path) -> Path:
+        """Write mechanics for the ONE committed-tier path: status→active, write to
+        `Knowledge/`, delete the staging file, unlink any superseded prior.
+
+        Called only by `ascend_node`. It refuses any node whose destination is not
+        `Knowledge/`, so I1.2's sole-writer claim is a property of this function rather than
+        a coincidence of what its callers happen to check.
+
+        History worth keeping: this was `_promote_write`, shared with a `promote_node` that
+        handled T/I/D. L.B.3 gated the CALLERS on `chimera_tier` while I1.2 is a claim about a
+        DESTINATION, so a `type: knowledge` node with an absent or `scout` tier reached
+        `Knowledge/` anyway. `promote_node` was then retired entirely (I0.5: T/I/D bodies are
+        Architect-authored, so no tool should write them), which left this writer with a
+        single caller and a single legal destination.
+        """
         node_type = fm.get("type", "thought")
         dest_sub = _TYPE_DEST.get(node_type, "Thoughts")
+        if dest_sub != "Knowledge":
+            raise ValueError(
+                f"_ascend_write writes the committed K tier only; refusing type={node_type!r} "
+                "-> {dest_sub}/. T/I/D nodes are Architect-authored in Obsidian (I0.5); no "
+                "code path writes them."
+            )
         fm["status"] = "active"
         slug = _SLUG_RE.sub("_", fm.get("title", "untitled"))[:60].rstrip("_")
         dest_dir = self.vault_root / dest_sub
@@ -108,7 +162,45 @@ class StagingService:
             encoding="utf-8",
         )
         staging_path.unlink()
+        self._unlink_superseded(fm, keep=dest_path)
         return dest_path
+
+    # `promote_node` (repo-init → 2026-08-11) is RETIRED. It promoted staged T/I/D nodes into
+    # the vault, an affordance for machine-authored judgment bodies that I0.5 forbids — and one
+    # nothing used: every T/I/D node in the vault was hand-written in Obsidian (their filenames
+    # carry spaces; this writer slugs whitespace to underscores). Its removal leaves
+    # `ascend_node` as the only path from staging into any committed tier.
+
+    def ascend_node(self, staging_path: Path) -> Path:
+        """Ascend a reviewed deep_read K node from staging into the committed Knowledge/ tier.
+        The SOLE writer of <vault>/Knowledge/, and now the sole writer of any committed tier.
+        Validates chimera_tier == 'deep_read'. Grounding-quote verification is DEFERRED to
+        DEBT-018 (human staging-review remains the check); ascend does not substring-verify."""
+        text = staging_path.read_text(encoding="utf-8")
+        _, fm_raw, body = text.split("---", 2)
+        fm = yaml.safe_load(fm_raw) or {}
+        if fm.get("chimera_tier") != "deep_read":
+            raise ValueError(
+                f"ascend_node requires chimera_tier='deep_read'; got {fm.get('chimera_tier')!r}. "
+                "Scout cards stay in inbox/; only deep_read nodes ascend to Knowledge/."
+            )
+        # Grounding verification deferred to DEBT-018 (docs/TECHNICAL_DEBT.md): human
+        # staging-review is the current check; ascend does not silently pass a grounding claim.
+        return self._ascend_write(fm, body, staging_path)
+
+    def _unlink_superseded(self, fm: dict, *, keep: Path) -> None:
+        """D1 supersede: a promoted node replaces the prior node(s) named in its
+        ``graph_edges.supersedes`` — remove those from the vault (never the just-promoted node)."""
+        ge = fm.get("graph_edges")
+        targets = ge.get("supersedes", []) if isinstance(ge, dict) else []
+        keep_resolved = keep.resolve()
+        for target in targets or []:
+            stem = str(target).strip().strip("[]").strip()
+            if not stem:
+                continue
+            for path in self.vault_root.rglob(f"{stem}.md"):
+                if path.resolve() != keep_resolved:
+                    path.unlink()
 
     def reject_node(self, staging_path: Path) -> None:
         staging_path.unlink()

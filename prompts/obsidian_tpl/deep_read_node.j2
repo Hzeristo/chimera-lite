@@ -1,6 +1,7 @@
 ---
 type: knowledge
 status: unverified
+chimera_tier: deep_read
 arxiv_id: "{{ atlas.arxiv_id | replace('"', '\\"') }}"
 title: "{{ (atlas.title or paper.title) | replace('"', '\\"') }}"
 authors: "{{ paper.authors | default('Unknown', true) | replace('"', '\\"') }}"

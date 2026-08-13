@@ -6,6 +6,73 @@ Each entry: phase / sprint, partial description, reason for acceptance.
 
 ---
 
+## Phase Q — Disciplined Knowledge Extraction — RE-SEAL (functionally sealed 2026-07-13, reopened 2026-07-10 on `friction-260710-02`)
+
+### Q.reseal.1 — Sealed on live single-paper validation (STALE); corpus re-backfill deferred
+- **Description:** The rebuilt `extract_paper` was validated end-to-end on one real paper (STALE,
+  arXiv `2605.06527`): full reading arc, hybrid lenses (Forensic + State Collision), clean render,
+  grounded headline numbers, `supersedes` the triage node, `no_prior_match`. The Q.4 8/13 atomic-shape
+  backfill was **cleared** (wrong shape); re-running the backfill across the corpus with the rebuilt
+  extractor is deferred operational work.
+- **Reason:** The extraction ENGINE is proven live end-to-end; backfill is running the tool N times
+  over available markdown, not a code deliverable. Mirrors Q.seal.1. The 5 missing-markdown papers
+  remain `DEBT-016`.
+
+### Q.reseal.2 — motivation / results grounding is prompt-enforced, not schema-structural
+- **Description:** `PaperSynthesis.motivation` and `.results` are `str` fields whose
+  grounding-by-quote (`"quote" ← location`) is enforced by the extraction prompt + human review, NOT
+  by a structural `sources` list like `ExtractedClaim`.
+- **Reason:** The honest shape of the discipline — same precedent as Q.seal.2 (semantic checks live in
+  prompts + review; `schemas.py` stays a data dictionary). Validated live: STALE's motivation and all
+  five results bullets carried grounded quotes.
+
+### Q.reseal.3 — hybrid lens second-fire is LLM-judged, not a numeric threshold
+- **Description:** The "second lens only when its trigger independently scores high" policy is
+  prompt-managed LLM judgment (no numeric score field, no user override param), per the Architect's
+  explicit decision.
+- **Reason:** Architect-authored design; validated live — STALE (a benchmark ABOUT a mechanism)
+  correctly fired both Forensic Leakage and State Collision.
+
+---
+
+## Phase Q — Disciplined Knowledge Extraction (functionally sealed 2026-07-10)
+
+### Q.seal.1 — Backfill covered 8 of 13 Schema-C nodes
+- **Description:** Q.4's target was the 13 Schema-C nodes. Only 8 had their converted `source_md` present
+  at `papers/md_papers/<id>.md`; the other 5 (`2606.19319`, `2606.30639`, `2607.01224`, `2607.02509`,
+  `2607.02514`) point `source_md` at a path whose file is gone. Rather than half-run in the dark, the
+  user-approved live backfill ran the 8 available — 8/8 staged, 21 grounded edges, 3 `no_prior_match`,
+  zero fabrication, zero I/T/D.
+- **Reason:** The extraction machinery is proven; the gap is data (missing markdown), not code. The 5 are
+  tracked as `DEBT-016`. Running the 8 delivered the phase's core value — the vault's first typed K→K edges.
+
+### Q.seal.2 — Extraction design re-scopes (declared during the batch)
+- **Description:** (a) The mechanism-vs-recipe / name-deletion discipline is enforced by the extraction
+  **prompt** (`extract_claims.j2`) + validated on live output, NOT by a schema linter (`schemas.py` stays a
+  pure data dictionary). (b) `contradicts` is out of grounding scope — it needs semantic claim-conflict
+  detection, not citation-resolution; only `derives_from` is minted. (c) `extract_paper` stages
+  `title=paper_id` (old moniker dropped; reviewer renames on promotion); the LLM's
+  `KClaimExtraction.proposed_edges` is filled but IGNORED (edges come from grounding); the new-paper
+  fetch+MinerU path is a stub (backfill reuses `source_md`).
+- **Reason:** Each is the honest shape of the discipline (semantic checks live in prompts + review; the LLM
+  cannot know vault stems). None blocks the seal; recorded for a future refinement pass.
+
+---
+
+## Phase O — Exocortex Write Surface (sealed 2026-07-08)
+
+### O.seal.1 — `chimera-vault/server.py` is 225 lines, over the `< 200` thin-adapter red line
+- **Description:** The phase-wide red line set `chimera-vault/server.py < 200` lines. At seal it is 225.
+  The three write tools (`create_node`, `link_nodes`, `apply_link_patch`) carry full WHEN/WHAT/CONTRAST
+  contract docstrings, which the user separately prioritized for MCP tool discoverability.
+- **Reason:** The `< 200` was a proxy for "thin adapter": the tool bodies are lazy-import dispatchers and
+  ALL domain logic lives in `mcp-servers/chimera-papers/staging_service.py` — that spirit holds. The
+  25-line overage is entirely contract docstrings, not domain logic, and cutting them to hit the number
+  would degrade discoverability (a conscious trade-off). Follow-up available: move the 3 tool bodies to
+  `chimera-vault/write_tools.py` and register them thinly, dropping `server.py` to ~145 and clearing this.
+
+---
+
 ## Phase N.A — Lens Skills (sealed 2026-07-06)
 
 ### N.A.seal.1 — `~/.chimera/skills/*.json` divergence check deferred
@@ -199,6 +266,17 @@ Each entry: phase / sprint, partial description, reason for acceptance.
 ### V.A.4.1 — `svelte-check` not run at V.A.4 seal
 - **Description:** Svelte TypeScript checks not run. Precedent: FC.3b.1.
 - **Reason:** `node_modules` absent on dev host. All new `invoke` calls follow existing typed patterns.
+
+---
+
+### L.B.6.1 — MinerU image links dangled in `md_papers/` since repo init
+- **Description:** Promoted markdown carried `![](images/<sha256>.jpg)` links relative to the
+  file, while `extract_and_clean` copied only the `.md` — 101 references across the corpus,
+  none resolving. Fixed during the L.B seal review (`f9afba3`): images are now promoted into a
+  shared `md_papers/images/`, and 471 were backfilled for existing papers.
+- **Reason:** Accepted as a partial rather than a Fail because it is pre-existing (predates the
+  phase), was never in L.B's scope, and broke no L.B acceptance criterion. Recorded because the
+  seal ran a live conversion that depended on it. Corpus now reads 101 refs / 0 unresolved.
 
 ---
 

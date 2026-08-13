@@ -1,13 +1,45 @@
 """Convert PDF files to markdown via MinerU CLI."""
 
 import logging
+import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+# Device pin. MinerU has NO --device flag; it resolves the device from this env var,
+# falling back to torch autodetect (mineru/utils/config_reader.py::get_device). The old
+# `-d cuda` argv flag was inert — silently swallowed, since both `mineru` and the
+# `mineru-api` worker it spawns are declared ignore_unknown_options. Pinning here is
+# deliberate: a silent CPU fallback would make ingest an order of magnitude slower with
+# no error to notice. Unset CHIMERA_MINERU_DEVICE (or export MINERU_DEVICE_MODE) to
+# restore autodetect. See docs/incidents/2026-08-10-mineru-3x-drift.md.
+MINERU_DEVICE = os.getenv("CHIMERA_MINERU_DEVICE", "cuda")
+
+# Backend pin. `pipeline` runs NO VLM — layout + OCR + table models only. Measured over
+# 5 cells x 3 papers (docs/incidents/2026-08-10-mineru-backend-flip.md): it matches
+# hybrid-engine's text recall to within noise, produces identical image/table/equation
+# counts, and runs 1.4-2.8x faster on a quarter of the VRAM. Every VLM path (hybrid-* and
+# vlm-engine alike) transcribes chart PIXELS into markdown tables of approximate numbers
+# that appear in no paper's text; `pipeline` cannot, because there is no VLM to do it.
+# `--effort` is deliberately NOT set — it applies only to hybrid-* and is the expensive
+# half of that fabrication.
+MINERU_BACKEND = "pipeline"
+
+# Conversion budget. MinerU enforces these ITSELF (passed via env below), so the normal
+# deadline path is a child-side abort that runs mineru's own cleanup — it stops the
+# mineru-api worker it spawned and removes its temp dir. Our wait() below is only a
+# backstop for a child too wedged to honour its own deadline.
+MINERU_TASK_BUDGET_SECONDS = 1200
+MINERU_API_STARTUP_BUDGET_SECONDS = 300
+# How long past the child's own deadline we wait before intervening.
+BACKSTOP_MARGIN_SECONDS = 120
+# Between the polite stop and the tree kill.
+SHUTDOWN_GRACE_SECONDS = 30
 
 
 def _log_mineru_streams(
@@ -24,8 +56,120 @@ def _log_mineru_streams(
     logger.error("[Ingest] MinerU %s | %s | stderr:\n%s", reason, pdf_name, err)
 
 
+def _sidecar_api_url() -> str | None:
+    """Base URL of an ALREADY-RUNNING MinerU service, or None to run standalone.
+
+    Deliberately a probe, never a start. Starting the sidecar from here would make a service
+    that cannot start cost EVERY convert its full startup timeout before falling back — an
+    accelerator that becomes a large regression the moment it breaks. Starting is explicit
+    (the ``mineru_sidecar`` tool, or batch-level wiring); this only opportunistically reuses.
+
+    Imported lazily and wrapped: no failure in the optional path may take down a convert that
+    would otherwise succeed.
+    """
+    try:
+        from ports.ingest import mineru_sidecar
+
+        return mineru_sidecar.api_url_if_healthy()
+    except Exception as exc:  # noqa: BLE001 — optional path; degrade to standalone
+        logger.warning("[Ingest] Sidecar probe failed (%s); converting standalone", exc)
+        return None
+
+
+def _resolve_output_markdown(target_dir: Path, stem: str) -> Path | None:
+    """Locate the converted markdown inside MinerU's output folder for one paper.
+
+    MinerU >= 3 nests a PER-BACKEND parse dir one level under the stem
+    (mineru/cli/output_paths.py::build_parse_dir):
+        <out>/<stem>/<method>/<stem>.md        backend=pipeline   (auto | txt | ocr)
+        <out>/<stem>/vlm/<stem>.md             backend=vlm-*
+        <out>/<stem>/hybrid_<method>/<stem>.md backend=hybrid-*
+    MinerU < 3 wrote <out>/<stem>/<stem>.md flat. Probing only the flat path (as this
+    module used to) means the primary lookup NEVER hits on 3.x and every convert limps
+    through the recursive fallback — including the exists-check that is supposed to make
+    conversion idempotent, which silently stopped working.
+
+    Order: nested parse dir, then flat, then a recursive scan as the true last resort.
+    """
+    if not target_dir.is_dir():
+        return None
+
+    for parse_dir in sorted(p for p in target_dir.iterdir() if p.is_dir()):
+        candidate = parse_dir / f"{stem}.md"
+        if candidate.is_file():
+            return candidate
+
+    flat = target_dir / f"{stem}.md"
+    if flat.is_file():
+        return flat
+
+    mds = sorted(target_dir.rglob("*.md"))
+    if not mds:
+        return None
+    if len(mds) > 1:
+        logger.warning(
+            "[Ingest] No %s.md in any parse dir of %s; %s markdown files present, using %s",
+            stem,
+            target_dir,
+            len(mds),
+            mds[0].name,
+        )
+    return mds[0]
+
+
+def _stop_child_gracefully(proc: "subprocess.Popen[bytes]", pdf_name: str) -> None:
+    """End a wedged MinerU child without orphaning its GPU-holding worker.
+
+    `mineru` spawns a `mineru-api` uvicorn worker as a GRANDCHILD. TerminateProcess
+    (Popen.kill) ends only the direct child, leaving that worker alive holding ~4 GB of
+    VRAM — the next convert then contends with a ghost. Escalation:
+      1. Ctrl-Break to the process group (we own one, via CREATE_NEW_PROCESS_GROUP at
+         spawn) — mineru's `finally` stops its local API server and cleans its temp dir.
+      2. `taskkill /F /T` — kills the whole tree, no extra dependency.
+    """
+    try:
+        if sys.platform == "win32":
+            proc.send_signal(signal.CTRL_BREAK_EVENT)
+        else:
+            proc.terminate()
+        logger.warning("[Ingest] Asked MinerU to shut down for %s; waiting %ss", pdf_name, SHUTDOWN_GRACE_SECONDS)
+        proc.wait(timeout=SHUTDOWN_GRACE_SECONDS)
+        logger.info("[Ingest] MinerU shut down cleanly for %s", pdf_name)
+        return
+    except subprocess.TimeoutExpired:
+        logger.warning("[Ingest] MinerU ignored the shutdown request for %s; killing the tree", pdf_name)
+    except (OSError, ValueError) as exc:
+        logger.warning("[Ingest] Could not signal MinerU for %s (%s); killing the tree", pdf_name, exc)
+
+    try:
+        if sys.platform == "win32":
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=60,
+                check=False,
+            )
+        else:
+            proc.kill()
+        proc.wait(timeout=60)
+    except Exception as exc:  # last resort — never let cleanup mask the real failure
+        logger.error("[Ingest] Failed to kill the MinerU tree for %s: %s", pdf_name, exc)
+
+
 class MineruNotInstalledError(Exception):
     """`mineru` 可执行文件不在 PATH 中（与 PDF 缺失等 OSError 区分开）。"""
+
+
+class MineruOutputMissingError(RuntimeError):
+    """MinerU exited 0 but wrote no markdown — a CONVERSION failure, not a missing input.
+
+    This used to be a bare ``FileNotFoundError``, which the tool layer catches as
+    "[Convert Error] PDF not found" (miner_tools.py:233) — the operator was told the input
+    was missing when in fact the input was fine and the converter produced nothing. A
+    RuntimeError subclass falls through to the generic branch, which reports the real message.
+    """
 
 
 class MineruClient:
@@ -63,11 +207,11 @@ class MineruClient:
 
         folder_name = pdf_path.stem
         target_dir = self.output_root / folder_name
-        target_md = target_dir / f"{folder_name}.md"
 
-        if target_md.exists():
-            logger.info("[Ingest] Skipping conversion, MD exists: %s", target_md)
-            return target_md
+        existing_md = _resolve_output_markdown(target_dir, folder_name)
+        if existing_md is not None:
+            logger.info("[Ingest] Skipping conversion, MD exists: %s", existing_md)
+            return existing_md
 
         cmd = [
             self.cmd,
@@ -77,9 +221,31 @@ class MineruClient:
             str(self.output_root),
             "-m",
             "auto",
-            "-d",
-            "cuda",
+            "-b",
+            MINERU_BACKEND,
         ]
+
+        # Reuse a resident MinerU service if one is up, so this convert skips the ~3s
+        # service spawn AND the full model reload. Strictly optional: a None here means we
+        # run exactly as before, with MinerU spawning its own per-run service. The sidecar
+        # can only make conversion faster, never impossible.
+        api_url = _sidecar_api_url()
+        if api_url:
+            cmd += ["--api-url", api_url]
+
+        # Device and deadlines travel in the ENV, not argv — that is where MinerU reads
+        # them. An operator-set value wins, so a debug session can override without a
+        # code change.
+        child_env = os.environ.copy()
+        if MINERU_DEVICE:
+            child_env.setdefault("MINERU_DEVICE_MODE", MINERU_DEVICE)
+        child_env.setdefault(
+            "MINERU_TASK_RESULT_TIMEOUT_SECONDS", str(MINERU_TASK_BUDGET_SECONDS)
+        )
+        child_env.setdefault(
+            "MINERU_LOCAL_API_STARTUP_TIMEOUT_SECONDS",
+            str(MINERU_API_STARTUP_BUDGET_SECONDS),
+        )
 
         # MinerU (`mineru.exe`) is a console-subsystem app that spawns a uvicorn worker.
         # This MCP server is launched by Claude Code as a HEADLESS process (no inheritable
@@ -101,21 +267,36 @@ class MineruClient:
             log_path = Path(tmp.name)
         failure: Exception | None = None
         reason: str | None = None
+        backstop = MINERU_TASK_BUDGET_SECONDS + BACKSTOP_MARGIN_SECONDS
         with log_path.open("w", encoding="utf-8", errors="replace") as logf:
             try:
-                subprocess.run(
+                # Popen, not run(): a deadline has to be able to shut the child down
+                # politely, and run()'s timeout only offers TerminateProcess.
+                proc = subprocess.Popen(
                     cmd,
-                    check=True,
                     stdin=subprocess.DEVNULL,
                     stdout=logf,
                     stderr=subprocess.STDOUT,
-                    timeout=600,
                     creationflags=_spawn_flags,
+                    env=child_env,
                 )
-            except subprocess.TimeoutExpired as exc:
-                failure, reason = exc, "timeout"
-            except subprocess.CalledProcessError as exc:
-                failure, reason = exc, "non-zero exit"
+                try:
+                    returncode = proc.wait(timeout=backstop)
+                except subprocess.TimeoutExpired as exc:
+                    # The child blew through its OWN budget without self-aborting.
+                    _stop_child_gracefully(proc, pdf_path.name)
+                    failure, reason = exc, "timeout"
+                except BaseException:
+                    # subprocess.run() killed the child on ANY exception escaping the wait;
+                    # Popen does not, so a KeyboardInterrupt or a cancelled caller would
+                    # otherwise orphan MinerU and its GPU-holding worker. Restore that
+                    # guarantee, then let the exception through untouched.
+                    _stop_child_gracefully(proc, pdf_path.name)
+                    raise
+                else:
+                    if returncode != 0:
+                        failure = subprocess.CalledProcessError(returncode, cmd)
+                        reason = "non-zero exit"
             except OSError as exc:
                 failure, reason = exc, "os-error"
         # File handle is closed here — safe to read back (Windows share rules).
@@ -127,33 +308,46 @@ class MineruClient:
             logger.error("[Ingest] Failed to execute MinerU command '%s': %s", self.cmd, failure)
             raise RuntimeError("Failed to execute MinerU command.") from failure
         if reason == "timeout":
-            logger.error("[Ingest] MinerU timed out for %s", pdf_path.name)
+            logger.error(
+                "[Ingest] MinerU ignored its own %ss budget for %s (backstop at %ss)",
+                MINERU_TASK_BUDGET_SECONDS,
+                pdf_path.name,
+                backstop,
+            )
             _log_mineru_streams(mineru_stdout, mineru_stderr, pdf_name=pdf_path.name, reason="timeout")
-            raise RuntimeError(f"Conversion timed out for {pdf_path.name}") from failure
+            raise RuntimeError(
+                f"Conversion timed out for {pdf_path.name} "
+                f"(wedged past its {MINERU_TASK_BUDGET_SECONDS}s budget; process tree stopped)"
+            ) from failure
         if reason == "non-zero exit":
             logger.error("[Ingest] MinerU non-zero exit for %s", pdf_path.name)
             _log_mineru_streams(mineru_stdout, mineru_stderr, pdf_name=pdf_path.name, reason="non-zero exit")
-            raise RuntimeError(f"Conversion failed for {pdf_path.name}") from failure
+            # L.B.6 F4: the child's output is sunk to a temp log, so the actual cause (commonly a
+            # CUDA OOM) never reached the caller — only "Conversion failed". Carry the diagnostic
+            # substring into the exception message so the MCP layer can surface it.
+            # The hint must MATCH the failure, not merely co-occur with it: the device is now
+            # pinned to cuda in the env, so bare "cuda" appears in healthy logs too and would
+            # label every failure an OOM.
+            lowered = mineru_stdout.lower()
+            hint = ""
+            if "out of memory" in lowered or "cuda_error_out_of_memory" in lowered:
+                hint = " (CUDA out of memory)"
+            elif "timed out waiting for" in lowered or "task timed out" in lowered:
+                hint = f" (hit its own {MINERU_TASK_BUDGET_SECONDS}s budget and self-aborted)"
+            raise RuntimeError(
+                f"Conversion failed for {pdf_path.name}{hint}"
+            ) from failure
 
-        if not target_md.exists():
-            mds = sorted(target_dir.rglob("*.md"))
-            if len(mds) == 1:
-                return mds[0]
-            if len(mds) > 1:
-                logger.warning(
-                    "[Ingest] Multiple markdown files found in %s, using %s",
-                    target_dir,
-                    mds[0].name,
-                )
-                return mds[0]
+        converted_md = _resolve_output_markdown(target_dir, folder_name)
+        if converted_md is None:
             _log_mineru_streams(
                 mineru_stdout,
                 mineru_stderr,
                 pdf_name=pdf_path.name,
                 reason="exit 0 but no .md",
             )
-            raise FileNotFoundError(
+            raise MineruOutputMissingError(
                 f"Conversion reported success but no MD found in {target_dir}"
             )
 
-        return target_md
+        return converted_md

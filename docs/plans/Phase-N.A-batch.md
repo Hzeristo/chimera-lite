@@ -83,11 +83,11 @@ N.A.1  Forensic + Thermodynamic  (+ _shared/falsifiability.md)
 
 **Risk level:** 🟢 LOW (doc-only). Thermodynamic's description→**probe** reframe is a design point, not code risk.
 
-### 目标
+### Objective
 Author `chimera-lens-forensic-leakage` and `chimera-lens-thermodynamic-decay` skills, and
 create the shared `_shared/falsifiability.md` fragment every lens references.
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - **Shared falsifiability fragment** — derived from `user_profile.j2:21-25` "The Falsifiability
   Check": reject endpoint-only metrics (QA accuracy / win-rate); reward white-box process-oriented
   metrics (turn-wise, oracle-decoupled failure attribution); expose context-buffer scaling that
@@ -103,12 +103,12 @@ create the shared `_shared/falsifiability.md` fragment every lens references.
 - **Auto-select `description:`** (sealing condition 1): Forensic triggers on empirical/eval-heavy
   papers; Thermodynamic on memory / long-context / state papers.
 
-### 任务范围
+### Task scope
 1. `.claude/skills/_shared/falsifiability.md` (~30 lines) — shared academic-taste fragment. Audit ref: Q9.
 2. `.claude/skills/chimera-lens-forensic-leakage/SKILL.md` (~60 lines). Audit ref: Q1.
 3. `.claude/skills/chimera-lens-thermodynamic-decay/SKILL.md` (~60 lines). Audit ref: Q2.
 
-### 验收
+### Acceptance
 - Both `SKILL.md` carry a `description:` that enables auto-select by paper type (no manual
   invocation) — verify by reading each description against its target paper type.
 - Each references `../_shared/falsifiability.md` (or inline+SYNC fallback).
@@ -116,16 +116,16 @@ create the shared `_shared/falsifiability.md` fragment every lens references.
 - Forensic exposes ≥3 concrete leakage/contamination patterns (LLM-as-Judge bias, mock-vs-streaming, asymmetric prompting).
 - Thermodynamic frames ≥2 falsifiable decay tests (not prose description).
 
-### 红线
+### Red lines
 - ❌ Pure prompt skills — no new tools, no MCP/`.mcp.json` changes (phase-wide).
 - ❌ No `.py` edits; do not touch `optics_lens_registry.py` / `optics_service.py` (they stay wired-as-is).
 - ❌ Falsifiability is not optional — every output carries the check.
 - ❌ Pure English only.
-- ❌ 不进行机会主义重构。
+- ❌ No opportunistic refactoring.
 
-### 输出位置
-- 技能: `.claude/skills/_shared/falsifiability.md`, `.claude/skills/chimera-lens-forensic-leakage/`, `.claude/skills/chimera-lens-thermodynamic-decay/`
-- 文档 (CLAUDE.md skills list + ROADMAP sprint status): 推迟至 seal 统一更新。
+### Output locations
+- Skills: `.claude/skills/_shared/falsifiability.md`, `.claude/skills/chimera-lens-forensic-leakage/`, `.claude/skills/chimera-lens-thermodynamic-decay/`
+- Docs (CLAUDE.md skills list + ROADMAP sprint status): deferred to seal, updated together.
 
 ---
 
@@ -143,10 +143,10 @@ create the shared `_shared/falsifiability.md` fragment every lens references.
 **Risk level:** 🟡 MED (doc-only, elevated **design** risk) — State Collision is **net-new**
 (no registry ancestor; authored from stance vocabulary). Review its voice + output shape at execution.
 
-### 目标
+### Objective
 Author `chimera-lens-state-collision` (net-new) and `chimera-lens-agentic-illusion` skills.
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - **State Collision — author fresh** from `user_profile.j2:12-13` "State Overwrite" (resolve
   conflicting info without naive superposition) + "Cognitive Inertia" (evidence threshold to
   revise embedded belief) + `memory_physics` "overwrites" (`schemas.py:192`). Operationalize as a
@@ -161,27 +161,27 @@ Author `chimera-lens-state-collision` (net-new) and `chimera-lens-agentic-illusi
   Agentic Illusion targets **architectural** illusion (is the agent real?). Keep `description:`
   triggers distinct so auto-select doesn't fire both on the same axis.
 
-### 任务范围
+### Task scope
 1. `.claude/skills/chimera-lens-state-collision/SKILL.md` (~60 lines). Audit ref: Q3.
 2. `.claude/skills/chimera-lens-agentic-illusion/SKILL.md` (~60 lines). Audit ref: Q4.
 
-### 验收
+### Acceptance
 - Auto-select `description:` — State Collision → memory/state/multi-turn-agent papers; Agentic
   Illusion → agent/autonomous-loop papers. Triggers do not collide with Forensic.
 - Both reference the falsifiability fragment.
 - Agentic Illusion emits an explicit plumbing verdict (real loop vs one-shot API call).
 - State Collision emits a conflict-resolution + inertia-threshold analysis (mechanism + evidence + falsifiability).
 
-### 红线
+### Red lines
 - ❌ Pure prompt skills — no tools, no MCP changes (phase-wide).
 - ❌ State Collision must not silently duplicate Thermodynamic (**decay ≠ collision**).
 - ❌ Agentic Illusion must not duplicate `bb-persona`'s restyle role — it is an ANALYSIS lens
   with structured output, not a tone filter over the final answer.
-- ❌ Pure English only. 不进行机会主义重构。
+- ❌ Pure English only. No opportunistic refactoring.
 
-### 输出位置
-- 技能: `.claude/skills/chimera-lens-state-collision/`, `.claude/skills/chimera-lens-agentic-illusion/`
-- 文档: 推迟至 seal。
+### Output locations
+- Skills: `.claude/skills/chimera-lens-state-collision/`, `.claude/skills/chimera-lens-agentic-illusion/`
+- Docs: deferred to seal.
 
 ---
 
@@ -195,11 +195,11 @@ Author `chimera-lens-state-collision` (net-new) and `chimera-lens-agentic-illusi
 
 **Risk level:** 🟢 LOW (doc-only). Both port from registry schemas; Ontological's 3→1 consolidation is a moderate design step.
 
-### 目标
+### Objective
 Author `chimera-lens-math-decoration` and `chimera-lens-ontological-map` (the map lens **absorbs**
 `survey_consensus` + `survey_gaps` per Decision 1).
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - **Math Decoration — extraction + judgment.** Port extraction from `math_arch`
   (`core_equations` / `pseudo_code` / `architecture_narrative`, `schemas.py:156-167`) +
   `method_scalpel.j2` Obj 1, then FUSE the validation judgment (**load-bearing vs decorative**)
@@ -211,25 +211,25 @@ Author `chimera-lens-math-decoration` and `chimera-lens-ontological-map` (the ma
   (`future_directions` / technical_void) as **map dimensions**. Add **inter-concept edges** — the
   "map" delta beyond a flat category list. Audit ref: `N.A.0.md` Q6, Decision 1.
 
-### 任务范围
+### Task scope
 1. `.claude/skills/chimera-lens-math-decoration/SKILL.md` (~60 lines). Audit ref: Q5.
 2. `.claude/skills/chimera-lens-ontological-map/SKILL.md` (~70 lines — larger; absorbs 3 registry lenses). Audit ref: Q6.
 
-### 验收
+### Acceptance
 - Math Decoration outputs extraction **plus** an explicit decorative-vs-load-bearing verdict.
 - Ontological Map outputs one consolidated map: axes + categories + bottlenecks + gaps + inter-concept edges.
 - Auto-select `description:` — Math Decoration → any modeling/algorithm paper; Ontological → survey/review/position papers.
 - Both reference the falsifiability fragment.
 
-### 红线
+### Red lines
 - ❌ Pure prompt skills — no tools, no MCP changes (phase-wide).
 - ❌ Ontological Map produces ONE consolidated map, not three separate survey outputs.
 - ❌ Math Decoration must ADD judgment, not merely re-extract what `math_arch` already extracts.
-- ❌ Pure English only. 不进行机会主义重构。
+- ❌ Pure English only. No opportunistic refactoring.
 
-### 输出位置
-- 技能: `.claude/skills/chimera-lens-math-decoration/`, `.claude/skills/chimera-lens-ontological-map/`
-- 文档: 推迟至 seal。
+### Output locations
+- Skills: `.claude/skills/chimera-lens-math-decoration/`, `.claude/skills/chimera-lens-ontological-map/`
+- Docs: deferred to seal.
 
 ---
 
@@ -244,11 +244,11 @@ Author `chimera-lens-math-decoration` and `chimera-lens-ontological-map` (the ma
 **Risk level:** 🟡 MED (doc-only, elevated **design** risk) — net-new always-on behavior; the
 trigger/relevance gate is the real risk (proactive without being noisy). Review behavior at execution.
 
-### 目标
+### Objective
 Author an always-on `chimera-academic-observe` skill that proactively surfaces connections between
 the current work and vault knowledge nodes, unprompted, without noise.
 
-### 设计要点(audit-derived)
+### Design notes (audit-derived)
 - **Always-on pattern from `bb-persona`** — universal trigger phrasing in `description:`
   ("Activate whenever…") + a body that acts on relevant research outputs. Audit ref: `N.A.0.md` Q7.
 - **Connection-surfacing via existing vault tools (zero MCP changes)** — `obsidian_graph_query`
@@ -261,24 +261,24 @@ the current work and vault knowledge nodes, unprompted, without noise.
   the current paper/topic; define an explicit relevance threshold in the body so it does not fire
   every turn.
 
-### 任务范围
+### Task scope
 1. `.claude/skills/chimera-academic-observe/SKILL.md` (~70 lines). Audit ref: Q7 / Q8.
 
-### 验收 (sealing condition 3)
+### Acceptance (sealing condition 3)
 - In a live research conversation, proactively surfaces a genuine vault-node connection **without
   being asked**, via `obsidian_graph_query` / `vault_query`.
 - Does NOT fire on irrelevant turns (relevance gate holds) — spot-check on an unrelated turn.
 - Registered always-on in the `CLAUDE.md` skills list.
 
-### 红线
+### Red lines
 - ❌ Pure prompt skill — **NO new MCP tools**; uses existing vault tools only (phase-wide red line).
 - ❌ Must not spam — the relevance gate is mandatory.
 - ❌ Must not duplicate `bb-persona` — observe SURFACES connections; bb STYLES the verdict. Different jobs.
-- ❌ Pure English only. 不进行机会主义重构。
+- ❌ Pure English only. No opportunistic refactoring.
 
-### 输出位置
-- 技能: `.claude/skills/chimera-academic-observe/`
-- 文档: `CLAUDE.md` skills list (always-on registration) — 于 seal 统一更新。
+### Output locations
+- Skills: `.claude/skills/chimera-academic-observe/`
+- Docs: `CLAUDE.md` skills list (always-on registration) — deferred to seal, updated together.
 
 ---
 
@@ -292,7 +292,7 @@ Apply across ALL sprints. Violation in any sprint halts the batch:
 - ❌ **Falsifiability is mandatory** in every lens output (via `_shared/falsifiability.md` or inline+SYNC).
 - ❌ **Pure English** in all skill files.
 - ❌ **Lenses are trigger-based; only `academic-observe` is always-on.**
-- ❌ 不进行机会主义重构 across the batch.
+- ❌ No opportunistic refactoring across the batch.
 
 ---
 

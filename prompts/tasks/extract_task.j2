@@ -1,0 +1,15 @@
+Extract ONE Knowledge node from the paper below, as JSON matching this schema:
+
+{{ json_schema }}
+
+Produce: a `title`; a `synthesis` (`bb_analysis` + `mechanism` + `algorithm_steps`); ONE `lens`
+selected by the paper's FUNCTION (`lens_name` + `triggered_by` + `findings` + `verdict`); an
+`attack` (`vectors` + `beat_baseline` + `exploit_flaw`); and 1-5 disciplined `claims` — each with
+a mechanism `statement` (no numbers), a `falsification`, grounded `sources` as `{quote, location}`,
+a `status` (+ optional `status_note`), `tags`, and any functional-defect `flags`. Apply the
+selected lens's discipline to its findings. Do NOT emit vault edges or any Insight/Thought/Decision
+content.
+
+--- PAPER: {{ paper.title }} ---
+
+{{ paper.raw_text }}

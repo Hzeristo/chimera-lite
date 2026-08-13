@@ -13,17 +13,17 @@ Sprint FC.1: `schemas.py` + `vault_tools.py` + `agent.py` (~65 lines, 3 files). 
 </rule>
 
 <rule id="red_line_format">
-**Statement:** Every sprint prompt has ≥ 3 explicit 红线 prohibitions.
+**Statement:** Every sprint prompt has ≥ 3 explicit red-line prohibitions.
 
 **Bad:**
 "Sprint: Add web_search telemetry."
-(No 红线 — agent may refactor unrelated code.)
+(No red lines — agent may refactor unrelated code.)
 
 **Good:**
-红线:
-- ❌ 不修改 web_search.py 执行逻辑
-- ❌ 不引入新 SSE 事件类型
-- ❌ 不改变 ToolRegistry 对外接口
+Red lines:
+- ❌ Do not modify web_search.py execution logic
+- ❌ Do not introduce new SSE event types
+- ❌ Do not change ToolRegistry's external interface
 </rule>
 
 <rule id="partial_triage">

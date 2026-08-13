@@ -2,14 +2,14 @@
 
 Personal research OS for one user. Not a framework. Not SaaS.
 
-> **Last sealed:** Phase N.A — Lens Skills (6 lenses + academic-observe) — 2026-07-06
-> **Active:** Phase O — Exocortex Write Surface (O.0 audit pending) — unblocks the deferred Phase N.B
+> **SEALED:** Phase Q — Quiddity: Disciplined Knowledge Extraction — reopened 2026-07-10 (`friction-260710-02`: `extract_paper` had drifted to **atomic-claim dumps**) and **RE-SEALED (Functionally) 2026-07-13** after the output-shape rebuild, validated end-to-end on a real paper (STALE, arXiv 2605.06527): the full reading arc (**motivation → contribution → mechanism/steps → results**) + **hybrid function-selected lenses** (1-2, a 2nd only on hybrid detection) + citation-grounded edges, single-sourced lens methodology in `prompts/lenses/*.md` (`friction-260710-03`). Verdict: `docs/sprints/phase-Q/phase-reseal.md` (supersedes the 2026-07-10 functional seal, `phase-review.md`). (Phase N truncated 2026-07-09; Phase O sealed 2026-07-08.)
+> **Open follow-ups (not blockers):** `friction-260710-01` (ingest triage tunability), `friction-260709-01`'s ambient half, `DEBT-016` (5 missing-markdown papers), `DEBT-017` (re-extraction supersede idempotency).
 
 ---
 
 ## Sealed Phases
 
-### Phase N.A — Lens Skills ✅ Sealed 2026-07-06
+### Phase N.A — Noesis: Lens Skills ✅ Sealed 2026-07-06
 
 **First phase post-migration.** Crystallized the 6 research-analysis lenses (project_chimera's
 `OpticsService` prompts) as Claude Code **skills** + the always-on `chimera-academic-observe`.
@@ -47,7 +47,7 @@ by this phase; the lens skills now exist natively.
 
 ---
 
-### Phase M — Chimera Lite Migration ✅ Sealed (full seal) 2026-07-03
+### Phase M — Migration: The Chimera Lite Port ✅ Sealed (full seal) 2026-07-03
 
 **First phase of the chimera-lite repo.** Migrated project_chimera (oligo agent +
 Astrocyte) onto Claude Code + MCP. See `docs/phases/phase-M.md`, `docs/plans/Phase-M-batch.md`,
@@ -242,9 +242,60 @@ final incident (headless-spawn hang) was fixed and Test 2 ran clean.
 
 ---
 
-## Active Phase
+## Just Sealed
 
-### Phase O — Exocortex Write Surface 🔬 Active (opened 2026-07-07)
+### Phase L.B — Integratio: Tier Integrity + Model Migration + Unified Ascension ⚠️ Functionally Sealed 2026-08-12
+
+**Etymology.** Latin *integrātiō*, from *integrāre* — to make whole again, to restore; from
+*integer*, "untouched, intact" (*in-* + *tangere*, to touch). The same root as *integrity*. The
+system arrived at L.B fractured three ways — tier overloaded, judgment split across two
+substrates, `Knowledge/` writable from several paths — and L.B restores it to one piece.
+`chimera_tier` integrity is the word taken literally: a tier marker no path can touch out of band.
+The name earned itself at seal, and precisely: the phase's last act was closing the one remaining
+sideways route into the committed tier.
+
+**Sealed** (`docs/audits/phase-L.B-seal-review.md`): 7 of 7 sprints Pass, all 7 red lines Held,
+all 5 hard sealing conditions met with **no exclusions**. 1 Accepted Partial (L.B.6.1),
+2 Technical Debt items (DEBT-022, DEBT-023).
+
+**This supersedes the 2026-07-21 seal**, which was reported green and was not. That verdict was
+produced against an unmerged worktree via in-process imports, so the live client was never
+exercised; when it finally was, two judgment workers had been dead for three weeks, a resolver
+could not read a paper its own triage had filed, and the verifier guarding the phase's central
+invariant was testing a substring. The retraction is stamped on
+`docs/sprints/phase-L.B/L.B.6.md`; the defect class is `docs/logs/friction-260811.md`.
+
+| Sprint | One-line goal | Status |
+|---|---|---|
+| L.B.0 | Workflow-drift audit (`docs/audits/workflow-drift-audit.md`) | ✅ Complete |
+| L.B.1 | `chimera_tier` origin/depth axis + status lifecycle (fixes C-1) | ✅ Complete (`4616474`) |
+| L.B.2 | Externalize judgment out of the MCP server → pinned subagents | ✅ Complete (`608c1a7`, `37619ca`) |
+| L.B.3 | `ascend_node` — sole structural writer of `Knowledge/` | ✅ Complete (`67cba2c`), **repaired in-review** (`48786a0`, `2b72978`) |
+| L.B.4 | K node lifecycle integration (W1 offer, tier in query results) | ✅ Complete |
+| L.B.5 | Living architecture diagram, generated from source | ✅ Complete (`a37b94d`, `3129b76`) |
+| L.B.6 | Verify + Rebuild: five-path e2e, fix in-sprint before seal | ✅ Complete (`3dd58a8`) — original seal retracted, re-run live 2026-08-10/12 |
+
+**Hard sealing conditions (all met):** (1) scout vs deep_read machine-distinguishable ✅;
+(2) no deepseek in either judgment path — stronger than written, neither module calls any LLM ✅;
+(3) `ascend_node` the only path into `Knowledge/` ✅ *(false at review; repaired, and the R3
+verifier is now negative-controlled — it returns VIOLATED against the pre-fix source)*;
+(4) architecture diagram generated from code and matching reality ✅; (5) five components
+end-to-end on real fixtures, live client, one session ✅.
+
+**Findings carried out of the phase — recorded, not waived:** I0.4 is contradicted by the sealed
+path (`_unlink_superseded` deletes superseded committed nodes; `ENFORCEMENT_DEBT` D-1(b), homed to
+Phase H); three verifiers were found guarding nothing, all returning PASS (R2, R3, R6 — rewritten);
+and server-side changes are invisible to a running MCP server (DEBT-023).
+
+---
+
+### Phase O — Ousia: Exocortex Write Surface ✅ Sealed 2026-07-08
+
+**Sealed** (`docs/sprints/phase-O/phase-review.md`): `create_node` / `link_nodes` / `apply_link_patch`
+are live on chimera-vault (staging → review → apply, never auto-promote); the K/T/I/D typed-edge
+vocabulary is authored in `docs/ARCHITECTURE/NODE_ONTOLOGY.md`; and the vault graph reached **20
+participating nodes** (HSC 3), which unblocks Phase N.B. All 5 sprints Pass, all 3 HSC Pass, 1 Accepted
+Partial (server.py 225 > 200 lines — thin-adapter spirit held).
 
 **The write-path phase the N.B.0 audit demanded.** N.B was deferred because the vault's typed
 K/T/I/D graph is empty (`docs/audits/N.B.0.md`), and the root cause is the write path: no tools
@@ -256,15 +307,15 @@ typed edges; PaperMiner writes only K Nodes, so T/I/D + edges are manual with no
 
 | Sprint | One-line goal | Status |
 |---|---|---|
-| O.0 | Audit: what write ops exist (PaperMiner K-Node creation), what's missing (T/I/D + typed-edge fill), Obsidian MCP capabilities | Pending |
-| O.1 | `create_node(type, title, body, edges)` → writes K/T/I/D with frontmatter + typed edges (returns staging path) | Pending |
-| O.2 | `link_nodes(from, to, edge_type)` → adds `derives_from` / `synthesizes` / `contradicts` to existing nodes | Pending |
-| O.3 | Obsidian MCP integration: adapt a market MCP if one exists, else a minimal file-write tool | Pending |
+| O.0 | Audit (`docs/audits/O.0.md`) | ✅ Complete |
+| O.1 | `create_node` — K/T/I/D + typed edges → staging (split O.1a NODE_ONTOLOGY authority + O.1b tool) | ✅ Complete (`dac1629`, `caccd52`) |
+| O.2 | `link_nodes` + `apply_link_patch` — reviewed typed-edge links (stage-a-patch; O.2a/O.2b) | ✅ Complete (`c8a4b7f`, `d4659d9`) |
+| O.3 | Obsidian-MCP dependency-veto (Option C) + HSC-3 seal seed | ✅ Complete (`5caceaa`) |
 
-**Hard sealing conditions:** (1) `create_node` writes all 4 types (K/T/I/D) with typed edges in
-frontmatter; (2) `link_nodes` adds `derives_from` / `synthesizes` edges to existing nodes; (3) after
-O.3, manually create 5 T Nodes + 10 typed edges → vault probe confirms ≥ 20 nodes with typed edges
-(the N.B unblock threshold).
+**Hard sealing conditions (all met at seal):** (1) `create_node` writes all 4 types (K/T/I/D) with
+typed edges ✅; (2) `link_nodes` adds edges to existing nodes ✅; (3) the vault graph reaches ≥ 20
+**participating** nodes (source ∪ target — the metric was corrected from origin-count to match N.B's
+bidirectional traversal) ✅, via `scripts/seed_hsc3.py probe` = 20.
 
 **Red lines / design:** thin adapter (tools write markdown, don't embed Obsidian); reuse the Phase
 V.A K/T/I/D frontmatter schema (already defined); `create_node` returns a staging path for user
@@ -276,9 +327,62 @@ sprints are batch-planned — `chimera-sprint-discipline` enforces audit-before-
 
 ---
 
-## Deferred Phase
+## Active Phase
 
-### Phase N.B — JIT Deep Recall ⏸ Deferred 2026-07-07 (blocked on graph population)
+**None** — Phase L.C functionally sealed 2026-08-12. Next in the backward arc is **Phase K**
+(`docs/phases/phase-K.md`, Queued), which inherits three things L.C deliberately did not fix:
+node-level provenance for applied edges (D5's known limit), the monotonicity gate that would read
+L.C's `evidence_base` edges (R5b), and the `depends_on` → support rename pinned to K.1 (D-4).
+
+**Before K, two Architect-owed items close L.C's open conditions** — one authoring session
+(condition 4) and three research sessions with friction re-measured against
+`docs/audits/L.C.1-friction-baseline.md` (condition 7, the VISION gate).
+
+> **Note (2026-08-12):** this file lags the build. Phases L, L.B, Q, K and the codename motif
+> (`docs/phases/CODENAMES.md`) are recorded in their phase docs but not fully reflected here —
+> the ROADMAP-sync item CODENAMES.md lists as open. The L.B entry above is written to the current
+> convention (`Phase X — Codename: subtitle`); earlier entries still use the old descriptive
+> headers.
+
+**Two named blockers** gate any resumed advanced-retrieval work:
+- **Agentic defect** — the vault is absent from the agentic loop; the always-active observer never fires
+  (`friction-260709-01`). The consumer retrieval was missing is a vault-grounded reading loop (Architect's
+  preference: a forked subagent over the vault MCP methods).
+- **ARA-styled node population** — the vault graph is wide-and-shallow; it needs deep structured nodes
+  (ARA workflow-graph style, arXiv 2605.02651) before multi-hop recall has anything to traverse
+  (`friction-260708-01`; Phase O's write surface is the tooling for this).
+
+### Phase N — Noesis: Lens Skills + JIT Deep Recall ⚠️✅ SEALED / TRUNCATED 2026-07-09
+
+Verdict: `docs/sprints/phase-N/phase-review.md`.
+- **N.A — Lens Skills** ✅ Sealed 2026-07-06 — 6 `chimera-lens-*` skills + `chimera-academic-observe`,
+  pure prompt skills, zero MCP changes, 3 HSC met. HSC-3's proactive observer is re-opened as a *usage*
+  defect (`friction-260709-01`): it passed its build test but never fires under real reading load.
+- **N.B — JIT Deep Recall** ⛔ Cancelled pre-execution (never batch-planned; `deep_recall` = 0 code).
+  Cause: no adequate typed edges / no path for deep recall (`docs/audits/N.B.0.md` + `N.B.0-reaudit.md`)
+  and the vault absent from the loop (`friction-260709-01`). The interim disposition-A rescope was
+  superseded by this cancellation. **Lesson:** retrieval is downstream of a loop that retrieves and a
+  graph worth retrieving from — N.B built neither. Phase O's write surface survives its stated purpose
+  (it is the tooling for ARA-node population).
+
+<details><summary>⤵ Retired lineage — pre-truncation N.B context (kept for history; superseded by the verdict above)</summary>
+
+### Phase N.B — Noesis: JIT Deep Recall ▶ Rescoped 2026-07-09 (Architect disposition A — enhancement, not new tool)
+
+**Rescoped 2026-07-09 (Architect disposition A).** The post-O re-audit (`docs/audits/N.B.0-reaudit.md`)
+re-measured the graph: the ≥ 20-participation **count** gate is met, but the **structural depth** gate is
+not — the typed graph is 5 disjoint 1-hop stars (0 shared papers, directional BFS depth 1), so a typed
+multi-hop `deep_recall` has nothing to traverse. The Architect selected **Option A**: ship N.B as an
+*enhancement* to the existing `obsidian_graph_query` — add `edge_types` (typed filter), `edge_from`/`hops`
+provenance, and an optional `bidirectional` flag (which unlocks the one real depth-2 structure: the
+`paper → thought → sibling papers` co-citation 2-hop). **No new `deep_recall` tool; `.mcp.json` stays 2.**
+The rescoped mission / sprints / HSC live in `docs/audits/N.B.0-reaudit.md` §Disposition and supersede the
+original spec. Deepening the graph for true typed multi-hop is **Option B / write-path work** (`friction-260708-01`,
+stays OPEN; Architect-authored phasing). N.B batch-planning is now unblocked. Original deferral context retained below.
+
+**Prior unblock note (2026-07-08, superseded by the rescope above).** Phase O built the write surface and
+grew the vault to 20 participating K/T/I/D nodes — real, but a width measure; the re-audit showed it did
+not deliver the depth HSC 1 assumed.
 
 **Deferred at N.B.0 — the audit gate failed.** The phase specs `deep_recall` to BFS over typed
 K/T/I/D edges, but the N.B.0 audit (`docs/audits/N.B.0.md`, `3f621a8`) found the live vault has
@@ -298,16 +402,17 @@ vector store / embeddings. Spec: `docs/phases/phase-N.B.md`.
 complex multi-hop queries need 5+ tool calls (slow + context bloat); the K/T/I/D typed edges
 (`derives_from` / `synthesizes` / `contradicts`) go untraversed.
 
-| Sprint | One-line goal | Status |
+| Sprint | Rescoped goal (disposition A) | Status |
 |---|---|---|
-| N.B.0 | Audit: existing graph traversal, ripgrep seeds, K/T/I/D schema, realistic BFS depth | ✅ Complete — gate FAILED (`3f621a8`) |
-| N.B.1 | `deep_recall(...)` → structured subgraph; BFS over `derives_from` / `synthesizes` / `contradicts` | ⏸ Blocked (empty graph) |
-| N.B.2 | Verify: a complex 3-hop query synthesized from the subgraph (not raw keyword match) | ⏸ Blocked (empty graph) |
+| N.B.0 | Audit + post-O re-audit | ✅ Complete — count gate met, depth gate not (`docs/audits/N.B.0-reaudit.md`) |
+| N.B.1 | Add `edge_types` / `edge_from`+`hops` provenance / `bidirectional` params to **`obsidian_graph_query`** (no new tool; thin adapter) | ▶ Ready to batch-plan (rescoped 2026-07-09) |
+| N.B.2 | Verify: paper-seeded, typed-filtered, bidirectional query → co-citation subgraph with provenance ≤ `max_nodes`, synthesized in one call | ▶ Ready to batch-plan (rescoped 2026-07-09) |
 
-**Hard sealing conditions (unchanged; currently unsatisfiable):** (1) `deep_recall` on "memory
-decay graph-based deletion" returns K/T/I nodes spanning ≥ 2 hop depths; (2) result subgraph
-≤ 20 nodes (bounded BFS); (3) Claude synthesizes a coherent multi-hop answer without additional
-vault calls.
+**Hard sealing conditions (rescoped 2026-07-09 — original "≥ 2 typed hop depths" withdrawn as
+structurally unreachable per RE-Q4):** (1) `obsidian_graph_query` accepts `edge_types` and returns per-row
+`edge_from` + `hops`, verified live; (2) opt-in `bidirectional` surfaces the `paper → thought → sibling
+papers` co-citation 2-hop, bounded ≤ `max_nodes`; (3) Claude synthesizes a multi-hop answer from the single
+enhanced call, no additional vault calls. Full text: `docs/audits/N.B.0-reaudit.md` §Disposition.
 
 **Unblock condition:** ≥ 20 live nodes carry non-empty typed `graph_edges` pointing to other
 knowledge nodes (the N.B.0 gate threshold). Reaching it is **write-path work**, now scoped as the
@@ -316,9 +421,116 @@ and fill typed edges. N.B resumes once Phase O's HSC 3 confirms ≥ 20 nodes wit
 N.B.1/N.B.2 disposition (typed-edge BFS as written vs. a rescope to body-wikilink recall) is
 re-decided then. Batch-planning of N.B is **held** until then.
 
+</details>
+
 ---
 
 ## Queued
+
+**Execution order: L.C → K → I → H.** These four are the backward arc — refactors that reach
+back and restructure the foundation rather than adding capability, which is why their letters
+descend from the M pivot. Register is epistemology throughout: *is what we hold faithfully
+held?* Naming grammar and the full ledger: `docs/phases/CODENAMES.md`.
+
+### Phase L.C — Colligo: Candidate Consumption Paths ⚠️ Functionally Sealed 2026-08-12
+**Status:** Functionally sealed. Spec: `docs/phases/phase-L.C.md` · Seal review:
+`docs/audits/phase-L.C-seal-review.md`.
+
+**Etymology.** Latin *colligō* — to bind together, to infer; Whewell's term for the moment scattered
+observations bind into a principle. The phase binds candidate material (W1/extract output) into
+committed artifacts. It earned the name at the narrow end: the binding operation route 3 was
+supposed to have — `PENDING_REVIEW → PROMOTED` — was declared in `phase-L.md:139-142` and
+implemented nowhere, so every harness artifact ever produced had sat unbound since it was written.
+
+**Sealed:** 8 of 8 sprints executed (C.1, C.2, C.3a/b/c, C.4a/b, C.5, C.6); 19 commits; 241 tests.
+**4 of 7 hard conditions met, 1 partial, 2 open and Architect-owed** — condition 4 (a real authoring
+session proposes and applies an `informed_by` edge) and condition 7 (the VISION gate: three research
+sessions with friction re-measured). Both are longitudinal; neither can be produced by a build
+session, which is why this is a *functional* seal and not a green one.
+
+**What it bought.** I1.4 got an observable (it was one of eight canonical invariants with no
+verifier). Route 3 got its terminal operation. I0.5's provenance mandate got a mechanism — D-3
+discharged; `informed_by` was canonical and unemittable. Mid-read verification got a substrate the
+harness supplies, after the probe proved a detached subagent can spawn its own judgment worker,
+which `TaskService` structurally never could.
+
+**The measurement that inverted its own diagnosis.** "The Architect does not fill edges by hand" was
+false — 5 of 6 T-nodes carry 15 `derives_from` links. What is never filled is `informed_by`, the one
+key absent from `Tpl_thought.md`. **Template presence predicts edge population**, making a one-line
+template change, not a skill, the intervention most likely to move the number.
+
+**New debt:** D-8 — a newly authored agent/skill is unreachable for the turn that authors it, and no
+in-process test can assert the live registry (`friction-260811-01` instance 4).
+**Etymology:** Latin *colligō* — to bind together, to infer. Whewell's term for the cognitive
+moment scattered observations bind into a principle. Here: binding candidate material (W1 /
+extract outputs) into committed artifacts.
+
+Research is not batch. A claim spotted mid-read wants immediate verification, and the verdict
+shapes the rest of the read. L builds the generators; L.C builds the glue that makes their
+outputs immediately consumable — no context switch, no manual wiring, **no route privileged over
+another** (I1.4). The three consumption routes must carry equal friction: (1) read a paper, write
+a T-node, zero AI; (2) read original + AI outputs, author T/I informed by both; (3) review [V]
+claims, batch-promote. Also establishes proof-graph normal form. Breadth at scale is L.C+ scope
+per L.B's seal definition.
+
+### Phase K — Katalepsis: Structural Provenance
+**Status:** Queued (builds on Phase L outputs; executes after L.C). Spec: `docs/phases/phase-K.md`.
+**Etymology:** the Stoic *kataleptic impression* — a grasp whose structure guarantees its truth;
+the criterion dividing knowledge from opinion.
+
+Makes provenance **load-bearing rather than advisory**. Driving frictions are two confessions:
+the agent flagged claims `[U]` and then reasoned with them as `[V]` ("worse than not flagging,
+because it performs rigor"), and it inherited the authors' framing of a number it had already
+doubted. Every provenance layer built so far — `ai-suggested`, `[V]/[P]/[U]`, `grounded` — assumes
+the agent respects its own flags. Directly owns **ENFORCEMENT_DEBT R5b**: monotonicity (I0.2) is a
+stated target whose enforcing code does not exist, so a well-formed `[V]` resting on a `[U]`
+dependency is currently accepted.
+
+### Phase I — Isostheneia: Adversarial Dialogue Lifecycle
+**Status:** Queued (after Phase K). Spec: `docs/phases/phase-I.md`.
+**Etymology** (recorded 2026-08-12 — `phase-I.md` VISION, Architect-directed): *Isostheneia*
+(ἰσοσθένεια, **Pyrrhonist**) — equal force. Two opposed arguments held at strengths so evenly
+matched that assent cannot be compelled. Chimera does not want permanent suspension; it wants
+suspension to be the **default state that only evidence, and only the Architect (I0.1), may end**.
+
+**The failure taxonomy** — one precondition, three breakages, two of them opposite errors:
+deviation/pass@k is the *precondition* (no sampling diversity → isostheneia unreachable **by
+construction**); **entropy collapse** is its loss (one side beats the other before the evidence
+warrants); **premature stopping** is its counterfeit (balance that was never contested — the
+theater form, and by the north star negative value); **sycophancy** breaks it *toward the
+Architect*, the third party whose preference weights one pan invisibly. Collapse and stalling are
+opposite failures, so instrumenting only one produces the other. Sharpest probe: a
+**preference-swap re-run** — invert the Architect's apparent preference and see whether the
+settlement follows the operator or the evidence.
+
+These are general auto-research-harness failures, not Chimera's: multi-agent debate,
+self-consistency, and LLM-as-judge ensembles all assume a diversity they never measure and date a
+convergence they never justify.
+
+Lifecycle-managed adversarial reasoning: opposing framings maintained at equal force until the
+Architect settles. Every round committed to the vault, codex audits every session, the harness
+monitors collapse — but humans decide when to stop. The structural answer to a single-framing
+agent that agrees with whichever side it read last.
+
+### Phase H — Hypostasis: Structured Primary Evidence
+**Status:** Queued (executes after Phase I). Spec: `docs/phases/phase-H.md`.
+**Etymology** (recorded — `phase-H.md:30-33`): *Hypostasis* (ὑπόστασις, **Neoplatonist**) — the
+concrete substrate that gives abstract logos its specific existence. **A table number is the
+hypostasis of the claim "method X achieves Y"** — the concrete realization without which the claim
+is mere abstraction. That analogy is the phase: MinerU produces prose, W1 verifies claims against
+prose, and the Tier-1 warrant the framework promises (table entries, equation variable
+definitions, arXiv metadata) does not yet exist as machine-readable structured data — it exists as
+strings like `"60.353.468.0"`, where three numbers lost their column context. Phase H materializes
+Tier 1.
+
+The substrate: reliable extraction of table-level primary evidence. **Dependency tension recorded
+in its own spec** — H is substrate *to* K, since K's monotonicity guarantees rest on W1 verdicts
+whose `[V]` tags anchor on table evidence. Running K first risks katalepsis over akataleptic
+input, the precise failure K exists to prevent; the order was chosen anyway because K needs codex
+(acquisition-gated). Also the unhomed owner of **ENFORCEMENT_DEBT D-1** — provenance decay (I0.4)
+unimplemented, and supersession currently implemented as deletion, which I0.4 forbids outright.
+
+---
 
 ### Phase V — Exocortex & Memory
 - K/T/I/D node ontology (Knowledge / Thought / Insight / Decision)

@@ -23,19 +23,25 @@ Ask user for Q list approval (one round of clarification permitted).
 </step>
 
 <step n="3">
-Read every in-scope file in full.
+SCOUT FIRST, then read only what the scout selects (R1 + R3 — mandatory, not
+opportunistic; Phase H.0 did this ad-hoc, it is now the process). Do NOT read the
+whole in-scope tree up front — that is the Opus overspend this step exists to remove.
 
-Fan out the repo-wide pattern scans: one Haiku scout PER audit question (from
-step 2), spawned in parallel — not one scout for everything.
+3a. Fan out one `chimera-repo-scout` (pinned Haiku — model bound in the agent def,
+    never a call-site param) PER audit question from step 2, spawned in parallel — not
+    one scout for everything. Each scout receives a spec:
+      { question_id, question, file_globs: [...], patterns: [...] }
+    and returns ONLY:
+      { question_id, files: [<paths worth reading in full>],
+        hits: [ { file, line, snippet } ], line_counts: { <path>: <int> },
+        risk: "Low|Med|High" }
+    Dedup before forking: group questions that share file_globs so the same files are
+    not re-scanned by multiple scouts.
 
-Each scout receives a spec:
-  { question_id, question, file_globs: [...], patterns: [...] }
-Each scout returns ONLY:
-  { question_id, hits: [ { file, line, snippet } ], risk: "Low|Med|High" }
-
-Dedup before forking: group questions that share file_globs so the same files
-are not re-scanned by multiple scouts. The main session synthesizes hits into
-step-4 answers — scout output is evidence, never the verdict.
+3b. The main (Opus) session reads IN FULL only the union of the scouts' `files` sets —
+    never the whole in-scope tree (R3 context surgery). The scout hits are the evidence
+    base; the audit synthesizes them into step-4 answers. Scout output is evidence,
+    never the verdict.
 </step>
 
 <step n="4">

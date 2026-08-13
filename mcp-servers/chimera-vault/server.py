@@ -9,8 +9,10 @@ tool bodies (``vault_tools`` / ``vault_query`` for reads; ``StagingService`` for
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
+from typing import Literal
 
 # The shared domain package (core/, ports/) lives under the sibling papers server.
 # Put it on sys.path so this server can import core.config + the VaultReadAdapter.
@@ -32,7 +34,14 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
 )
 
-mcp = FastMCP("chimera-vault")
+# Cross-tool invariant, carried ONCE at server level instead of restated in every docstring
+# (chimera-mcp-taste `contract_surface`). Per-tool docstrings state only their own contract.
+_INSTRUCTIONS = (
+    "Primitives only. No tool returns a verdict or makes a judgment. "
+    "Judgment lives in Claude Code skills, never in a tool call."
+)
+
+mcp = FastMCP("chimera-vault", instructions=_INSTRUCTIONS)
 
 _adapter_ready = False
 
@@ -67,8 +76,10 @@ async def search_vault_attribute(key: str, value: str, top_k: int = 5) -> str:
     """Search the vault by YAML frontmatter (key must exist; value matched as substring).
 
     Args:
-        key: Frontmatter field name (e.g. ``type``, ``tags``).
-        value: Substring to find within that field's value.
+        key: Frontmatter field name (e.g. ``type``, ``chimera_tier``, ``tags``).
+        value: Substring to find within that field's value. For ``type`` the values are
+            ``knowledge`` / ``thought`` / ``insight`` / ``decision``; for ``chimera_tier``,
+            ``scout`` / ``deep_read`` / ``harness_candidate`` / ``synthesis``.
         top_k: Maximum hits (default 5).
     """
     _ensure_adapter()
@@ -84,6 +95,36 @@ async def read_vault_file(path: str) -> str:
     """
     _ensure_adapter()
     return await vault_tools.read_vault_file(path)
+
+
+@mcp.tool()
+async def load_criteria(type: str, role: str, field: str | None = None) -> str:
+    """Compose the runtime criteria matrix for a research-harness subagent (W1/W2 etc).
+
+    Reads up to four vault files under ``criteria/`` and concatenates them, IN THIS EXACT
+    ORDER — capability axes always load before disposition axes:
+
+        1. ``criteria/type/{type}.md``           (capability — verification shape)
+        2. ``criteria/field/{field}.md``         (capability — domain taste; only if field given)
+        3. ``criteria/disposition/{role}.md``    (disposition — anti-bias posture)
+        4. ``criteria/disposition/_general.md``  (disposition — anti-early-stop / graded-confidence)
+
+    This order is load-bearing: capability criteria establish what "verified" even means for
+    this paper type/field before the disposition axes bias how the subagent should carry
+    itself while verifying. Because criteria live in the vault (not in code), editing a file
+    in Obsidian changes subagent behavior on the very next run — no commit required. A missing
+    file is never fabricated; it is replaced with an explicit
+    ``[no criteria file: criteria/<...>.md]`` marker in its place.
+
+    Args:
+        type: Paper type — the closed 4-class set {benchmark, method, theory, survey}
+            (not hard-validated here).
+        role: Disposition role, e.g. ``paper-critic`` or ``proposal-evaluator``.
+        field: Optional domain/field (e.g. ``nlp``, ``robotics``); an open axis, frequently
+            absent — omit to skip that section entirely.
+    """
+    _ensure_adapter()
+    return await vault_tools.load_criteria(type, role, field=field)
 
 
 @mcp.tool()
@@ -114,6 +155,8 @@ async def vault_query(
     """Ripgrep vault frontmatter for notes matching type, status, or edge target.
 
     Returns title + path + excerpt per match. Requires ripgrep (``rg``) on PATH.
+    Nodes also carry a ``chimera_tier`` origin/depth axis (scout / deep_read /
+    harness_candidate / synthesis) — query it via ``search_vault_attribute``.
 
     Args:
         type: Node type to match (knowledge, thought, insight, decision).
@@ -125,19 +168,27 @@ async def vault_query(
 
 @mcp.tool()
 async def create_node(
-    type: str,
+    type: Literal["knowledge"],
     title: str,
     body: str,
     edges: dict | None = None,
 ) -> str:
-    """Create a K/T/I/D node in the staging area for user review (never auto-promoted).
+    """Create a **Knowledge** node in the staging area for user review (never auto-promoted).
 
     Writes a markdown node with typed ``graph_edges`` frontmatter to ``docs/staging/``
-    and returns the staging path. Promotion into the vault is a separate, explicit step —
-    this tool never writes into the live vault.
+    and returns the staging path. Ascension into the vault is a separate, explicit step
+    (``ascend_node``) — this tool never writes into the live vault.
+
+    **T/I/D are deliberately NOT creatable here (I0.5).** Judgment-type nodes — Thought,
+    Insight, Decision — have Architect-authored bodies; a body supplied through this tool is
+    written by the caller, and the caller of an MCP tool is Claude. Such a node is "illegal,
+    even if promoted". Author them in Obsidian; record any AI output that informed one with
+    an ``informed_by`` edge (I2.2), which documents the tool used and transfers no authorship.
+    The type parameter was narrowed from the K/T/I/D set on 2026-08-11, after the vault showed
+    that every existing T/I/D node had been hand-written and none had ever used this path.
 
     Args:
-        type: Node type — ``knowledge``, ``thought``, ``insight``, or ``decision``.
+        type: Node type — ``knowledge`` only.
         title: Node title (also used to derive the staging filename).
         body: Markdown body of the node.
         edges: Optional typed edges, e.g. ``{"derives_from": ["Some Note"]}``. Keys must be
@@ -151,6 +202,27 @@ async def create_node(
     service = StagingService(config.system.staging_dir, config.require_path("vault_root"))
     path = service.create_staging_node(type=type, title=title, body=body, edges=edges)
     return str(path)
+
+
+@mcp.tool()
+async def ascend_node(staging_path: str) -> str:
+    """Ascend a reviewed deep_read Knowledge node from staging into the committed Knowledge/ tier.
+
+    WHEN: the Architect has reviewed a staged deep_read K node (from the deep-extract flow) and
+    commits it as durable knowledge. WHAT: validates ``chimera_tier == 'deep_read'``, sets status
+    active, writes to ``<vault>/Knowledge/`` (the SOLE code path that writes there), and unlinks any
+    superseded prior. CONTRAST: scout-tier inbox cards are NEVER ascended (they stay in ``inbox/``);
+    T/I/D staging nodes use promote, not this. Grounding-quote verification is deferred to DEBT-018.
+
+    Args:
+        staging_path: Path to the reviewed deep_read K node in ``docs/staging/``.
+    """
+    from core.config import get_config
+    from staging_service import StagingService
+
+    config = get_config()
+    service = StagingService(config.system.staging_dir, config.require_path("vault_root"))
+    return str(service.ascend_node(Path(staging_path)))
 
 
 @mcp.tool()
@@ -219,6 +291,65 @@ async def apply_link_patch(patch_path: str) -> str:
     service = StagingService(config.system.staging_dir, config.require_path("vault_root"))
     target = service.apply_link_patch(Path(patch_path))
     return str(target)
+
+
+@mcp.tool()
+async def write_result(
+    kind: str,
+    identity: str,
+    title: str,
+    body: str,
+    verdict: Literal["V", "P", "U"] | None = None,
+    depends_on: list[str] | None = None,
+    mode: Literal["supersede", "merge", "promote", "reject", "mark_stale"] = "supersede",
+) -> str:
+    """Write a research-harness result artifact into the vault for the Architect's review.
+
+    WHEN: a Phase L W1/W2 workflow has produced a result to persist — a W1 claim verdict
+    ([V]/[P]/[U] + verbatim grounding quotes), or a W2 breadth map. Writes into ``<vault>/Harness/``
+    with a review ``status`` so the Architect curates it in Obsidian (the harness + Obsidian "two
+    curation paths"). This is NOT a K/T/I/D node and is never auto-promoted.
+    WHAT: writes one markdown artifact keyed by ``(kind, identity)``. ``mode`` sets the re-run
+    semantics:
+    - ``supersede`` (default — W1): a re-run REPLACES the artifact; pass ``verdict`` + ``depends_on``
+      so the dependency structure lands in frontmatter (Phase K Gate 1 reads it — never stored bare).
+    - ``merge`` (W2 breadth map): a re-run UNIONS the map by paper key — ADDS new papers, PRESERVES
+      the Architect's in-Obsidian annotations verbatim. W2 renders each paper as a keyed block
+      ``<!-- w2:paper=<id> -->`` so the merge can key on it. Merge never clobbers.
+    - ``promote`` / ``reject`` / ``mark_stale``: status transition on an EXISTING artifact
+      (body untouched) — ``PROMOTED`` / ``REJECTED`` / ``STALE`` respectively.
+
+    Returns a JSON object ``{"path", "merged_added", "merged_skipped", "total"}``. The counts
+    matter on ``merge``: a re-run whose papers are all already mapped reports
+    ``merged_added=0, merged_skipped=<n>`` — the recomputed blocks were DISCARDED (existing
+    blocks win, preserving human annotations), which is otherwise indistinguishable from a
+    successful update.
+
+    Args:
+        kind: Artifact kind, e.g. ``w1_verdict`` / ``w2_breadth_map``.
+        identity: Stable identity — a claim_hash / arxiv_id (W1) or a topic / seed-set slug (W2).
+        title: Human-readable artifact title.
+        body: Markdown body — verdict + quotes (W1), or keyed paper blocks (W2).
+        verdict: For ``w1_verdict`` — the tag ``V`` / ``P`` / ``U``. Enum-typed, so a
+            malformed tag is rejected at the JSON-RPC boundary before this body runs
+            (invariant R5a, tag well-formedness — do NOT widen back to ``str``).
+        depends_on: The claim / quote ids the verdict rests on (C1 — recorded, not just the verdict).
+        mode: ``supersede`` | ``merge`` | ``promote`` | ``reject`` | ``mark_stale``.
+    """
+    from core.config import get_config
+    from result_service import ResultService
+
+    config = get_config()
+    metadata: dict = {}
+    if verdict is not None:
+        metadata["verdict"] = verdict
+    if depends_on is not None:
+        metadata["depends_on"] = depends_on
+    service = ResultService(config.require_path("vault_root") / "Harness")
+    outcome = service.write_result_detailed(
+        kind=kind, identity=identity, title=title, body=body, metadata=metadata or None, mode=mode
+    )
+    return json.dumps(outcome.as_dict())
 
 
 if __name__ == "__main__":

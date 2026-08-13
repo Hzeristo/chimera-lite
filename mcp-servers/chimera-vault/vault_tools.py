@@ -9,6 +9,7 @@ domain package directly.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any, Protocol
 
 
@@ -70,6 +71,58 @@ async def read_vault_file(path: str) -> str:
     except ValueError as e:
         return f"[Tool Error]: read_vault_file invalid path: {e}"
     return f"[File: {p}]\n\n{content}"
+
+
+def compose_criteria(
+    read_file: Callable[[str], str],
+    *,
+    type: str,
+    role: str,
+    field: str | None = None,
+) -> str:
+    """Compose a three-axis criteria matrix (capability, then disposition) from the vault.
+
+    Pure function over an injected ``read_file`` callable so it is trivially unit-testable
+    without a live vault or a full ``ChimeraConfig``. Reads, IN THIS EXACT ORDER (capability
+    axes before disposition axes — order is load-bearing, not cosmetic):
+
+    1. ``criteria/type/{type}.md``           — capability: verification shape for the paper type.
+    2. ``criteria/field/{field}.md``         — capability: domain taste (only if ``field`` given).
+    3. ``criteria/disposition/{role}.md``    — disposition: anti-bias posture for the role.
+    4. ``criteria/disposition/_general.md``  — disposition: anti-early-stop / graded-confidence.
+
+    Any missing file is never fabricated and never raises — it is replaced by an explicit
+    ``[no criteria file: criteria/<...>.md]`` marker so the caller can see what's unauthored.
+    ``field`` is an open, unvalidated axis (frequently absent by design); ``type`` is not
+    validated here either — validation, if any, belongs to the caller.
+
+    Args:
+        read_file: Callable taking a vault-root-relative path, returning its text content,
+            and raising ``FileNotFoundError`` when the path does not exist.
+        type: Paper type (e.g. benchmark, method, theory, survey).
+        role: Disposition role (e.g. paper-critic, proposal-evaluator).
+        field: Optional domain/field name; omitted entirely from composition if ``None``.
+    """
+
+    def _section(header: str, rel_path: str) -> str:
+        try:
+            content = read_file(rel_path)
+        except FileNotFoundError:
+            content = f"[no criteria file: {rel_path}]"
+        return f"{header}\n\n{content}"
+
+    sections = [_section(f"## [type: {type}]", f"criteria/type/{type}.md")]
+    if field is not None:
+        sections.append(_section(f"## [field: {field}]", f"criteria/field/{field}.md"))
+    sections.append(_section(f"## [disposition: {role}]", f"criteria/disposition/{role}.md"))
+    sections.append(
+        _section("## [disposition: _general]", "criteria/disposition/_general.md")
+    )
+    return "\n\n".join(sections)
+
+
+async def load_criteria(type: str, role: str, field: str | None = None) -> str:
+    return compose_criteria(_adapter().read_file, type=type, role=role, field=field)
 
 
 def _format_graph_rows(

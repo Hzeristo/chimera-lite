@@ -47,7 +47,11 @@ async def vault_query(
 
     try:
         proc = await asyncio.create_subprocess_exec(
-            "rg", "--files-with-matches", "-m", "1", "--glob", "*.md",
+            # --crlf: the vault is edited on Windows and by Obsidian, so notes carry mixed line
+            # endings. Without it, `$` cannot match past a trailing \r and every CRLF note is
+            # silently absent from the result — a partial answer with no error
+            # (incident 2026-08-12-vault-query-crlf-silent-truncation).
+            "rg", "--crlf", "--files-with-matches", "-m", "1", "--glob", "*.md",
             rg_pattern, str(vault_root),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.DEVNULL,
@@ -75,7 +79,10 @@ async def vault_query(
             continue
 
         title = fm.get("title") or fm.get("short_moniker") or fm.get("arxiv_id") or path.stem
-        excerpt = f"type={fm.get('type', '?')}  status={fm.get('status', '?')}"
+        excerpt = (
+            f"type={fm.get('type', '?')}  tier={fm.get('chimera_tier', '?')}  "
+            f"status={fm.get('status', '?')}"
+        )
         results.append(f"- {title}\n  {path}\n  {excerpt}")
 
     if not results:
