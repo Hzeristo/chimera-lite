@@ -53,6 +53,7 @@ dates order them rather than expiring them. Only the short "Live status" block a
 | **The box with mismatched walls** | `friction-260722-01` | A render defect that survived repeated render-and-verify passes |
 | **Rules nobody checks** | `friction-260803-01` | Invariants declared in a document with no verifier — the ancestor of `ENFORCEMENT_DEBT.md` |
 | **The green suite that lied** | `friction-260811-01` | "Registered" is an untested surface: components shipped unreachable with a fully green suite |
+| **One idea, four fields** | `friction-260813-01` | A schema whose field descriptions never divide their labour, so the extractor states one point once per field — obediently, four times, on every paper |
 
 ## Incidents — the events *(historical record)*
 

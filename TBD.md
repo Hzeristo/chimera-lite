@@ -6,7 +6,7 @@
 **This file has no authority.** It is a reminder index; every item links to the document that
 actually owns it. If this file and its target disagree, **the target is right** — fix this file.
 
-Last synced: **2026-08-12**, after MemDreamer's ascension.
+Last synced: **2026-08-13**, after the L.D design discussion.
 
 **Vault inventory at that date:** 17 converted papers · **3** Knowledge nodes · 6 W1 verdicts ·
 2 W2 maps · 10 hand-authored T/I nodes · staging empty. The binding constraint is extraction depth,
@@ -71,6 +71,41 @@ doing research — neither can be produced by a build session.
       docs but not fully reflected in `docs/ROADMAP.md` (the file says so itself).
 
 ---
+
+## Decided in design, waiting for Phase L.D
+
+Reached in discussion 2026-08-13 and recorded so the reasoning is not re-derived. `phase-L.D.md`
+does not exist yet; this is input for it, not a plan.
+
+- [ ] **Gaps attach to claims as a thin object — not a parallel section, and not an edge.**
+      Promote `ClaimFlag` from a bare enum to `{kind, statement, what_would_fill_it}`.
+
+      **Why not an edge.** An edge relates two *existing* nodes; a gap is the absence of one, so
+      there is nothing to point at. That is why `dead_ends` has been legal for months and sits at
+      **0** vault-wide, while `flags` — the same information as an attribute — is populated 3 times
+      in a single node. K therefore does **not** need `dead_ends` added, and `_TYPE_EDGES` does not
+      move.
+
+      **Why not a parallel `G01…G0N` section.** A K node is already 203 lines / ~4.4K tokens with
+      claims at 33%. A matching gap section pushes it to ~6K, and five nodes in one query to 30K —
+      "context is the load" inside the vault. The gaps also already attach to specific claims in
+      practice (`suspicious_dependency` on C01, `no_ablation` on C03 and C04).
+
+      **It pays for itself.** Fixing `friction-260813-01` (drop `status_note`, cap titles) frees
+      ~190 words per node — about what the gap fields cost. Net-flat node size.
+
+- [ ] **Still unhoused: the cross-paper gap.** W2 produces "nobody in this subfield does X," which
+      belongs to no single K node and has no home under the above. Deliberately left open — its
+      shape cannot be known until frequency data exists, and frequency is the thing that separates
+      a gap worth recording from noise. Related: a gap seen once is an *observation* (candidate
+      tier); a gap seen across N papers is a *finding* (committed, Architect-promoted) — the same
+      two-clock structure the formal model already uses.
+
+- [ ] **Claim status `[H]/[S]/[R]` and W1's `[V]/[P]/[U]` stay two axes, not one.** Maturity (is
+      this mechanism established?) versus attestation (does the cited text assert it?). They
+      diverge usefully: `[V]` + `[H]` means "the paper says it clearly and has not earned it," and
+      `[U]` + `[S]` is a fabrication alarm. They are also not mappable — W1 has no `refuted`, since
+      `[U]` is absence of evidence rather than evidence of absence.
 
 ## Known-and-deliberate, listed so they are not rediscovered as surprises
 
